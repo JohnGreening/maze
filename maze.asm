@@ -1,0 +1,388 @@
+device ZXSPECTRUMNEXT
+
+org $4000
+
+tileMap:
+DEFS 1280, 1
+
+TilePatterns:
+; Tile000
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+; Tile001
+DB $00,$00,$01,$00,$00,$00,$01,$00,$11,$11,$11,$11,$00,$10,$00,$00
+DB $00,$10,$00,$00,$11,$11,$11,$11,$00,$00,$01,$00,$00,$00,$01,$00
+
+TilePalette0:
+DB $E0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
+TilePalette0Len EQU ($ - TilePalette0) / 2
+
+cam_centre_x equ 19
+cam_centre_y equ 15
+
+cam_tile_x    db 0                                ; fine scroll offset 0-7 pixels X
+cam_tile_y    db 0                                ; fine scroll offset 0-7 pixels Y
+tilemapPage db 0
+
+player_px        dw 472                             ; world pixel position of sprite
+player_py        dw 376
+move_delta equ 1
+
+min_px equ 19 * 8
+max_px equ (255 - 20) * 8
+min_py equ 15 * 8
+max_py equ (191 - 16) * 8
+
+progStart:
+; *****************************************
+; call to initialise the graphics
+; *****************************************
+
+; Configure tilemap control
+    NEXTREG $6b, %10100001
+; bit 7 1= enable tilemap
+; bit 6 1= 80x32, 0=40x32
+; bit 5 1= use 6c for attributes (i.e. 1 byte tilemap mode)
+; bit 4 1= 2nd tilemap palette, 0= first
+; bit 3 1= activate text mode
+; bit 2 reserved, set to 0
+; bit 1 1=512, 0=256 tilemap mode
+; bit 0 1= force tilemap ontop of ULA
+
+; Default tilemap attribute for 8bit maps
+; i.e. when using 1 byte tilemap mode
+; NB limits colours to 0-15
+    NEXTREG $6c, $0
+; bit 7-4 Palette offset
+; bit 3 1=mirror in X direction
+; bit 2 1=mirror in Y direction
+; bit 1 1=rotate 90deg clockwise
+; bit 0 1=ula overtilemap, 0=tilemap over ULA
+
+; ULA control
+    NEXTREG $68, $0
+; bit 7 1=disable ULA output
+; bit 6 concerned with blending in SLU modes 6/7
+;       1=select ULA/tilemap mix
+;       0=select ULA colour
+; bits 5-1 reserved, always 0
+; bit 0 1=enable stencil mode when ULA & tilemap enabled
+
+; point to the tilemap and tile pattern data
+    NEXTREG $6e, tileMap / 256
+    NEXTREG $6f, TilePatterns / 256
+
+; Palette Control
+; set values for Tilemap palette 0
+    NEXTREG $43, %00110000
+; bit 7 1=disable palette auto inc
+; bit 6-4 select palette for r/w
+; 000 = ULA palette 1
+; 100 = ULA palette 2
+; 001 = Layer 2 palette 1
+; 101 = Layer 2 palette 2
+; 010 = Sprites palette 1
+; 110 = Sprites palette 2
+; 011 = Tilemap palette 1
+; 111 = Tilemap palette 2
+; bit 3
+; bit 2
+; bit 1
+; bit 0
+
+; Set index of transparent colour in Tilemap palette
+    NEXTREG $4c, 15
+
+; load the colours into the palette memory
+; here we are using 9 bit colours, so use $44 to do the load
+
+; first initialise the palette index to 0
+    NEXTREG $40, 0
+
+; set the number of colours
+; set location of Tilemap palette data
+    LD B, TilePalette0Len
+    LD HL, TilePalette0
+
+; write palette data, 2 bytes per colour
+tilemapPalette0Loop:
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    DJNZ tilemapPalette0Loop
+
+otherSetup:
+    LD A, 3             ; Load speed index (3 = 28 MHz)
+    NEXTREG $07, A
+
+    call setTilemapBorder
+    call copy_visible_window
+
+    ;im 1
+    ;ei
+
+main:
+;    call copy_visible_window
+    call keyProcess
+
+    ld bc, 5000
+.delay
+    dec bc
+    ld a, b
+    or c
+    jr nz, .delay
+    jr main
+
+keyProcess
+keyLeft
+        LD BC, $dffe                                ; keys Y U I O P
+        IN A, (C)                                   ; read port
+        BIT 1, A                                    ; check for "o"
+        JR NZ, keyRight                             ; branch if not pressed
+
+        ld hl, (player_px)                           ; get player X
+        ld bc, move_delta                           ; get pixel delta
+        sbc hl, bc                                  ; "try" move
+        ld de, min_px                               ; get min pixel allowed
+        sbc hl, de                                  ; test
+        jr c, keyRight                              ; branch if not allowed
+        ld hl, (player_px)                           ; get player X again
+        sbc hl, bc                                  ; do the move
+        ld (player_px), hl                           ; save the result
+
+keyRight
+        LD BC, $dffe                                ; keys Y U I O P
+        IN A, (C)                                   ; read port
+        BIT 0, A                                    ; check for "p"
+        JR NZ, keyDown                              ; branch if not pressed
+
+        ld hl, (player_px)
+        ld bc, move_delta
+        adc hl, bc
+        ld de, max_px
+        sbc hl, de
+        jr nc, keyDown
+        ld hl, (player_px)
+        adc hl, bc
+        ld (player_px), hl
+
+keyDown
+        LD BC, $fefe                                ; read keyboard up/down
+        IN A, (C)                                   ; read port
+        BIT 1, A                                    ; check "a" key
+        JR NZ, keyUp                                ; branch if not pressed
+
+        ld hl, (player_py)                           ; get player y
+        ld bc, move_delta                           ; get pixel delta
+        adc hl, bc                                  ; "try" move
+        ld de, max_py                               ; get min pixel allowed
+        sbc hl, de                                  ; test
+        jr nc, keyUp                                ; branch if not allowed
+        ld hl, (player_py)                           ; get player y again
+        adc hl, bc                                  ; do the move
+        ld (player_py), hl                           ; save the result
+
+keyUp
+        LD BC, $fdfe                                ; read keyboard up/down
+        IN A, (C)                                   ; read port
+        BIT 0, A                                    ; check for "q"
+        JR NZ, keyEnd                               ; branch if not pressed
+        
+        ld hl, (player_py)                           ; get player y
+        ld bc, move_delta                           ; get pixel delta
+        sbc hl, bc                                  ; "try" move
+        ld de, min_py                               ; get min pixel allowed
+        sbc hl, de                                  ; test
+        jr c, keyEnd                                ; branch if not allowed
+        ld hl, (player_py)                           ; get player y again
+        sbc hl, bc                                  ; do the move
+        ld (player_py), hl                           ; save the result
+
+keyEnd
+; ================================================
+    ; FINE SCROLLING (pixel-level smooth scroll)
+    ; Set hardware tilemap scroll registers using player_px/py
+    ; ================================================
+            call wait_vblank
+
+        ld a, (player_px)                           ; get LOW byte of player X position
+        and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
+        nextreg $30, a                              ; ← X fine offset (MUST be every frame)
+
+        ld a, (player_py)                           ; get LOW byte of player Y position
+        and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
+        nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
+
+; ================================================
+    ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
+    ; ================================================
+        ld a, (player_px)
+        and 7
+        jr z, copy_visible_window
+
+        ld a, (player_py)
+        and 7
+        jr z, copy_visible_window
+
+        ret
+copy_visible_window:
+;        call wait_vblank
+    ; calculate cam_tile_x = (player_px / 8) - 19
+    ; calculate cam_tile_y = (player(py / 8) - 15
+        ld hl, (player_px)
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+
+        ld a, l
+        sub cam_centre_x
+        ld (cam_tile_x), a
+        
+        ld hl, (player_py)
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+
+        ld a, l
+        sub cam_centre_y
+        ld (cam_tile_y), a
+
+    ; STEP 1: Build the starting linear offset in the world map
+    ld   a,(cam_tile_y)                             ; read the Y tile coordinate of the top-left corner we want
+    ld   h,a                                        ; put it in H (this is the same as multiplying cam_tile_y by 256)
+    ld   a,(cam_tile_x)                             ; read the X tile coordinate
+    ld   l,a                                        ; put it in L
+                                                    ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
+                                                    ; This is the byte offset into "world" map.
+
+    ; STEP 2: Calculate which 8K physical page the data lives in
+    ld   a,h                                        ; take the high byte of the offset (which is cam_tile_y)
+    srl  a                                          ; divide by 2
+    srl  a                                          ; divide by 2 again  → now /4
+    srl  a                                          ; /8
+    srl  a                                          ; /16
+    srl  a                                          ; /32   ← this is the same as cam_tile_y ÷ 32
+                                                    ; Why divide by 32?
+                                                    ;   Each page is 8192 bytes.
+                                                    ;   Each row is 256 bytes.
+                                                    ;   8192 ÷ 256 = exactly 32 rows per page.
+                                                    ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
+    add  a,40                                       ; add the starting page number (your world map begins at page 40)
+    ld   (tilemapPage), a                           ; save the page number in register C for later
+
+    ; STEP 3: Keep only the part of the address that fits inside one 8K page
+    ld   a,h                                        ; get the high byte again
+    and  $1F                                        ; $1F is binary 00011111 → keeps only the lowest 5 bits
+                                                    ; This is exactly the same as (cam_tile_y * 256 + cam_tile_x) modulo 8192
+                                                    ; (because 8192 = 2^13 and we are discarding everything above bit 12)
+    ld   h,a                                        ; HL now holds the offset *inside* the current 8K page
+
+    ; STEP 4: Page the correct 8K bank into slot 6 so we can read it
+    ld   a, (tilemapPage)                           ; A = page number we want
+    nextreg $56,a                                   ; set MMU slot 6 ($C000-$DFFF) to that page
+    ld   bc,$C000                                   ; $C000 is the start of slot 6
+    add  hl,bc                                      ; HL = $C000 + offset_inside_page
+                                                    ; HL now points directly at the first byte we want to copy
+
+    ; STEP 5: Point DE at the hardware tilemap buffer (fixed location)
+    ld   de, tileMap                                ; destination is the hardware tilemap location
+
+    ; STEP 6: Copy all 32 visible rows
+    ld   b,32                                       ; we need to copy 32 rows (the height of the hardware tilemap)
+.row_loop:
+    push bc
+REPT 40
+    LDI
+    LD A, H
+    CP $E0
+    CALL Z, .cross_boundary
+ENDR
+
+    ; STEP 7: Move the source pointer forward by exactly one full world-map row
+    ld   a,216                                      ; 256 (full row) minus 40 (what we already copied) = 216
+    add  hl,a                                       ; Z80N instruction — adds 8-bit number to HL very quickly
+    
+    pop bc                                                ; HL now points 256 bytes further in the world map (start of next logical row)
+    dec b
+    jp nz, .row_loop
+    ret 
+
+.cross_boundary
+    ; STEP 8: Did we cross into the next 8K physical page?
+    ld   a,h                                        ; look at the high byte of the source pointer
+    sub  $20                                        ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
+    ld   h,a
+    ld a, (tilemapPage)
+    inc a
+    ld (tilemapPage), a
+    nextreg $56, a                                  ; set MMU slot 6 ($C000-$DFFF) to that page
+    ret
+
+wait_vblank:
+        ld bc, $243B                ; register select port
+.loop
+        ld a, $1F
+        out (c), a                  ; select ULA status register
+        inc b                       ; now point to data port $253B
+        in a, (c)                   ; read status
+        bit 0, a                    ; bit 0 = 1 when in vblank
+        jr z, .loop                 ; keep waiting until bottom of screen
+        ret
+
+setTilemapBorder:
+    nextreg $1C, %00001000                          ; Reset tilemap clip window index (bit 3 = 1)
+
+    ; ------------------------------------------------------------
+    ; Write the four clip coordinates to register $1B
+    ; X values are in 2-pixel units (0-159 = full 320px width)
+    ; Y values are 1:1 pixels (0-255)
+    ; 4px border = inset of 2 X-units and 4 Y-pixels
+    ; ------------------------------------------------------------
+    nextreg $1B, 2                                  ; X1 = 2   → left edge  = pixel 4
+    nextreg $1B, 157                                ; X2 = 157 → right edge = pixel 315 (319-4)
+    nextreg $1B, 4                                  ; Y1 = 4   → top edge   = pixel 4
+    nextreg $1B, 251                                ; Y2 = 251 → bottom edge= pixel 251 (255-4)
+
+    ret
+; ----------------------------------------------------------------
+; Tilemap data - 48 KB stored directly in Pages 40 - 45
+; ----------------------------------------------------------------
+TILEMAP_PAGE    EQU     40
+
+; === Chunk 1 (bytes 0-16383) -> 8 KB Page 40/41 ===
+MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
+MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
+ORG     $C000
+tilemap_part1:
+INCBIN  "testmaze.map", 0, 16384                    ; first 16 KB
+
+; === Chunk 2 (bytes 16384-32767) -> 8 KB Page 42/43 ===
+MMU     6, TILEMAP_PAGE + 2
+MMU     7, TILEMAP_PAGE + 3
+ORG     $C000
+tilemap_part2:
+INCBIN  "testmaze.map", 16384, 16384
+
+; === Chunk 3 (bytes 32768-49151) -> 8 KB Page 44/45 ===
+MMU     6, TILEMAP_PAGE + 4
+MMU     7, TILEMAP_PAGE + 5
+ORG     $C000
+tilemap_part3:
+INCBIN  "testmaze.map", 32768, 16384
+
+; ----------------------------------------------------------------
+; Build the .nex file (automatically includes all used banks)
+; ----------------------------------------------------------------
+SAVENEX OPEN "maze.nex", progStart, $FF40           ; entry point + stack
+SAVENEX AUTO                                        ; include all pages we used
+SAVENEX CLOSE
