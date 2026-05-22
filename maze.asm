@@ -18,15 +18,38 @@ DB $E0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
 TilePalette0Len EQU ($ - TilePalette0) / 2
 
+SpritePalette0:
+DB $03,$01,$E3,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+SpritePalette0Len EQU ($ - SpritePalette0) / 2
+
+SpritePatterns:
+; Sprite000
+DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00
+DB $00,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$00,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00
+DB $00,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00
+DB $00,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00
+DB $00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$00
+DB $00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$00
+DB $00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$00,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$00
+DB $00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+endofSprites:
+
+
 cam_centre_x equ 19
 cam_centre_y equ 15
+cam_px dw 19*8
+cam_py dw 15*8
 
-cam_tile_x    db 0                                ; fine scroll offset 0-7 pixels X
-cam_tile_y    db 0                                ; fine scroll offset 0-7 pixels Y
+;cam_tile_x    db 0                                ; fine scroll offset 0-7 pixels X
+;cam_tile_y    db 0                                ; fine scroll offset 0-7 pixels Y
 tilemapPage db 0
 
 player_px        dw 472                             ; world pixel position of sprite
 player_py        dw 376
+player_tile_x    db 0
+player_tile_y    db 0
+
 move_delta equ 1
 
 min_px equ 19 * 8
@@ -115,21 +138,90 @@ tilemapPalette0Loop:
     NEXTREG $44, A
     DJNZ tilemapPalette0Loop
 
+; Configure Sprite and Layers System
+; NEXTREG $15, %00000011
+  NEXTREG $15, %00010111
+; bit 7 1=enable lo-res 
+; bit 6 1=flip sprite rendering priority
+; bit 5 1=change clipping over border mode
+; bit 4-2 000=sprites on top, layer 2 under
+; bit 1 1=enable sprites over border
+; bit 0 1=enable sprite visibility
+ 
+  LD BC, $303b                 ; set port for Sprites
+  SUB A, A                     ; Set sprite index to 0
+  OUT (C), A                   ; write to port
+
+ LD HL, SpritePatterns; point to sprite patterns
+ LD BC, $5b                    ; set port to write patterns to
+ LD DE, endofSprites - SpritePatterns
+
+spritePatternLoop:
+ LD A, (HL)                    ; get each byte of pattern data
+ INC HL                        ; ready for next read
+ OUT (C), A                    ; upload to sprite memory
+ DEC DE                        ; dec loop count
+ LD A, E                       ; test for 0
+ OR A, D
+ JR NZ, spritePatternLoop      ; loop if more data
+
+; Palette Control
+; set values for Sprites palette 1
+ NEXTREG $43, %00100000
+; bit 7 1=disable palette auto inc
+; bit 6-4 select palette for r/w
+; 000 = ULA palette 1
+; 100 = ULA palette 2
+; 001 = Layer 2 palette 1
+; 101 = Layer 2 palette 2
+; 010 = Sprites palette 1
+; 110 = Sprites palette 2
+; 011 = Tilemap palette 1
+; 111 = Tilemap palette 2
+; bit 3
+; bit 2
+; bit 1
+; bit 0
+
+TRANSPARENT_SPRITE_SLOT
+
+; set global transparency fallback
+ NEXTREG $14, 0
+
+; load the colours into the palette memory
+; here we are using 9 bit colours, so use $44 to do the load
+
+; first initialise the palette index to 0
+ NEXTREG $40, 0
+
+; set the number of colours 
+; set location of sprite palette data
+ LD B, SpritePalette0Len
+ LD HL, SpritePalette0
+
+; write palette data, 2 bytes per colour
+spritePalette0Loop:
+ LD A, (HL)
+ INC HL
+ NEXTREG $44, A
+ LD A, (HL)
+ INC HL
+ NEXTREG $44, A
+ DJNZ spritePalette0Loop
+
 otherSetup:
     LD A, 3             ; Load speed index (3 = 28 MHz)
     NEXTREG $07, A
 
     call setTilemapBorder
     call copy_visible_window
-
-    ;im 1
-    ;ei
+    call showSprite
 
 main:
 ;    call copy_visible_window
     call keyProcess
 
-    ld bc, 5000
+   ld bc, 5000
 .delay
     dec bc
     ld a, b
@@ -138,21 +230,31 @@ main:
     jr main
 
 keyProcess
+        ld hl, (player_px)
+        srl h
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+
+        ld a, l
+
 keyLeft
         LD BC, $dffe                                ; keys Y U I O P
         IN A, (C)                                   ; read port
         BIT 1, A                                    ; check for "o"
         JR NZ, keyRight                             ; branch if not pressed
 
-        ld hl, (player_px)                           ; get player X
+        ld hl, (player_px)                          ; get player X
         ld bc, move_delta                           ; get pixel delta
-        sbc hl, bc                                  ; "try" move
+        sbc hl, bc                                  ; do move
+        ld (player_px), hl                          ; save result
         ld de, min_px                               ; get min pixel allowed
         sbc hl, de                                  ; test
-        jr c, keyRight                              ; branch if not allowed
-        ld hl, (player_px)                           ; get player X again
-        sbc hl, bc                                  ; do the move
-        ld (player_px), hl                           ; save the result
+        jr nc, keyEnd                               ; branch if ok
+        ld (player_px), de                          ; clamp result
+        jr keyEnd                                   ; branch with clamp
 
 keyRight
         LD BC, $dffe                                ; keys Y U I O P
@@ -163,12 +265,12 @@ keyRight
         ld hl, (player_px)
         ld bc, move_delta
         adc hl, bc
+        ld (player_px), hl
         ld de, max_px
         sbc hl, de
-        jr nc, keyDown
-        ld hl, (player_px)
-        adc hl, bc
-        ld (player_px), hl
+        jr c, keyEnd
+        ld (player_px), de
+        jr keyEnd
 
 keyDown
         LD BC, $fefe                                ; read keyboard up/down
@@ -176,15 +278,15 @@ keyDown
         BIT 1, A                                    ; check "a" key
         JR NZ, keyUp                                ; branch if not pressed
 
-        ld hl, (player_py)                           ; get player y
+        ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
-        adc hl, bc                                  ; "try" move
-        ld de, max_py                               ; get min pixel allowed
+        adc hl, bc                                  ; do move
+        ld (player_py), hl                          ; save result
+        ld de, max_py                               ; get max pixel allowed
         sbc hl, de                                  ; test
-        jr nc, keyUp                                ; branch if not allowed
-        ld hl, (player_py)                           ; get player y again
-        adc hl, bc                                  ; do the move
-        ld (player_py), hl                           ; save the result
+        jr c, keyEnd                                ; branch if ok
+        ld (player_py), de                          ; clamp result
+        jr keyEnd                                   ; branch with clamp
 
 keyUp
         LD BC, $fdfe                                ; read keyboard up/down
@@ -192,22 +294,42 @@ keyUp
         BIT 0, A                                    ; check for "q"
         JR NZ, keyEnd                               ; branch if not pressed
         
-        ld hl, (player_py)                           ; get player y
+        ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
-        sbc hl, bc                                  ; "try" move
+        sbc hl, bc                                  ; do move
+        ld (player_py), hl                          ; save result
         ld de, min_py                               ; get min pixel allowed
         sbc hl, de                                  ; test
-        jr c, keyEnd                                ; branch if not allowed
-        ld hl, (player_py)                           ; get player y again
-        sbc hl, bc                                  ; do the move
-        ld (player_py), hl                           ; save the result
+        jr nc, keyEnd                               ; branch if ok
+        ld (player_py), de                          ; clamp result
+        jr keyEnd                                   ; branch with clamp
 
 keyEnd
+        ld hl, (player_px)                          ; get player pixel X
+        srl h                                       ; divide by 8
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+
+        ld b, l                                     ; and save in b for later
+
+        ld hl, (player_py)                          ; get player pixel Y
+        srl h                                       ; divide by 8
+        rr l
+        srl h
+        rr l
+        srl h
+        rr l
+
+        ld c, l                                     ; and save in c for later
+        
 ; ================================================
     ; FINE SCROLLING (pixel-level smooth scroll)
     ; Set hardware tilemap scroll registers using player_px/py
     ; ================================================
-            call wait_vblank
+        call wait_vblank
 
         ld a, (player_px)                           ; get LOW byte of player X position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
@@ -220,48 +342,31 @@ keyEnd
 ; ================================================
     ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
     ; ================================================
-        ld a, (player_px)
-        and 7
-        jr z, copy_visible_window
+        ld a, (player_tile_x)                       ; get last player tile X
+        cp b                                        ; compare with current
+        jr nz, copy_visible_window                  ; branch if different
 
-        ld a, (player_py)
-        and 7
-        jr z, copy_visible_window
+        ld a, (player_tile_y)                       ; get lat player tile Y
+        cp c                                        ; compare with current
+        jr nz, copy_visible_window                  ; branch if different
 
-        ret
+        ret                                         ; otherwise return, hardware scroll is enough
+
 copy_visible_window:
-;        call wait_vblank
-    ; calculate cam_tile_x = (player_px / 8) - 19
-    ; calculate cam_tile_y = (player(py / 8) - 15
-        ld hl, (player_px)
-        srl h
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-
-        ld a, l
-        sub cam_centre_x
-        ld (cam_tile_x), a
+        ld a, b                                     ; get current player tile X
+        ld (player_tile_x), a                       ; save it away
+        sub cam_centre_x                            ; - 19 for lhs of screen
+        ld b, a                                     ; save
         
-        ld hl, (player_py)
-        srl h
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-
-        ld a, l
-        sub cam_centre_y
-        ld (cam_tile_y), a
+        ld a, c                                     ; get current player tile Y
+        ld (player_tile_y), a                       ; save it away
+        sub cam_centre_y                            ; - 15 for top of screen
+        ld c, a                                     ; save
 
     ; STEP 1: Build the starting linear offset in the world map
-    ld   a,(cam_tile_y)                             ; read the Y tile coordinate of the top-left corner we want
-    ld   h,a                                        ; put it in H (this is the same as multiplying cam_tile_y by 256)
-    ld   a,(cam_tile_x)                             ; read the X tile coordinate
-    ld   l,a                                        ; put it in L
+    ld h, c                                         ; read the Y tile coordinate of the top-left corner we want
+                                                    ; put it in H (this is the same as multiplying cam_tile_y by 256)
+    ld l, b                                         ; read the X tile coordinate into L
                                                     ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
                                                     ; This is the byte offset into "world" map.
 
@@ -298,22 +403,21 @@ copy_visible_window:
     ld   de, tileMap                                ; destination is the hardware tilemap location
 
     ; STEP 6: Copy all 32 visible rows
-    ld   b,32                                       ; we need to copy 32 rows (the height of the hardware tilemap)
+    ld   bc,40*32                                   ; we need to copy 32 rows x 40 columns
 .row_loop:
-    push bc
 REPT 40
     LDI
-    LD A, H
-    CP $E0
-    CALL Z, .cross_boundary
 ENDR
-
     ; STEP 7: Move the source pointer forward by exactly one full world-map row
     ld   a,216                                      ; 256 (full row) minus 40 (what we already copied) = 216
     add  hl,a                                       ; Z80N instruction — adds 8-bit number to HL very quickly
+
+    LD A, H
+    CP $E0
+    CALL Z, .cross_boundary
     
-    pop bc                                                ; HL now points 256 bytes further in the world map (start of next logical row)
-    dec b
+    ld a, b
+    or c
     jp nz, .row_loop
     ret 
 
@@ -329,14 +433,16 @@ ENDR
     ret
 
 wait_vblank:
+        push bc
+.loop        
         ld bc, $243B                ; register select port
-.loop
-        ld a, $1F
+        ld a, $1E
         out (c), a                  ; select ULA status register
         inc b                       ; now point to data port $253B
         in a, (c)                   ; read status
-        bit 0, a                    ; bit 0 = 1 when in vblank
-        jr z, .loop                 ; keep waiting until bottom of screen
+        bit 0, a
+        jr z, .loop
+        pop bc
         ret
 
 setTilemapBorder:
@@ -354,6 +460,26 @@ setTilemapBorder:
     nextreg $1B, 251                                ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
     ret
+
+showSprite
+        LD A, 0              ; get the sprite index
+        NEXTREG $34, A                              ; set sprite to activate
+        ld hl, (cam_px)
+        ld de, (cam_py)
+        LD A, l               ; get sprite X lsb
+        NEXTREG $35, A                              ; set attr byte 0 of port $0057
+        LD A, e               ; get sprite Y lsb
+        NEXTREG $36, A                              ; set attr byte 1 of port $0057
+        LD A, h              ; get sprite X msb
+        AND 1                                       ; only need bit 0 of X msb
+        NEXTREG $37, A                              ; bits 7-4 palette offset
+
+        LD A, 0            ; get pattern index to use
+
+        OR %10000000                                ;
+        NEXTREG $38, A                              ; bits 7 1=make sprite visible
+        RET
+
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
 ; ----------------------------------------------------------------
