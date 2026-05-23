@@ -1,5 +1,51 @@
 device ZXSPECTRUMNEXT
+DIV_HL_8 MACRO
+; simple 16-bit divide without the CALL/RET overhead
+        srl h                                       ; divide by 2
+        rr l
+        srl h                                       ; divide by 4
+        rr l
+        srl h                                       ; divide by 8
+        rr l
+        ENDM
 
+GET_WORLD_TILE MACRO
+; given B= tile X, C= tile Y, return tile at this position in the world map
+        ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
+                                                    ; put it in H (this is the same as multiplying cam_tile_y by 256)
+        ld l, b                                     ; read the X tile coordinate into L
+                                                    ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
+                                                    ; This is the byte offset into "world" map.
+
+    ; STEP 2: Calculate which 8K physical page the data lives in
+        ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
+        srl  a                                      ; divide by 2
+        srl  a                                      ; divide by 2 again  → now /4
+        srl  a                                      ; /8
+        srl  a                                      ; /16
+        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
+                                                    ; Why divide by 32?
+                                                    ;   Each page is 8192 bytes.
+                                                    ;   Each row is 256 bytes.
+                                                    ;   8192 ÷ 256 = exactly 32 rows per page.
+                                                    ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
+        add  a,TILEMAP_PAGE                         ; add the starting page number
+        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
+
+
+    ; STEP 3: Keep only the part of the address that fits inside one 8K page
+        ld   a,h                                    ; get the high byte again
+        and  $1F                                    ; $1F is binary 00011111 → keeps only the lowest 5 bits
+                                                    ; This is exactly the same as (cam_tile_y * 256 + cam_tile_x) modulo 8192
+                                                    ; (because 8192 = 2^13 and we are discarding everything above bit 12)
+        ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
+
+    ; STEP 4: add the page offset so we can read it
+        add  hl, $C000                              ; HL = $C000 + offset_inside_page
+                                                    ; HL now points directly at the first byte we want to copy
+        ld a, (hl)                                  ; so get the byte
+        ENDM
+        
 org $4000
 
 tileMap:
@@ -47,6 +93,8 @@ tilemapPage db 0
 
 player_px        dw 472                             ; world pixel position of sprite
 player_py        dw 376
+cur_player_px    dw 00
+cur_player_py    dw 00
 player_tile_x    db 0
 player_tile_y    db 0
 
@@ -63,7 +111,7 @@ progStart:
 ; *****************************************
 
 ; Configure tilemap control
-    NEXTREG $6b, %10100001
+        NEXTREG $6b, %10100001
 ; bit 7 1= enable tilemap
 ; bit 6 1= 80x32, 0=40x32
 ; bit 5 1= use 6c for attributes (i.e. 1 byte tilemap mode)
@@ -76,7 +124,7 @@ progStart:
 ; Default tilemap attribute for 8bit maps
 ; i.e. when using 1 byte tilemap mode
 ; NB limits colours to 0-15
-    NEXTREG $6c, $0
+        NEXTREG $6c, $0
 ; bit 7-4 Palette offset
 ; bit 3 1=mirror in X direction
 ; bit 2 1=mirror in Y direction
@@ -84,7 +132,7 @@ progStart:
 ; bit 0 1=ula overtilemap, 0=tilemap over ULA
 
 ; ULA control
-    NEXTREG $68, $0
+        NEXTREG $68, $0
 ; bit 7 1=disable ULA output
 ; bit 6 concerned with blending in SLU modes 6/7
 ;       1=select ULA/tilemap mix
@@ -93,12 +141,12 @@ progStart:
 ; bit 0 1=enable stencil mode when ULA & tilemap enabled
 
 ; point to the tilemap and tile pattern data
-    NEXTREG $6e, tileMap / 256
-    NEXTREG $6f, TilePatterns / 256
+        NEXTREG $6e, tileMap / 256
+        NEXTREG $6f, TilePatterns / 256
 
 ; Palette Control
 ; set values for Tilemap palette 0
-    NEXTREG $43, %00110000
+        NEXTREG $43, %00110000
 ; bit 7 1=disable palette auto inc
 ; bit 6-4 select palette for r/w
 ; 000 = ULA palette 1
@@ -115,32 +163,32 @@ progStart:
 ; bit 0
 
 ; Set index of transparent colour in Tilemap palette
-    NEXTREG $4c, 15
+        NEXTREG $4c, 15
 
 ; load the colours into the palette memory
 ; here we are using 9 bit colours, so use $44 to do the load
 
 ; first initialise the palette index to 0
-    NEXTREG $40, 0
+        NEXTREG $40, 0
 
 ; set the number of colours
 ; set location of Tilemap palette data
-    LD B, TilePalette0Len
-    LD HL, TilePalette0
+        LD B, TilePalette0Len
+        LD HL, TilePalette0
 
 ; write palette data, 2 bytes per colour
 tilemapPalette0Loop:
-    LD A, (HL)
-    INC HL
-    NEXTREG $44, A
-    LD A, (HL)
-    INC HL
-    NEXTREG $44, A
-    DJNZ tilemapPalette0Loop
+        LD A, (HL)
+        INC HL
+        NEXTREG $44, A
+        LD A, (HL)
+        INC HL
+        NEXTREG $44, A
+        DJNZ tilemapPalette0Loop
 
 ; Configure Sprite and Layers System
 ; NEXTREG $15, %00000011
-  NEXTREG $15, %00010111
+        NEXTREG $15, %00010111
 ; bit 7 1=enable lo-res 
 ; bit 6 1=flip sprite rendering priority
 ; bit 5 1=change clipping over border mode
@@ -148,26 +196,26 @@ tilemapPalette0Loop:
 ; bit 1 1=enable sprites over border
 ; bit 0 1=enable sprite visibility
  
-  LD BC, $303b                 ; set port for Sprites
-  SUB A, A                     ; Set sprite index to 0
-  OUT (C), A                   ; write to port
+        LD BC, $303b                 ; set port for Sprites
+        SUB A, A                     ; Set sprite index to 0
+        OUT (C), A                   ; write to port
 
- LD HL, SpritePatterns; point to sprite patterns
- LD BC, $5b                    ; set port to write patterns to
- LD DE, endofSprites - SpritePatterns
+        LD HL, SpritePatterns; point to sprite patterns
+        LD BC, $5b                    ; set port to write patterns to
+        LD DE, endofSprites - SpritePatterns
 
 spritePatternLoop:
- LD A, (HL)                    ; get each byte of pattern data
- INC HL                        ; ready for next read
- OUT (C), A                    ; upload to sprite memory
- DEC DE                        ; dec loop count
- LD A, E                       ; test for 0
- OR A, D
- JR NZ, spritePatternLoop      ; loop if more data
+        LD A, (HL)                    ; get each byte of pattern data
+        INC HL                        ; ready for next read
+        OUT (C), A                    ; upload to sprite memory
+        DEC DE                        ; dec loop count
+        LD A, E                       ; test for 0
+        OR A, D
+        JR NZ, spritePatternLoop      ; loop if more data
 
 ; Palette Control
 ; set values for Sprites palette 1
- NEXTREG $43, %00100000
+        NEXTREG $43, %00100000
 ; bit 7 1=disable palette auto inc
 ; bit 6-4 select palette for r/w
 ; 000 = ULA palette 1
@@ -186,75 +234,93 @@ spritePatternLoop:
 TRANSPARENT_SPRITE_SLOT
 
 ; set global transparency fallback
- NEXTREG $14, 0
+        NEXTREG $14, 0
 
 ; load the colours into the palette memory
 ; here we are using 9 bit colours, so use $44 to do the load
 
 ; first initialise the palette index to 0
- NEXTREG $40, 0
+        NEXTREG $40, 0
 
 ; set the number of colours 
 ; set location of sprite palette data
- LD B, SpritePalette0Len
- LD HL, SpritePalette0
+        LD B, SpritePalette0Len
+        LD HL, SpritePalette0
 
 ; write palette data, 2 bytes per colour
 spritePalette0Loop:
- LD A, (HL)
- INC HL
- NEXTREG $44, A
- LD A, (HL)
- INC HL
- NEXTREG $44, A
- DJNZ spritePalette0Loop
+        LD A, (HL)
+        INC HL
+        NEXTREG $44, A
+        LD A, (HL)
+        INC HL
+        NEXTREG $44, A
+        DJNZ spritePalette0Loop
 
 otherSetup:
-    LD A, 3             ; Load speed index (3 = 28 MHz)
-    NEXTREG $07, A
+  ;      LD A, 3             ; Load speed index (3 = 28 MHz)
+        NEXTREG $07, A
 
-    call setTilemapBorder
-    call copy_visible_window
-    call showSprite
+        call setTilemapBorder
+        call copy_visible_window
+        call showSprite
 
 main:
-;    call copy_visible_window
-    call keyProcess
+        call keyProcess
 
-   ld bc, 5000
+        ld bc, 5
 .delay
-    dec bc
-    ld a, b
-    or c
-    jr nz, .delay
-    jr main
+        dec bc
+        ld a, b
+        or c
+        jr nz, .delay
+        jr main
 
 keyProcess
-        ld hl, (player_px)
-        srl h
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-
-        ld a, l
+        ld a, (player_py)                           ; get pixel Y
+        and 7                                       ; mask off bits 2-0, 0= not mid tile
+        jp nz, keyDown                              ; branch if mid tile
 
 keyLeft
+        ld hl, (player_px)
+        ld (cur_player_px), hl
+
         LD BC, $dffe                                ; keys Y U I O P
         IN A, (C)                                   ; read port
         BIT 1, A                                    ; check for "o"
         JR NZ, keyRight                             ; branch if not pressed
 
-        ld hl, (player_px)                          ; get player X
         ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
         ld (player_px), hl                          ; save result
+
+        ; now test if we have bumped into a wall
+        DIV_HL_8
+        ld b, l
+        ld hl, (player_py)
+        DIV_HL_8
+        ld c, l
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+        inc c
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+
+        ; now test if we are at limit of maze
+        ld hl, (player_px)
         ld de, min_px                               ; get min pixel allowed
         sbc hl, de                                  ; test
-        jr nc, keyEnd                               ; branch if ok
-        ld (player_px), de                          ; clamp result
-        jr keyEnd                                   ; branch with clamp
+        jp nc, keyEnd                               ; branch if ok
+
+.hitwall
+.clamp
+        ; either bumped into a wall or at map end
+        ; either way, revert to previous px
+        ld hl, (cur_player_px)
+        ld (player_px), hl                          ; clamp result
+        jp keyEnd                                   ; branch with clamp
 
 keyRight
         LD BC, $dffe                                ; keys Y U I O P
@@ -262,17 +328,47 @@ keyRight
         BIT 0, A                                    ; check for "p"
         JR NZ, keyDown                              ; branch if not pressed
 
-        ld hl, (player_px)
         ld bc, move_delta
         adc hl, bc
         ld (player_px), hl
+
+        ; now test if we have bumped into a wall
+        add hl, 15                                  ; the sprite extends 0-15px right
+        DIV_HL_8
+        ld b, l
+        ld hl, (player_py)
+        DIV_HL_8
+        ld c, l
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+        inc c
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+
+        ; now test if we are at limit of maze
+        ld hl, (player_px)
         ld de, max_px
         sbc hl, de
-        jr c, keyEnd
-        ld (player_px), de
-        jr keyEnd
+        jp c, keyEnd
+
+.hitwall
+.clamp
+        ; either bumped into a wall or at map end
+        ; either way, revert to previous px
+        ld hl, (cur_player_px)
+        ld (player_px), hl                          ; clamp result
+        jp keyEnd                                   ; branch with clamp
 
 keyDown
+        ld hl, (player_py)
+        ld (cur_player_py), hl
+
+        ld a, (player_px)                           ; get pixel X
+        and 7                                       ; mask off bits 2-0, 0= not mid tile
+        jp nz, keyEnd                               ; branch if mid tile
+
         LD BC, $fefe                                ; read keyboard up/down
         IN A, (C)                                   ; read port
         BIT 1, A                                    ; check "a" key
@@ -282,47 +378,82 @@ keyDown
         ld bc, move_delta                           ; get pixel delta
         adc hl, bc                                  ; do move
         ld (player_py), hl                          ; save result
+
+        ; now test if we have bumped into a wall
+        add hl, 15                                  ; the sprite extends 0-15px down
+        DIV_HL_8
+        ld c, l
+        ld hl, (player_px)
+        DIV_HL_8
+        ld b, l
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+        inc b
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+
+        ld hl, (player_py)
         ld de, max_py                               ; get max pixel allowed
         sbc hl, de                                  ; test
-        jr c, keyEnd                                ; branch if ok
-        ld (player_py), de                          ; clamp result
-        jr keyEnd                                   ; branch with clamp
+        jp c, keyEnd                                ; branch if ok
+
+.hitwall
+.clamp
+        ; either bumped into a wall or at map end
+        ; either way, revert to previous px
+        ld hl, (cur_player_py)
+        ld (player_py), hl                          ; clamp result
+        jp keyEnd                                   ; branch with clamp
 
 keyUp
         LD BC, $fdfe                                ; read keyboard up/down
         IN A, (C)                                   ; read port
         BIT 0, A                                    ; check for "q"
-        JR NZ, keyEnd                               ; branch if not pressed
+        JP NZ, keyEnd                               ; branch if not pressed
         
         ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
         ld (player_py), hl                          ; save result
+
+        ; now test if we have bumped into a wall
+        DIV_HL_8
+        ld c, l
+        ld hl, (player_px)
+        DIV_HL_8
+        ld b, l
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+        inc b
+        GET_WORLD_TILE
+        and a
+        jr nz, .hitwall
+
+        ; now test if we are at limit of maze
+        ld hl, (player_py)
         ld de, min_py                               ; get min pixel allowed
         sbc hl, de                                  ; test
-        jr nc, keyEnd                               ; branch if ok
-        ld (player_py), de                          ; clamp result
+        jp nc, keyEnd                               ; branch if ok
+
+.hitwall
+.clamp
+        ; either bumped into a wall or at map end
+        ; either way, revert to previous px
+        ld hl, (cur_player_py)
+        ld (player_py), hl                          ; clamp result
         jr keyEnd                                   ; branch with clamp
+
 
 keyEnd
         ld hl, (player_px)                          ; get player pixel X
-        srl h                                       ; divide by 8
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-
+        DIV_HL_8                                    ; divide by 8 to get tile X
         ld b, l                                     ; and save in b for later
 
         ld hl, (player_py)                          ; get player pixel Y
-        srl h                                       ; divide by 8
-        rr l
-        srl h
-        rr l
-        srl h
-        rr l
-
+        DIV_HL_8                                    ; divide by 8 to get tile Y
         ld c, l                                     ; and save in c for later
         
 ; ================================================
@@ -364,73 +495,73 @@ copy_visible_window:
         ld c, a                                     ; save
 
     ; STEP 1: Build the starting linear offset in the world map
-    ld h, c                                         ; read the Y tile coordinate of the top-left corner we want
+        ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
                                                     ; put it in H (this is the same as multiplying cam_tile_y by 256)
-    ld l, b                                         ; read the X tile coordinate into L
+        ld l, b                                     ; read the X tile coordinate into L
                                                     ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
                                                     ; This is the byte offset into "world" map.
 
     ; STEP 2: Calculate which 8K physical page the data lives in
-    ld   a,h                                        ; take the high byte of the offset (which is cam_tile_y)
-    srl  a                                          ; divide by 2
-    srl  a                                          ; divide by 2 again  → now /4
-    srl  a                                          ; /8
-    srl  a                                          ; /16
-    srl  a                                          ; /32   ← this is the same as cam_tile_y ÷ 32
+        ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
+        srl  a                                      ; divide by 2
+        srl  a                                      ; divide by 2 again  → now /4
+        srl  a                                      ; /8
+        srl  a                                      ; /16
+        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
                                                     ; Why divide by 32?
                                                     ;   Each page is 8192 bytes.
                                                     ;   Each row is 256 bytes.
                                                     ;   8192 ÷ 256 = exactly 32 rows per page.
                                                     ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
-    add  a,40                                       ; add the starting page number (your world map begins at page 40)
-    ld   (tilemapPage), a                           ; save the page number in register C for later
+        add  a,40                                   ; add the starting page number (your world map begins at page 40)
+        ld   (tilemapPage), a                       ; save the page number in register C for later
 
     ; STEP 3: Keep only the part of the address that fits inside one 8K page
-    ld   a,h                                        ; get the high byte again
-    and  $1F                                        ; $1F is binary 00011111 → keeps only the lowest 5 bits
+        ld   a,h                                    ; get the high byte again
+        and  $1F                                    ; $1F is binary 00011111 → keeps only the lowest 5 bits
                                                     ; This is exactly the same as (cam_tile_y * 256 + cam_tile_x) modulo 8192
                                                     ; (because 8192 = 2^13 and we are discarding everything above bit 12)
-    ld   h,a                                        ; HL now holds the offset *inside* the current 8K page
+        ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
 
     ; STEP 4: Page the correct 8K bank into slot 6 so we can read it
-    ld   a, (tilemapPage)                           ; A = page number we want
-    nextreg $56,a                                   ; set MMU slot 6 ($C000-$DFFF) to that page
-    ld   bc,$C000                                   ; $C000 is the start of slot 6
-    add  hl,bc                                      ; HL = $C000 + offset_inside_page
+        ld   a, (tilemapPage)                       ; A = page number we want
+        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
+        ld   bc,$C000                               ; $C000 is the start of slot 6
+        add  hl,bc                                  ; HL = $C000 + offset_inside_page
                                                     ; HL now points directly at the first byte we want to copy
 
     ; STEP 5: Point DE at the hardware tilemap buffer (fixed location)
-    ld   de, tileMap                                ; destination is the hardware tilemap location
+        ld   de, tileMap                                ; destination is the hardware tilemap location
 
     ; STEP 6: Copy all 32 visible rows
-    ld   bc,40*32                                   ; we need to copy 32 rows x 40 columns
+        ld   bc,40*32                                   ; we need to copy 32 rows x 40 columns
 .row_loop:
 REPT 40
-    LDI
+        LDI
 ENDR
     ; STEP 7: Move the source pointer forward by exactly one full world-map row
-    ld   a,216                                      ; 256 (full row) minus 40 (what we already copied) = 216
-    add  hl,a                                       ; Z80N instruction — adds 8-bit number to HL very quickly
+        ld   a,216                                      ; 256 (full row) minus 40 (what we already copied) = 216
+        add  hl,a                                       ; Z80N instruction — adds 8-bit number to HL very quickly
 
-    LD A, H
-    CP $E0
-    CALL Z, .cross_boundary
+        LD A, H
+        CP $E0
+        CALL Z, .cross_boundary
     
-    ld a, b
-    or c
-    jp nz, .row_loop
-    ret 
+        ld a, b
+        or c
+        jp nz, .row_loop
+        ret 
 
 .cross_boundary
     ; STEP 8: Did we cross into the next 8K physical page?
-    ld   a,h                                        ; look at the high byte of the source pointer
-    sub  $20                                        ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
-    ld   h,a
-    ld a, (tilemapPage)
-    inc a
-    ld (tilemapPage), a
-    nextreg $56, a                                  ; set MMU slot 6 ($C000-$DFFF) to that page
-    ret
+        ld   a,h                                        ; look at the high byte of the source pointer
+        sub  $20                                        ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
+        ld   h,a
+        ld a, (tilemapPage)
+        inc a
+        ld (tilemapPage), a
+        nextreg $56, a                                  ; set MMU slot 6 ($C000-$DFFF) to that page
+        ret
 
 wait_vblank:
         push bc
@@ -446,7 +577,7 @@ wait_vblank:
         ret
 
 setTilemapBorder:
-    nextreg $1C, %00001000                          ; Reset tilemap clip window index (bit 3 = 1)
+        nextreg $1C, %00001000                          ; Reset tilemap clip window index (bit 3 = 1)
 
     ; ------------------------------------------------------------
     ; Write the four clip coordinates to register $1B
@@ -454,12 +585,12 @@ setTilemapBorder:
     ; Y values are 1:1 pixels (0-255)
     ; 4px border = inset of 2 X-units and 4 Y-pixels
     ; ------------------------------------------------------------
-    nextreg $1B, 2                                  ; X1 = 2   → left edge  = pixel 4
-    nextreg $1B, 157                                ; X2 = 157 → right edge = pixel 315 (319-4)
-    nextreg $1B, 4                                  ; Y1 = 4   → top edge   = pixel 4
-    nextreg $1B, 251                                ; Y2 = 251 → bottom edge= pixel 251 (255-4)
+        nextreg $1B, 2                                  ; X1 = 2   → left edge  = pixel 4
+        nextreg $1B, 157                                ; X2 = 157 → right edge = pixel 315 (319-4)
+        nextreg $1B, 4                                  ; Y1 = 4   → top edge   = pixel 4
+        nextreg $1B, 251                                ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
-    ret
+        ret
 
 showSprite
         LD A, 0              ; get the sprite index
@@ -479,6 +610,7 @@ showSprite
         OR %10000000                                ;
         NEXTREG $38, A                              ; bits 7 1=make sprite visible
         RET
+
 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
