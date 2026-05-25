@@ -82,38 +82,34 @@ DB $00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$00,$00,$00,$
 endofSprites:
 
 
-cam_centre_x equ 19
-cam_centre_y equ 15
-cam_px dw 19*8
-cam_py dw 15*8
+cam_centre_x        equ 19
+cam_centre_y        equ 15
+cam_px              dw 19*8
+cam_py              dw 15*8
 
-;cam_tile_x    db 0                                ; fine scroll offset 0-7 pixels X
-;cam_tile_y    db 0                                ; fine scroll offset 0-7 pixels Y
-tilemapPage db 0
+tilemapPage         db 0
 
-player_px        dw 472                             ; world pixel position of sprite
-player_py        dw 376
-;cur_player_px    dw 00
-;cur_player_py    dw 00
-player_tile_x    db 0
-player_tile_y    db 0
-lastMove         db 0
+player_px           dw 472                          ; world pixel position of sprite
+player_py           dw 376
+player_tile_x       db 0
+player_tile_y       db 0
+lastMove            db 0
 
-move_delta equ 1
+move_delta          equ 0
 
-min_px equ 19 * 8
-max_px equ (255 - 20) * 8
-min_py equ 15 * 8
-max_py equ (191 - 16) * 8
+min_px              equ 19 * 8
+max_px              equ (255 - 20) * 8
+min_py              equ 15 * 8
+max_py              equ (191 - 16) * 8
 
-dir_left equ 0
-dir_right equ 1
-dir_down equ 2
-dir_up equ 3
-vdir_left equ 1
-vdir_right equ 2
-vdir_down equ 4
-vdir_up equ 8
+dir_left            equ 0
+dir_right           equ 1
+dir_down            equ 2
+dir_up              equ 3
+vdir_left           equ 1
+vdir_right          equ 2
+vdir_down           equ 4
+vdir_up             equ 8
 
 
 progStart:
@@ -242,8 +238,6 @@ spritePatternLoop:
 ; bit 1
 ; bit 0
 
-TRANSPARENT_SPRITE_SLOT
-
 ; set global transparency fallback
         NEXTREG $14, 0
 
@@ -289,49 +283,49 @@ main:
 
 
 keyProcess:	
-	ld d, 0
+	    ld d, 0
 chkKeyLeft:	
-	LD BC, $dffe                                ; keys Y U I O P
-	IN A, (C)                                   ; read port
-	BIT 1, A                                    ; check for "O"
-	JR NZ, chkKeyRight                         ; branch if not pressed
-	set dir_left, d
+	    LD BC, $dffe                                ; keys Y U I O P
+	    IN A, (C)                                   ; read port
+	    BIT 1, A                                    ; check for "O"
+	    JR NZ, chkKeyRight                          ; branch if not pressed
+	    set dir_left, d
 	
 chkKeyRight:	
-	LD BC, $dffe                                ; keys Y U I O P
-	IN A, (C)                                   ; read port
-	BIT 0, A                                    ; check for "P"
-	JR NZ, chkKeyDown                          ; branch if not pressed
-	set dir_right, d
+	    LD BC, $dffe                                ; keys Y U I O P
+    	IN A, (C)                                   ; read port
+	    BIT 0, A                                    ; check for "P"
+	    JR NZ, chkKeyDown                           ; branch if not pressed
+	    set dir_right, d
 	
 chkKeyDown:	
-	LD BC, $fdfe                                ; keys G F D S A
-	IN A, (C)                                   ; read port
-	BIT 0, A                                    ; check "A" key
-	JR NZ, chkKeyUp                              ; branch if not pressed
-	set dir_down, d
+	    LD BC, $fdfe                                ; keys G F D S A
+	    IN A, (C)                                   ; read port
+	    BIT 0, A                                    ; check "A" key
+	    JR NZ, chkKeyUp                             ; branch if not pressed
+	    set dir_down, d
 	
 chkKeyUp:	
-	LD BC, $fbfe                                ; keys T R E W Q
-	IN A, (C)                                   ; read port
-	BIT 0, A                                    ; check for "Q"
-	JR NZ, chkVert                               ; branch if not pressed
-	set dir_up, d
+    	LD BC, $fbfe                                ; keys T R E W Q
+    	IN A, (C)                                   ; read port
+    	BIT 0, A                                    ; check for "Q"
+    	JR NZ, chkVert                              ; branch if not pressed
+    	set dir_up, d
 	
 chkVert:	
-	ld e, 0                                         ; set mask to 0
-	ld a, (player_px)                               ; get player px (low byte   )
-	and 7                                           ; check bits 2-0, if 0 then vertical movement may be allowed
-	jr nz, chkHoriz
-	ld e, %00001100
+    	ld e, 0                                     ; set mask to 0
+    	ld a, (player_px)                           ; get player px (low byte   )
+    	and 7                                       ; check bits 2-0, if 0 then vertical movement may be allowed
+    	jr nz, chkHoriz
+    	ld e, %00001100
 	
 chkHoriz:	
-	ld a, (player_py)                               ; get player px (low byte)
-	and 7                                           ; check bits 2-0 if 0 then horizontal movement may be allowed
-	jr nz, chkEnd
-	ld a, %00000011
-	or e
-	ld e, a
+	    ld a, (player_py)                           ; get player px (low byte)
+    	and 7                                       ; check bits 2-0 if 0 then horizontal movement may be allowed
+    	jr nz, chkEnd
+    	ld a, %00000011
+    	or e
+    	ld e, a
 	
 chkEnd:	
 ; d = keys pressed	
@@ -346,101 +340,104 @@ chkEnd:
 	ld e, 0
 
 testLeft	
-	bit dir_left, d
-	jr z, testRight
-	call chkLeft
+    	bit dir_left, d
+    	jr z, testRight
+    	call chkLeft
 testRight	
-	bit dir_right, d
-	jr z, testDown
-	call chkRight
+    	bit dir_right, d
+    	jr z, testDown
+    	call chkRight
 testDown	
-	bit dir_down, d
-	jr z, testUp
-	call chkDown
+    	bit dir_down, d
+    	jr z, testUp
+    	call chkDown
 testUp	
-	bit dir_up, d
-	jr z, testEnd
-	call chkUp
+    	bit dir_up, d
+    	jr z, testEnd
+    	call chkUp
 	
 testEnd	
-	ld a, d
-	and e
-	ld d, a
+    	ld a, d
+    	and e
+    	ld d, a
 	
 ; d holda keys pressed where move is allowed	(no collision and boundary ok)
 ; see if last move still pressed	
-	ld a, (lastMove)                                ; get last move
-    ld e, a                                         ; save in e
+    	ld a, (lastMove)                            ; get last move
+        ld e, a                                     ; save in e
 
-    ld a, d                                         ; get valid moves bit mask
-	and e                                           ; see if last move still pressed
+        ld a, d                                     ; get valid moves bit mask
+    	and e                                       ; see if last move still pressed
 
-    jr z, doMove                                    ; no previous last move
+        jr z, doMove                                ; no previous last move
                                                     ; OR last move not pressed
                                                     ; OR last move disallowed
 
     ; here last move is stil pressed and allowed
-    ld a, d                                         ; get valid moves bit mask again
-    xor e                                           ; this time remove last move
-    jr z, doMove                                    ; last key only pressed, so do it
+        ld a, d                                     ; get valid moves bit mask again
+        xor e                                       ; this time remove last move
+        jr z, doMove                                ; last key only pressed, so do it
 
-    ld d, a
+        ld d, a
 
 	
 doMove	
 doMoveLeft	
-	bit dir_left, d
-	jr z, doMoveRight
+	    bit dir_left, d
+	    jr z, doMoveRight
 
-	ld hl, (player_px)
-	ld bc, move_delta
-	sbc hl, bc 
-	ld (player_px), hl
+	    ld hl, (player_px)
+	    ld bc, move_delta
+	    sbc hl, bc 
+	    ld (player_px), hl
 
-    ld a, vdir_left
-    ld (lastMove), a
-	jp moveSprite
+        ld a, vdir_left
+        ld (lastMove), a
+	    jp moveSprite
+
 doMoveRight	
-	bit dir_right, d
-	jr z, doMoveDown
+	    bit dir_right, d
+	    jr z, doMoveDown
 
-	ld hl, (player_px)
-	ld bc, move_delta
-	adc hl, bc 
-	ld (player_px), hl
+	    ld hl, (player_px)
+	    ld bc, move_delta
+	    adc hl, bc 
+	    ld (player_px), hl
 
-    ld a, vdir_right
-    ld (lastMove), a
-	jp moveSprite
+        ld a, vdir_right
+        ld (lastMove), a
+	    jp moveSprite
+
 doMoveDown	
-	bit dir_down, d
-	jr z, doMoveUp
+	    bit dir_down, d
+	    jr z, doMoveUp
 
-	ld hl, (player_py)
-	ld bc, move_delta
-	adc hl, bc 
-	ld (player_py), hl
+	    ld hl, (player_py)
+	    ld bc, move_delta
+	    adc hl, bc 
+	    ld (player_py), hl
 
-    ld a, vdir_down
-    ld (lastMove), a
-	jp moveSprite
+        ld a, vdir_down
+        ld (lastMove), a
+	    jp moveSprite
+
 doMoveUp	
-	bit dir_up, d
-	jp z, moveSprite
+	    bit dir_up, d
+	    jp z, moveSprite
 
-	ld hl, (player_py)
-	ld bc, move_delta
-	sbc hl, bc 
-	ld (player_py), hl
+	    ld hl, (player_py)
+	    ld bc, move_delta
+	    sbc hl, bc 
+	    ld (player_py), hl
 
-    ld a, vdir_up
-    ld (lastMove), a
-	jp moveSprite
+        ld a, vdir_up
+        ld (lastMove), a
+	    jp moveSprite
 
 chkLeft	
-	    ld hl, (player_px)                              ; get player px
-	    ld bc, move_delta                               ; get move delta
-	    sbc hl, bc                                      ; "try" move
+	    ld hl, (player_px)                          ; get player px
+	    ld bc, move_delta                           ; get move delta
+	    sbc hl, bc                                  ; "try" move
 	
 	    ; now test if we have bumped into a wall
 	    DIV_HL_8
@@ -458,16 +455,16 @@ chkLeft
 	
 	    ; now test if we are at limit of maze
 	    ld hl, (player_px)
-	    ld bc, min_px + move_delta                      ; get min pixel allowed
-	    sbc hl, bc                                      ; test
-	    ret c                                           ; return if fail
+	    ld bc, min_px + move_delta                  ; get min pixel allowed
+	    sbc hl, bc                                  ; test
+	    ret c                                       ; return if fail
 	
-	    set dir_left, e                                        ; set ok
-        ret                                             ; return
+	    set dir_left, e                             ; set ok
+        ret                                         ; return
 
 chkRight
-	    ld hl, (player_px)                              ; get player px
-	    ld bc, move_delta                               ; get move delta
+	    ld hl, (player_px)                          ; get player px
+	    ld bc, move_delta                           ; get move delta
         adc hl, bc
 
         ; now test if we have bumped into a wall
@@ -515,7 +512,7 @@ chkDown
         ret nz
 
         ld hl, (player_py)
-        ld bc, max_py + move_delta                               ; get max pixel allowed
+        ld bc, max_py + move_delta                  ; get max pixel allowed
         sbc hl, bc                                  ; test
         ret nc
 
@@ -543,7 +540,7 @@ chkUp
 
         ; now test if we are at limit of maze
         ld hl, (player_py)
-        ld bc, min_py + move_delta                               ; get min pixel allowed
+        ld bc, min_py + move_delta                  ; get min pixel allowed
         sbc hl, bc                                  ; test
         ret c
 
@@ -678,18 +675,18 @@ ENDR
 wait_vblank:
         push bc
 .loop        
-        ld bc, $243B                ; register select port
+        ld bc, $243B                                ; register select port
         ld a, $1E
-        out (c), a                  ; select ULA status register
-        inc b                       ; now point to data port $253B
-        in a, (c)                   ; read status
+        out (c), a                                  ; select ULA status register
+        inc b                                       ; now point to data port $253B
+        in a, (c)                                   ; read status
         bit 0, a
         jr z, .loop
         pop bc
         ret
 
 setTilemapBorder:
-        nextreg $1C, %00001000                          ; Reset tilemap clip window index (bit 3 = 1)
+        nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)
 
     ; ------------------------------------------------------------
     ; Write the four clip coordinates to register $1B
@@ -697,27 +694,27 @@ setTilemapBorder:
     ; Y values are 1:1 pixels (0-255)
     ; 4px border = inset of 2 X-units and 4 Y-pixels
     ; ------------------------------------------------------------
-        nextreg $1B, 2                                  ; X1 = 2   → left edge  = pixel 4
-        nextreg $1B, 157                                ; X2 = 157 → right edge = pixel 315 (319-4)
-        nextreg $1B, 4                                  ; Y1 = 4   → top edge   = pixel 4
-        nextreg $1B, 251                                ; Y2 = 251 → bottom edge= pixel 251 (255-4)
+        nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
+        nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
+        nextreg $1B, 4                              ; Y1 = 4   → top edge   = pixel 4
+        nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
         ret
 
 showSprite
-        LD A, 0              ; get the sprite index
+        LD A, 0                                     ; get the sprite index
         NEXTREG $34, A                              ; set sprite to activate
         ld hl, (cam_px)
         ld de, (cam_py)
-        LD A, l               ; get sprite X lsb
+        LD A, l                                     ; get sprite X lsb
         NEXTREG $35, A                              ; set attr byte 0 of port $0057
-        LD A, e               ; get sprite Y lsb
+        LD A, e                                     ; get sprite Y lsb
         NEXTREG $36, A                              ; set attr byte 1 of port $0057
-        LD A, h              ; get sprite X msb
+        LD A, h                                     ; get sprite X msb
         AND 1                                       ; only need bit 0 of X msb
         NEXTREG $37, A                              ; bits 7-4 palette offset
 
-        LD A, 0            ; get pattern index to use
+        LD A, 0                                     ; get pattern index to use
 
         OR %10000000                                ;
         NEXTREG $38, A                              ; bits 7 1=make sprite visible
