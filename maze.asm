@@ -93,9 +93,9 @@ player_px           dw 472                          ; world pixel position of sp
 player_py           dw 376
 player_tile_x       db 0
 player_tile_y       db 0
-lastMove            db 0
+lastMove            db 1
 
-move_delta          equ 0
+move_delta          equ 1
 
 min_px              equ 19 * 8
 max_px              equ (255 - 20) * 8
@@ -292,21 +292,19 @@ chkKeyLeft:
 	    set dir_left, d
 	
 chkKeyRight:	
-	    LD BC, $dffe                                ; keys Y U I O P
-    	IN A, (C)                                   ; read port
 	    BIT 0, A                                    ; check for "P"
 	    JR NZ, chkKeyDown                           ; branch if not pressed
 	    set dir_right, d
 	
 chkKeyDown:	
-	    LD BC, $fdfe                                ; keys G F D S A
+        LD B, $FD                                   ; port is now $FDFE, keys G F D S A
 	    IN A, (C)                                   ; read port
 	    BIT 0, A                                    ; check "A" key
 	    JR NZ, chkKeyUp                             ; branch if not pressed
 	    set dir_down, d
 	
 chkKeyUp:	
-    	LD BC, $fbfe                                ; keys T R E W Q
+        LD B, $FB                                   ; port is now $FBFE, keys T R E W Q
     	IN A, (C)                                   ; read port
     	BIT 0, A                                    ; check for "Q"
     	JR NZ, chkVert                              ; branch if not pressed
