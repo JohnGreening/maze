@@ -93,10 +93,11 @@ tilemapPage db 0
 
 player_px        dw 472                             ; world pixel position of sprite
 player_py        dw 376
-cur_player_px    dw 00
-cur_player_py    dw 00
+;cur_player_px    dw 00
+;cur_player_py    dw 00
 player_tile_x    db 0
 player_tile_y    db 0
+lastMove         db 0
 
 move_delta equ 1
 
@@ -104,6 +105,16 @@ min_px equ 19 * 8
 max_px equ (255 - 20) * 8
 min_py equ 15 * 8
 max_py equ (191 - 16) * 8
+
+dir_left equ 0
+dir_right equ 1
+dir_down equ 2
+dir_up equ 3
+vdir_left equ 1
+vdir_right equ 2
+vdir_down equ 4
+vdir_up equ 8
+
 
 progStart:
 ; *****************************************
@@ -276,61 +287,188 @@ main:
         jr nz, .delay
         jr main
 
-keyProcess
-        ld a, (player_py)                           ; get pixel Y
-        and 7                                       ; mask off bits 2-0, 0= not mid tile
-        jp nz, keyDown                              ; branch if mid tile
 
-keyLeft
-        ld hl, (player_px)
-        ld (cur_player_px), hl
+keyProcess:	
+	ld d, 0
+chkKeyLeft:	
+	LD BC, $dffe                                ; keys Y U I O P
+	IN A, (C)                                   ; read port
+	BIT 1, A                                    ; check for "O"
+	JR NZ, chkKeyRight                         ; branch if not pressed
+	set dir_left, d
+	
+chkKeyRight:	
+	LD BC, $dffe                                ; keys Y U I O P
+	IN A, (C)                                   ; read port
+	BIT 0, A                                    ; check for "P"
+	JR NZ, chkKeyDown                          ; branch if not pressed
+	set dir_right, d
+	
+chkKeyDown:	
+	LD BC, $fdfe                                ; keys G F D S A
+	IN A, (C)                                   ; read port
+	BIT 0, A                                    ; check "A" key
+	JR NZ, chkKeyUp                              ; branch if not pressed
+	set dir_down, d
+	
+chkKeyUp:	
+	LD BC, $fbfe                                ; keys T R E W Q
+	IN A, (C)                                   ; read port
+	BIT 0, A                                    ; check for "Q"
+	JR NZ, chkVert                               ; branch if not pressed
+	set dir_up, d
+	
+chkVert:	
+	ld e, 0                                         ; set mask to 0
+	ld a, (player_px)                               ; get player px (low byte   )
+	and 7                                           ; check bits 2-0, if 0 then vertical movement may be allowed
+	jr nz, chkHoriz
+	ld e, %00001100
+	
+chkHoriz:	
+	ld a, (player_py)                               ; get player px (low byte)
+	and 7                                           ; check bits 2-0 if 0 then horizontal movement may be allowed
+	jr nz, chkEnd
+	ld a, %00000011
+	or e
+	ld e, a
+	
+chkEnd:	
+; d = keys pressed	
+; e = vert/horiz potentially allowed	
+	
+	ld a, d
+	and e
+	ld d, a
+	
+; d is keys pressed potentially allowed	
+	
+	ld e, 0
 
-        LD BC, $dffe                                ; keys Y U I O P
-        IN A, (C)                                   ; read port
-        BIT 1, A                                    ; check for "o"
-        JR NZ, keyRight                             ; branch if not pressed
+testLeft	
+	bit dir_left, d
+	jr z, testRight
+	call chkLeft
+testRight	
+	bit dir_right, d
+	jr z, testDown
+	call chkRight
+testDown	
+	bit dir_down, d
+	jr z, testUp
+	call chkDown
+testUp	
+	bit dir_up, d
+	jr z, testEnd
+	call chkUp
+	
+testEnd	
+	ld a, d
+	and e
+	ld d, a
+	
+; d holda keys pressed where move is allowed	(no collision and boundary ok)
+; see if last move still pressed	
+	ld a, (lastMove)                                ; get last move
+    ld e, a                                         ; save in e
 
-        ld bc, move_delta                           ; get pixel delta
-        sbc hl, bc                                  ; do move
-        ld (player_px), hl                          ; save result
+    ld a, d                                         ; get valid moves bit mask
+	and e                                           ; see if last move still pressed
 
-        ; now test if we have bumped into a wall
-        DIV_HL_8
-        ld b, l
-        ld hl, (player_py)
-        DIV_HL_8
-        ld c, l
-        GET_WORLD_TILE
-        and a
-        jr nz, .hitwall
-        inc c
-        GET_WORLD_TILE
-        and a
-        jr nz, .hitwall
+    jr z, doMove                                    ; no previous last move
+                                                    ; OR last move not pressed
+                                                    ; OR last move disallowed
 
-        ; now test if we are at limit of maze
-        ld hl, (player_px)
-        ld de, min_px                               ; get min pixel allowed
-        sbc hl, de                                  ; test
-        jp nc, keyEnd                               ; branch if ok
+    ; here last move is stil pressed and allowed
+    ld a, d                                         ; get valid moves bit mask again
+    xor e                                           ; this time remove last move
+    jr z, doMove                                    ; last key only pressed, so do it
 
-.hitwall
-.clamp
-        ; either bumped into a wall or at map end
-        ; either way, revert to previous px
-        ld hl, (cur_player_px)
-        ld (player_px), hl                          ; clamp result
-        jp keyEnd                                   ; branch with clamp
+    ld d, a
 
-keyRight
-        LD BC, $dffe                                ; keys Y U I O P
-        IN A, (C)                                   ; read port
-        BIT 0, A                                    ; check for "p"
-        JR NZ, keyDown                              ; branch if not pressed
+	
+doMove	
+doMoveLeft	
+	bit dir_left, d
+	jr z, doMoveRight
 
-        ld bc, move_delta
+	ld hl, (player_px)
+	ld bc, move_delta
+	sbc hl, bc 
+	ld (player_px), hl
+
+    ld a, vdir_left
+    ld (lastMove), a
+	jp moveSprite
+doMoveRight	
+	bit dir_right, d
+	jr z, doMoveDown
+
+	ld hl, (player_px)
+	ld bc, move_delta
+	adc hl, bc 
+	ld (player_px), hl
+
+    ld a, vdir_right
+    ld (lastMove), a
+	jp moveSprite
+doMoveDown	
+	bit dir_down, d
+	jr z, doMoveUp
+
+	ld hl, (player_py)
+	ld bc, move_delta
+	adc hl, bc 
+	ld (player_py), hl
+
+    ld a, vdir_down
+    ld (lastMove), a
+	jp moveSprite
+doMoveUp	
+	bit dir_up, d
+	jp z, moveSprite
+
+	ld hl, (player_py)
+	ld bc, move_delta
+	sbc hl, bc 
+	ld (player_py), hl
+
+    ld a, vdir_up
+    ld (lastMove), a
+	jp moveSprite
+
+chkLeft	
+	    ld hl, (player_px)                              ; get player px
+	    ld bc, move_delta                               ; get move delta
+	    sbc hl, bc                                      ; "try" move
+	
+	    ; now test if we have bumped into a wall
+	    DIV_HL_8
+	    ld b, l
+	    ld hl, (player_py)
+	    DIV_HL_8
+	    ld c, l
+	    GET_WORLD_TILE
+	    and a
+	    ret nz
+	    inc c
+	    GET_WORLD_TILE
+	    and a
+	    ret nz
+	
+	    ; now test if we are at limit of maze
+	    ld hl, (player_px)
+	    ld bc, min_px + move_delta                      ; get min pixel allowed
+	    sbc hl, bc                                      ; test
+	    ret c                                           ; return if fail
+	
+	    set dir_left, e                                        ; set ok
+        ret                                             ; return
+
+chkRight
+	    ld hl, (player_px)                              ; get player px
+	    ld bc, move_delta                               ; get move delta
         adc hl, bc
-        ld (player_px), hl
 
         ; now test if we have bumped into a wall
         add hl, 15                                  ; the sprite extends 0-15px right
@@ -341,43 +479,25 @@ keyRight
         ld c, l
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
         inc c
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
 
         ; now test if we are at limit of maze
         ld hl, (player_px)
-        ld de, max_px
-        sbc hl, de
-        jp c, keyEnd
+        ld bc, max_px + move_delta
+        sbc hl, bc
+        ret nc
 
-.hitwall
-.clamp
-        ; either bumped into a wall or at map end
-        ; either way, revert to previous px
-        ld hl, (cur_player_px)
-        ld (player_px), hl                          ; clamp result
-        jp keyEnd                                   ; branch with clamp
+        set dir_right, e
+        ret
 
-keyDown
+chkDown
         ld hl, (player_py)
-        ld (cur_player_py), hl
-
-        ld a, (player_px)                           ; get pixel X
-        and 7                                       ; mask off bits 2-0, 0= not mid tile
-        jp nz, keyEnd                               ; branch if mid tile
-
-        LD BC, $fefe                                ; read keyboard up/down
-        IN A, (C)                                   ; read port
-        BIT 1, A                                    ; check "a" key
-        JR NZ, keyUp                                ; branch if not pressed
-
-        ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
         adc hl, bc                                  ; do move
-        ld (player_py), hl                          ; save result
 
         ; now test if we have bumped into a wall
         add hl, 15                                  ; the sprite extends 0-15px down
@@ -388,35 +508,24 @@ keyDown
         ld b, l
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
         inc b
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
 
         ld hl, (player_py)
-        ld de, max_py                               ; get max pixel allowed
-        sbc hl, de                                  ; test
-        jp c, keyEnd                                ; branch if ok
+        ld bc, max_py + move_delta                               ; get max pixel allowed
+        sbc hl, bc                                  ; test
+        ret nc
 
-.hitwall
-.clamp
-        ; either bumped into a wall or at map end
-        ; either way, revert to previous px
-        ld hl, (cur_player_py)
-        ld (player_py), hl                          ; clamp result
-        jp keyEnd                                   ; branch with clamp
+        set dir_down, e
+        ret
 
-keyUp
-        LD BC, $fdfe                                ; read keyboard up/down
-        IN A, (C)                                   ; read port
-        BIT 0, A                                    ; check for "q"
-        JP NZ, keyEnd                               ; branch if not pressed
-        
+chkUp
         ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
-        ld (player_py), hl                          ; save result
 
         ; now test if we have bumped into a wall
         DIV_HL_8
@@ -426,28 +535,24 @@ keyUp
         ld b, l
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
         inc b
         GET_WORLD_TILE
         and a
-        jr nz, .hitwall
+        ret nz
 
         ; now test if we are at limit of maze
         ld hl, (player_py)
-        ld de, min_py                               ; get min pixel allowed
-        sbc hl, de                                  ; test
-        jp nc, keyEnd                               ; branch if ok
+        ld bc, min_py + move_delta                               ; get min pixel allowed
+        sbc hl, bc                                  ; test
+        ret c
 
-.hitwall
-.clamp
-        ; either bumped into a wall or at map end
-        ; either way, revert to previous px
-        ld hl, (cur_player_py)
-        ld (player_py), hl                          ; clamp result
-        jr keyEnd                                   ; branch with clamp
+        set dir_up, e
+        ret
 
 
 keyEnd
+moveSprite
         ld hl, (player_px)                          ; get player pixel X
         DIV_HL_8                                    ; divide by 8 to get tile X
         ld b, l                                     ; and save in b for later
@@ -473,11 +578,18 @@ keyEnd
 ; ================================================
     ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
     ; ================================================
+        ld hl, (player_px)
+        DIV_HL_8
+        ld b, l
+        ld hl, (player_py)
+        DIV_HL_8
+        ld c, l
+        
         ld a, (player_tile_x)                       ; get last player tile X
         cp b                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
-        ld a, (player_tile_y)                       ; get lat player tile Y
+        ld a, (player_tile_y)                       ; get last player tile Y
         cp c                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
