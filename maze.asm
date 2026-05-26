@@ -82,8 +82,11 @@ DB $00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$00,$00,$00,$
 endofSprites:
 
 
+
 cam_centre_x        equ 19
 cam_centre_y        equ 15
+CENTER_SCREEN_X     equ cam_centre_x * 8   ; 152
+CENTER_SCREEN_Y     equ cam_centre_y * 8   ; 120
 cam_px              dw 19*8
 cam_py              dw 15*8
 
@@ -111,6 +114,21 @@ vdir_right          equ 2
 vdir_down           equ 4
 vdir_up             equ 8
 
+
+    struct baddieRecord
+index               byte
+lowX                byte
+highX               byte
+lowY                byte
+highY               byte
+tileX               byte
+tileY               byte
+dir                 byte
+pattern             byte
+    ENDS
+
+baddieCount         equ 1
+baddieData          defs baddieRecord * baddieCount
 
 progStart:
 ; *****************************************
@@ -270,10 +288,25 @@ otherSetup:
         call copy_visible_window
         call showSprite
 
+        ld ix, baddieData
+        ld a, 1
+        ld (ix +baddieRecord.index), a
+        ld hl, 472 - 8
+        ld (ix +baddieRecord.highX), h
+        ld (ix +baddieRecord.lowX), l
+        ld hl, 376 - 24
+        ld (ix +baddieRecord.highY), h
+        ld (ix +baddieRecord.lowY), l
+        ld a, 0
+        ld (ix +baddieRecord.pattern), a
+        ld a, vdir_left
+        ld (ix +baddieRecord.dir), a
+
+
 main:
         call keyProcess
 
-        ld bc, 5
+        ld bc, 5000
 .delay
         dec bc
         ld a, b
@@ -548,6 +581,8 @@ chkUp
 
 keyEnd
 moveSprite
+        call processBaddies
+
         ld hl, (player_px)                          ; get player pixel X
         DIV_HL_8                                    ; divide by 8 to get tile X
         ld b, l                                     ; and save in b for later
@@ -718,6 +753,315 @@ showSprite
         NEXTREG $38, A                              ; bits 7 1=make sprite visible
         RET
 
+processBaddies
+        ld ix, baddieData                           ; point to start of baddie data
+
+        ld h, (ix +baddieRecord.highX)              ; get baddie X
+        ld l, (ix +baddieRecord.lowX)
+        DIV_HL_8                                    ; div by 8 to get tile Y
+        ld b, l                                     ; save in D
+
+        ld h, (ix +baddieRecord.highY)              ; get baddie Y
+        ld l, (ix +baddieRecord.lowY)
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; save in C
+
+        ld d, (ix +baddieRecord.dir)                ; get current direction in d
+
+        ld a, (ix +baddieRecord.tileX)              ; get last tile X
+        and b                                       ; change from last time
+        jr nz, newTile                              ; jump if so
+
+        ld a, (ix +baddieRecord.tileY)              ; get last tile Y
+        and c                                       ; change from last time
+        jr nz, newTile                              ; jump if so
+
+        ; baddie is not newly on a new tile, therefore continue in current direction (d)
+        jp moveBaddie
+
+newTile:
+        ld (ix +baddieRecord.tileX), b             ; save the tile X
+        ld (ix +baddieRecord.tileY), c             ; save the tile Y
+
+        ; d holds current direction 
+        ld a, %00001111                             ; set all availabe to true
+        xor d                                       ; mask out current direction
+        ld d, a                                     ; save back into d
+        ld e, 0                                     ; set available to none
+
+testLeft1:
+        bit dir_left, d
+        jr z, testRight1
+
+        call chkLeft1
+
+testRight1:
+        bit dir_right, d
+        jr z, testDown1
+
+        call chkRight1
+
+testDown1:
+        bit dir_down, d
+        jr z, testUp1
+
+        call chkDown1
+
+testUp1:
+        bit dir_up, d
+        jr z, testEnd1
+
+        call chkUp1
+
+testEnd1:
+        ld a, e                                     ; get available directions
+        and a                                       ; test for none
+        jr z, reverse                               ; branch if so, only available must be reverse of current
+
+        ; we have a new available direction in e
+        ld d, a
+        jp moveBaddie
+
+reverse:
+    	ld e, 0                                     ; set mask to 0
+    	ld a, d                                     ;
+    	and %00000011                               ;
+        jr z, .reverse1
+        xor %00000011
+        ld d, a
+        jp moveBaddie
+.reverse1
+        ld a, d
+        xor %00001100
+        ld d, a
+        jp moveBaddie
+
+chkLeft1
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+        ld bc, move_delta
+        sbc hl, bc
+
+        ; now test if we have bumped into a wall
+        DIV_HL_8
+        ld b, l
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        DIV_HL_8
+        ld c, l
+        GET_WORLD_TILE
+        and a
+        ret nz
+
+        inc c
+        GET_WORLD_TILE
+        and a
+        ret nz
+
+        set dir_left, e
+        ret
+
+chkRight1
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+	    ld bc, move_delta                           ; get move delta
+        adc hl, bc
+
+        ; now test if we have bumped into a wall
+        add hl, 15                                  ; the sprite extends 0-15px right
+        DIV_HL_8
+        ld b, l
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        DIV_HL_8
+        ld c, l
+        GET_WORLD_TILE
+        and a
+        ret nz
+        inc c
+        GET_WORLD_TILE
+        and a
+        ret nz
+
+        set dir_right, e
+        ret
+
+chkDown1
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        ld bc, move_delta                           ; get pixel delta
+        adc hl, bc                                  ; do move
+
+        ; now test if we have bumped into a wall
+        add hl, 15                                  ; the sprite extends 0-15px down
+        DIV_HL_8
+        ld c, l
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+        DIV_HL_8
+        ld b, l
+        GET_WORLD_TILE
+        and a
+        ret nz
+        inc b
+        GET_WORLD_TILE
+        and a
+        ret nz
+
+        set dir_down, e
+        ret
+
+chkUp1
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        ld bc, move_delta                           ; get pixel delta
+        sbc hl, bc                                  ; do move
+
+        ; now test if we have bumped into a wall
+        DIV_HL_8
+        ld c, l
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+        DIV_HL_8
+        ld b, l
+        GET_WORLD_TILE
+        and a
+        ret nz
+        inc b
+        GET_WORLD_TILE
+        and a
+        ret nz
+
+        set dir_up, e
+        ret
+
+
+moveBaddie:
+.doMoveLeft
+        bit dir_left, d
+        jr z, .doMoveRight
+
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+        ld bc, move_delta
+        sbc hl, bc
+        ld (ix +baddieRecord.highX), h
+        ld (ix +baddieRecord.lowX), l
+        ld a, vdir_left
+        ld (ix +baddieRecord.dir), a
+        jr .displayBaddie 
+
+.doMoveRight
+        bit dir_right, d
+        jr z, .doMoveDown
+
+        ld h, (ix +baddieRecord.highX)
+        ld l, (ix +baddieRecord.lowX)
+        ld bc, move_delta
+        adc hl, bc
+        ld (ix +baddieRecord.highX), h
+        ld (ix +baddieRecord.lowX), l
+        ld a, vdir_right
+        ld (ix +baddieRecord.dir), a
+
+        jr .displayBaddie 
+
+.doMoveDown
+        bit dir_down, d
+        jr z, .doMoveUp
+
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        ld bc, move_delta
+        adc hl, bc
+        ld (ix +baddieRecord.highY), h
+        ld (ix +baddieRecord.lowY), l
+        ld a, vdir_down
+        ld (ix +baddieRecord.dir), a
+
+        jr .displayBaddie 
+
+.doMoveUp
+        bit dir_up, d
+        jp z, .displayBaddie
+
+        ld h, (ix +baddieRecord.highY)
+        ld l, (ix +baddieRecord.lowY)
+        ld bc, move_delta
+        sbc hl, bc
+        ld (ix +baddieRecord.highY), h
+        ld (ix +baddieRecord.lowY), l
+        ld a, vdir_up
+        ld (ix +baddieRecord.dir), a
+
+
+.displayBaddie:
+displayBaddie:
+        ; IX already points at the baddie record (from processBaddies)
+        ; ------------------------------------------------------------
+        ; Compute screen X = baddie_x - player_px + CENTER_SCREEN_X
+        ld l, (ix + baddieRecord.lowX)
+        ld h, (ix + baddieRecord.highX)
+        ld bc, (player_px)
+        or a
+        sbc hl, bc
+        ld bc, CENTER_SCREEN_X
+        add hl, bc                  ; HL = screen_x
+
+        ; Check if in view (0 ≤ X ≤ 319)
+        bit 7, h
+        jr nz, .hideBaddie          ; off left
+        ld a, h
+        or a
+        jr nz, .hideBaddie          ; way off right
+        ld a, l
+        cp 255
+        jr nc, .hideBaddie          ; off right
+
+        push hl                     ; save screen X
+
+        ; ------------------------------------------------------------
+        ; Compute screen Y = baddie_y - player_py + CENTER_SCREEN_Y
+        ld l, (ix + baddieRecord.lowY)
+        ld h, (ix + baddieRecord.highY)
+        ld bc, (player_py)
+        or a
+        sbc hl, bc
+        ld bc, CENTER_SCREEN_Y
+        add hl, bc                  ; HL = screen_y
+
+        ; Check if in view (0 ≤ Y ≤ 255)
+        bit 7, h
+        jr nz, .hidePop
+        ld a, h
+        or a
+        jr nz, .hidePop
+
+        ; ============================================================
+        ; BADDIE IS ON SCREEN → show sprite 1
+        pop de                      ; DE = screen_x (E=LSB, D=MSB)
+        ld a, 1                     ; sprite index 1
+        NEXTREG $34, a
+        ld a, e
+        NEXTREG $35, a              ; X LSB
+        ld a, l                     ; Y LSB (still in L)
+        NEXTREG $36, a
+        ld a, d
+        and 1
+        NEXTREG $37, a              ; X MSB (matches your player sprite style)
+        ld a, (ix + baddieRecord.pattern)
+        or %10000000                ; visible bit
+        NEXTREG $38, a
+        ret
+
+.hidePop:
+        pop hl
+.hideBaddie:
+        ; hide sprite 1 (just clear visible bit)
+        ld a, 1
+        NEXTREG $34, a
+        NEXTREG $38, 0              ; visible = off
+        ret
 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
