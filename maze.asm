@@ -301,12 +301,16 @@ otherSetup:
         ld (ix +baddieRecord.pattern), a
         ld a, vdir_left
         ld (ix +baddieRecord.dir), a
+        ld a, 58
+        ld (ix +baddieRecord.tileX), a
+        ld a, 44
+        ld (ix +baddieRecord.tileY), a
 
 
 main:
         call keyProcess
 
-        ld bc, 5000
+        ld bc, 500
 .delay
         dec bc
         ld a, b
@@ -758,85 +762,97 @@ processBaddies
 
         ld h, (ix +baddieRecord.highX)              ; get baddie X
         ld l, (ix +baddieRecord.lowX)
+        ld a, l
+        and 7
+        ld iyh, a
         DIV_HL_8                                    ; div by 8 to get tile Y
         ld b, l                                     ; save in D
 
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
+        ld a, l
+        and 7
+        ld iyl, a
         DIV_HL_8                                    ; divide by 8 to get tile Y
         ld c, l                                     ; save in C
 
-        ld d, (ix +baddieRecord.dir)                ; get current direction in d
 
         ld a, (ix +baddieRecord.tileX)              ; get last tile X
-        and b                                       ; change from last time
+        cp b                                       ; change from last time
         jr nz, newTile                              ; jump if so
 
         ld a, (ix +baddieRecord.tileY)              ; get last tile Y
-        and c                                       ; change from last time
+        cp c                                       ; change from last time
         jr nz, newTile                              ; jump if so
 
         ; baddie is not newly on a new tile, therefore continue in current direction (d)
+        ld d, (ix +baddieRecord.dir)                ; get current direction in d
         jp moveBaddie
 
 newTile:
         ld (ix +baddieRecord.tileX), b             ; save the tile X
         ld (ix +baddieRecord.tileY), c             ; save the tile Y
 
-        ; d holds current direction 
-        ld a, %00001111                             ; set all availabe to true
-        xor d                                       ; mask out current direction
-        ld d, a                                     ; save back into d
-        ld e, 0                                     ; set available to none
+        ; get reverse direction
+        ld a, (ix + baddieRecord.dir)               ; Load current direction
+        ld b, a                                     ; Backup original direction to B
+        and %00000011                               ; Check for Left (1) / Right (2)
+        jr z, .vertMask                             ; If 0, it must be vertical (Up/Down)
 
-testLeft1:
+        ; Horizontal Path: Swap 1 <-> 2
+        ; 'A' already contains ONLY the horizontal bits here
+        xor %00000011                               ; 1 becomes 2, 2 becomes 1
+        ld b, a                                     ; Store final result in B
+        jr .done
+
+.vertMask:
+        ; Vertical Path: Swap 4 <-> 8
+        ; Because 'A' was 0, 'B' still holds the unaltered original vertical value
+        ld a, b                                     ; Bring original back to A to process
+        xor %00001100                               ; 4 becomes 8, 8 becomes 4
+        ld b, a                                     ; Store final result in B
+
+.done:
+        ; d holds current direction (bitmask)
+        push bc                                     ; save reverse on stack for use later
+        ld a, %00001111                             ; start with all directions
+        xor b                                       ; mask out reverse
+
+testDirections:
+        ld d, a                                     ; D = directions to test (all except reverse)
+        ld e, 0                                     ; E = available directions found
+
         bit dir_left, d
-        jr z, testRight1
+        call nz, chkLeft1
 
-        call chkLeft1
-
-testRight1:
         bit dir_right, d
-        jr z, testDown1
+        call nz, chkRight1
 
-        call chkRight1
-
-testDown1:
         bit dir_down, d
-        jr z, testUp1
+        call nz, chkDown1
 
-        call chkDown1
-
-testUp1:
         bit dir_up, d
-        jr z, testEnd1
+        call nz, chkUp1
 
-        call chkUp1
+        pop bc                                      ; retrieve the saved reverse direction
+        ld a, e                                     ; get what moves were possible
+        and a                                       ; are there any?
+        jr z, reverse                               ; branch if not, only reverse possible
 
-testEnd1:
-        ld a, e                                     ; get available directions
-        and a                                       ; test for none
-        jr z, reverse                               ; branch if so, only available must be reverse of current
-
-        ; we have a new available direction in e
-        ld d, a
-        jp moveBaddie
+        ld a, e                                     ; get the allowed moves
+        call random                                 ; pick one at random
+        ld d, a                                     ; set the direcion
+        jp moveBaddie                    
 
 reverse:
-    	ld e, 0                                     ; set mask to 0
-    	ld a, d                                     ;
-    	and %00000011                               ;
-        jr z, .reverse1
-        xor %00000011
-        ld d, a
-        jp moveBaddie
-.reverse1
-        ld a, d
-        xor %00001100
-        ld d, a
-        jp moveBaddie
+        ld d, b                                     ; set d to be the reverse direction
+        jp moveBaddie                               ; and do the move
 
 chkLeft1
+        ld a, iyl                                   ; we only want to test horizontal moves if baddie Y is exactly on a tile
+        and a                                       ; is it?
+        ret nz                                      ; return if not
+
         ld h, (ix +baddieRecord.highX)
         ld l, (ix +baddieRecord.lowX)
         ld bc, move_delta
@@ -862,6 +878,10 @@ chkLeft1
         ret
 
 chkRight1
+        ld a, iyl                                   ; we only want to test horizontal moves if baddie Y is exactly on a tile
+        and a                                       ; is it?
+        ret nz                                      ; return if not
+
         ld h, (ix +baddieRecord.highX)
         ld l, (ix +baddieRecord.lowX)
 	    ld bc, move_delta                           ; get move delta
@@ -887,6 +907,10 @@ chkRight1
         ret
 
 chkDown1
+        ld a, iyh                                   ; we only want to test vertical moves if baddie X is exactly on a tile
+        and a                                       ; is it?
+        ret nz                                      ; return if not
+
         ld h, (ix +baddieRecord.highY)
         ld l, (ix +baddieRecord.lowY)
         ld bc, move_delta                           ; get pixel delta
@@ -912,6 +936,10 @@ chkDown1
         ret
 
 chkUp1
+        ld a, iyh                                   ; we only want to test vertical moves if baddie X is exactly on a tile
+        and a                                       ; is it?
+        ret nz                                      ; return if not
+
         ld h, (ix +baddieRecord.highY)
         ld l, (ix +baddieRecord.lowY)
         ld bc, move_delta                           ; get pixel delta
@@ -996,7 +1024,7 @@ moveBaddie:
 
 
 .displayBaddie:
-displayBaddie:
+;displayBaddie:
         ; IX already points at the baddie record (from processBaddies)
         ; ------------------------------------------------------------
         ; Compute screen X = baddie_x - player_px + CENTER_SCREEN_X
@@ -1063,6 +1091,59 @@ displayBaddie:
         NEXTREG $38, 0              ; visible = off
         ret
 
+
+random:
+        and $0f                                     ; limit to 0-15, this is the available directions bitmask
+        ld l, a                                     ; l = 0-15
+        ld h, 0                                     ; h = 0
+        add hl, hl                                  ; 2 * hl
+        add hl, hl                                  ; 4 * hl
+        ld de, lut_base                             ; add lut base
+        add hl, de                                  ; hl now points to row applicable for available directions
+        
+RND_GEN:
+        PUSH HL
+        LD HL, (seed)        ; Load 16-bit seed
+        LD D, H
+        LD E, L              ; Save original seed in DE
+        ADD HL, HL           ; HL = seed * 2
+        SBC A, A             ; A = 0 or 255 (based on carry)
+        AND 0FDH             ; Mask for constant 253 (for Galois LFSR)
+        XOR E                ; Combine with L
+        LD C, A              ; Store in C
+        SBC HL, BC           ; Subtract from seed
+        JR NC, RND_OK        ; Check for underflow
+        INC HL               ; Handle underflow
+RND_OK:
+        LD (seed), HL        ; Save the new seed
+        LD A, H              ; Return the high byte of the result in A
+        POP HL
+        AND %00000011                               ; restrict rnd to 0-3
+        ADD HL, A
+        LD A, (HL)
+
+        RET
+
+seed:
+    DW 1                 ; Initial 16-bit seed (Must not be zero!)        ld a, (hl)
+
+lut_base:
+        db 0, 0, 0, 0                               ;  0  0000 no bits set
+        db 1, 1, 1, 1                               ;  1  0001 only bit 0 set
+        db 2, 2, 2, 2                               ;  2  0010 only bit 1 set
+        db 1, 2, 1, 2                               ;  3  0011 bits 0, 1 set
+        db 4, 4, 4, 4                               ;  4  0100 only bit 2 set
+        db 1, 4, 1, 4                               ;  5  0101
+        db 2, 4, 2, 4                               ;  6  0110
+        db 1, 2, 4, 1                               ;  7  0111
+        db 8, 8, 8, 8                               ;  8  1000
+        db 1, 8, 1, 8                               ;  9  1001
+        db 2, 8, 2, 8                               ; 10  1010
+        db 1, 2, 8, 1                               ; 11  1011
+        db 4, 8, 4, 8                               ; 12  1100
+        db 1, 4, 8, 1                               ; 13  1101
+        db 2, 4, 8, 2                               ; 14  1110
+        db 1, 2, 4, 8                               ; 15  1111 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
 ; ----------------------------------------------------------------
