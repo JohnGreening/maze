@@ -374,29 +374,24 @@ chkEnd:
 	
 	ld e, 0
 
-testLeft	
+.testDirections
     	bit dir_left, d
-    	jr z, testRight
-    	call chkLeft
-testRight	
+    	call nz, chkLeft
+
     	bit dir_right, d
-    	jr z, testDown
-    	call chkRight
-testDown	
+    	call nz, chkRight
+
     	bit dir_down, d
-    	jr z, testUp
-    	call chkDown
-testUp	
+    	call nz, chkDown
+
     	bit dir_up, d
-    	jr z, testEnd
-    	call chkUp
+    	call nz, chkUp
 	
-testEnd	
     	ld a, d
     	and e
     	ld d, a
 	
-; d holda keys pressed where move is allowed	(no collision and boundary ok)
+; d holds keys pressed where move is allowed	(no collision and boundary ok)
 ; see if last move still pressed	
     	ld a, (lastMove)                            ; get last move
         ld e, a                                     ; save in e
@@ -778,20 +773,24 @@ processBaddies
 
 
         ld a, (ix +baddieRecord.tileX)              ; get last tile X
-        cp b                                       ; change from last time
+        cp b                                        ; change from last time
         jr nz, newTile                              ; jump if so
 
         ld a, (ix +baddieRecord.tileY)              ; get last tile Y
-        cp c                                       ; change from last time
+        cp c                                        ; change from last time
         jr nz, newTile                              ; jump if so
 
         ; baddie is not newly on a new tile, therefore continue in current direction (d)
-        ld d, (ix +baddieRecord.dir)                ; get current direction in d
-        jp moveBaddie
+        ld a, (ix +baddieRecord.dir)                ; get current direction in d
+        ld b, a
+;        ld a, b
+;        cp vdir_left
+;        jp z, displayBaddie
+        jp reverse
 
 newTile:
-        ld (ix +baddieRecord.tileX), b             ; save the tile X
-        ld (ix +baddieRecord.tileY), c             ; save the tile Y
+        ld (ix +baddieRecord.tileX), b              ; save the tile X
+        ld (ix +baddieRecord.tileY), c              ; save the tile Y
 
         ; get reverse direction
         ld a, (ix + baddieRecord.dir)               ; Load current direction
@@ -818,7 +817,9 @@ newTile:
         ld a, %00001111                             ; start with all directions
         xor b                                       ; mask out reverse
 
-testDirections:
+; -----------------------------------------------
+; Test each direction to see if a move is allowed
+; -----------------------------------------------
         ld d, a                                     ; D = directions to test (all except reverse)
         ld e, 0                                     ; E = available directions found
 
@@ -834,19 +835,27 @@ testDirections:
         bit dir_up, d
         call nz, chkUp1
 
+;-----------------------
+; pick direction to take
+; ----------------------
         pop bc                                      ; retrieve the saved reverse direction
         ld a, e                                     ; get what moves were possible
         and a                                       ; are there any?
-        jr z, reverse                               ; branch if not, only reverse possible
-
-        ld a, e                                     ; get the allowed moves
-        call random                                 ; pick one at random
-        ld d, a                                     ; set the direcion
-        jp moveBaddie                    
+        jr z, reverse
+moveAvailable
+        call random                                ; pick one if so
+        ld b, a
 
 reverse:
-        ld d, b                                     ; set d to be the reverse direction
-        jp moveBaddie                               ; and do the move
+        ld a, b                                     ; set d to be the reverse direction
+
+        add a, a
+        ld hl, baddieMoveLUT
+        add hl, a
+        jp (hl)
+
+baddieMoveLUT:
+defw    0, doMoveLeft1, doMoveRight1, 0, doMoveDown1, 0, 0, 0, doMoveUp1
 
 chkLeft1
         ld a, iyl                                   ; we only want to test horizontal moves if baddie Y is exactly on a tile
@@ -964,10 +973,10 @@ chkUp1
         ret
 
 
-moveBaddie:
-.doMoveLeft
-        bit dir_left, d
-        jr z, .doMoveRight
+;moveBaddie:
+doMoveLeft1
+;        bit dir_left, d
+;        jr z, .doMoveRight
 
         ld h, (ix +baddieRecord.highX)
         ld l, (ix +baddieRecord.lowX)
@@ -977,11 +986,11 @@ moveBaddie:
         ld (ix +baddieRecord.lowX), l
         ld a, vdir_left
         ld (ix +baddieRecord.dir), a
-        jr .displayBaddie 
+        jr displayBaddie 
 
-.doMoveRight
-        bit dir_right, d
-        jr z, .doMoveDown
+doMoveRight1
+;        bit dir_right, d
+;        jr z, .doMoveDown
 
         ld h, (ix +baddieRecord.highX)
         ld l, (ix +baddieRecord.lowX)
@@ -992,11 +1001,11 @@ moveBaddie:
         ld a, vdir_right
         ld (ix +baddieRecord.dir), a
 
-        jr .displayBaddie 
+        jr displayBaddie 
 
-.doMoveDown
-        bit dir_down, d
-        jr z, .doMoveUp
+doMoveDown1
+;        bit dir_down, d
+;        jr z, .doMoveUp
 
         ld h, (ix +baddieRecord.highY)
         ld l, (ix +baddieRecord.lowY)
@@ -1007,11 +1016,11 @@ moveBaddie:
         ld a, vdir_down
         ld (ix +baddieRecord.dir), a
 
-        jr .displayBaddie 
+        jr displayBaddie 
 
-.doMoveUp
-        bit dir_up, d
-        jp z, .displayBaddie
+doMoveUp1
+;        bit dir_up, d
+;        jp z, .displayBaddie
 
         ld h, (ix +baddieRecord.highY)
         ld l, (ix +baddieRecord.lowY)
@@ -1023,8 +1032,7 @@ moveBaddie:
         ld (ix +baddieRecord.dir), a
 
 
-.displayBaddie:
-;displayBaddie:
+displayBaddie:
         ; IX already points at the baddie record (from processBaddies)
         ; ------------------------------------------------------------
         ; Compute screen X = baddie_x - player_px + CENTER_SCREEN_X
