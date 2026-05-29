@@ -83,12 +83,10 @@ endofSprites:
 
 
 
-cam_centre_x        equ 19
-cam_centre_y        equ 15
-CENTER_SCREEN_X     equ cam_centre_x * 8   ; 152
-CENTER_SCREEN_Y     equ cam_centre_y * 8   ; 120
-cam_px              dw 19*8
-cam_py              dw 15*8
+cam_px              equ 19*8
+cam_py              equ 15*8
+cam_tx              equ 19
+cam_ty              equ 15
 
 tilemapPage         db 0
 
@@ -129,6 +127,10 @@ pattern             byte
 
 baddieCount         equ 1
 baddieData          defs baddieRecord * baddieCount
+
+; working x/y pixel co-ords to minimise LD N, (IX+N) calls
+baddie_x            dw 00
+baddie_y            dw 00
 
 progStart:
 ; *****************************************
@@ -627,12 +629,12 @@ moveSprite
 copy_visible_window:
         ld a, b                                     ; get current player tile X
         ld (player_tile_x), a                       ; save it away
-        sub cam_centre_x                            ; - 19 for lhs of screen
+        sub cam_tx                                  ; - 19 for lhs of screen
         ld b, a                                     ; save
         
         ld a, c                                     ; get current player tile Y
         ld (player_tile_y), a                       ; save it away
-        sub cam_centre_y                            ; - 15 for top of screen
+        sub cam_ty                                  ; - 15 for top of screen
         ld c, a                                     ; save
 
     ; STEP 1: Build the starting linear offset in the world map
@@ -736,8 +738,8 @@ setTilemapBorder:
 showSprite
         LD A, 0                                     ; get the sprite index
         NEXTREG $34, A                              ; set sprite to activate
-        ld hl, (cam_px)
-        ld de, (cam_py)
+        ld hl, cam_px
+        ld de, cam_py
         LD A, l                                     ; get sprite X lsb
         NEXTREG $35, A                              ; set attr byte 0 of port $0057
         LD A, e                                     ; get sprite Y lsb
@@ -757,6 +759,7 @@ processBaddies
 
         ld h, (ix +baddieRecord.highX)              ; get baddie X
         ld l, (ix +baddieRecord.lowX)
+        ld (baddie_x), hl
         ld a, l
         and 7
         ld iyh, a
@@ -765,6 +768,7 @@ processBaddies
 
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
+        ld (baddie_y), hl
         ld a, l
         and 7
         ld iyl, a
@@ -783,9 +787,6 @@ processBaddies
         ; baddie is not newly on a new tile, therefore continue in current direction (d)
         ld a, (ix +baddieRecord.dir)                ; get current direction in d
         ld b, a
-;        ld a, b
-;        cp vdir_left
-;        jp z, displayBaddie
         jp reverse
 
 newTile:
@@ -866,16 +867,14 @@ chkLeft1
         and a                                       ; is it?
         ret nz                                      ; return if not
 
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
         ld bc, move_delta
         sbc hl, bc
 
         ; now test if we have bumped into a wall
         DIV_HL_8
         ld b, l
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         DIV_HL_8
         ld c, l
         GET_WORLD_TILE
@@ -895,8 +894,7 @@ chkRight1
         and a                                       ; is it?
         ret nz                                      ; return if not
 
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
 	    ld bc, move_delta                           ; get move delta
         adc hl, bc
 
@@ -904,8 +902,7 @@ chkRight1
         add hl, 15                                  ; the sprite extends 0-15px right
         DIV_HL_8
         ld b, l
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         DIV_HL_8
         ld c, l
         GET_WORLD_TILE
@@ -924,8 +921,7 @@ chkDown1
         and a                                       ; is it?
         ret nz                                      ; return if not
 
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         ld bc, move_delta                           ; get pixel delta
         adc hl, bc                                  ; do move
 
@@ -933,8 +929,7 @@ chkDown1
         add hl, 15                                  ; the sprite extends 0-15px down
         DIV_HL_8
         ld c, l
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
@@ -953,16 +948,14 @@ chkUp1
         and a                                       ; is it?
         ret nz                                      ; return if not
 
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
 
         ; now test if we have bumped into a wall
         DIV_HL_8
         ld c, l
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
@@ -977,13 +970,8 @@ chkUp1
         ret
 
 
-;moveBaddie:
 doMoveLeft1
-;        bit dir_left, d
-;        jr z, .doMoveRight
-
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
         ld bc, move_delta
         sbc hl, bc
         ld (ix +baddieRecord.highX), h
@@ -993,11 +981,7 @@ doMoveLeft1
         jr displayBaddie 
 
 doMoveRight1
-;        bit dir_right, d
-;        jr z, .doMoveDown
-
-        ld h, (ix +baddieRecord.highX)
-        ld l, (ix +baddieRecord.lowX)
+        ld hl, (baddie_x)
         ld bc, move_delta
         adc hl, bc
         ld (ix +baddieRecord.highX), h
@@ -1008,11 +992,7 @@ doMoveRight1
         jr displayBaddie 
 
 doMoveDown1
-;        bit dir_down, d
-;        jr z, .doMoveUp
-
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         ld bc, move_delta
         adc hl, bc
         ld (ix +baddieRecord.highY), h
@@ -1023,11 +1003,7 @@ doMoveDown1
         jr displayBaddie 
 
 doMoveUp1
-;        bit dir_up, d
-;        jp z, .displayBaddie
-
-        ld h, (ix +baddieRecord.highY)
-        ld l, (ix +baddieRecord.lowY)
+        ld hl, (baddie_y)
         ld bc, move_delta
         sbc hl, bc
         ld (ix +baddieRecord.highY), h
@@ -1045,7 +1021,7 @@ displayBaddie:
         ld bc, (player_px)
         or a
         sbc hl, bc
-        ld bc, CENTER_SCREEN_X
+        ld bc, cam_px
         add hl, bc                  ; HL = screen_x
 
         ; Check if in view (0 ≤ X ≤ 319)
@@ -1067,7 +1043,7 @@ displayBaddie:
         ld bc, (player_py)
         or a
         sbc hl, bc
-        ld bc, CENTER_SCREEN_Y
+        ld bc, cam_py
         add hl, bc                  ; HL = screen_y
 
         ; Check if in view (0 ≤ Y ≤ 255)
