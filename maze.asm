@@ -852,6 +852,10 @@ reverse:
         add a, a
         ld hl, baddieMoveLUT
         add hl, a
+        ld a, (hl)
+        inc hl
+        ld h, (hl)
+        ld l, a
         jp (hl)
 
 baddieMoveLUT:
