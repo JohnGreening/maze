@@ -341,7 +341,7 @@ spritePatternLoop:
 
 ; set the number of colours 
 ; set location of sprite palette data
-        LD B, SpritePalette0Len
+        LD BC, SpritePalette0Len
         LD HL, SpritePalette0
 
 ; write palette data, 2 bytes per colour
@@ -352,11 +352,17 @@ spritePalette0Loop:
         LD A, (HL)
         INC HL
         NEXTREG $44, A
-        DJNZ spritePalette0Loop
+        DEC BC
+        LD A, B
+        OR C
+        JR NZ, spritePalette0Loop
 
 otherSetup:
-  ;      LD A, 3             ; Load speed index (3 = 28 MHz)
+        LD A, 0             ; Load speed index (3 = 28 MHz)
         NEXTREG $07, A
+
+        ld a, 7
+        out (254), a
 
         call setTilemapBorder
         call copy_visible_window
@@ -792,7 +798,8 @@ setTilemapBorder:
     ; ------------------------------------------------------------
         nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
         nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
-        nextreg $1B, 4                              ; Y1 = 4   → top edge   = pixel 4
+        ;nextreg $1B, 4                              ; Y1 = 4   → top edge   = pixel 4
+        nextreg $1b, 32
         nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
         ret
@@ -1189,30 +1196,22 @@ random:
         add hl, de                                  ; hl now points to row applicable for available directions
         
 RND_GEN:
-        PUSH HL
-        LD HL, (seed)        ; Load 16-bit seed
-        LD D, H
-        LD E, L              ; Save original seed in DE
-        ADD HL, HL           ; HL = seed * 2
-        SBC A, A             ; A = 0 or 255 (based on carry)
-        AND 0FDH             ; Mask for constant 253 (for Galois LFSR)
-        XOR E                ; Combine with L
-        LD C, A              ; Store in C
-        SBC HL, BC           ; Subtract from seed
-        JR NC, RND_OK        ; Check for underflow
-        INC HL               ; Handle underflow
-RND_OK:
-        LD (seed), HL        ; Save the new seed
-        LD A, H              ; Return the high byte of the result in A
-        POP HL
-        AND %00000011                               ; restrict rnd to 0-3
+        ld a, (rseed)
+        add a, a            ; *2
+        add a, a            ; *4
+        add a, (rseed)      ; *5
+        add a, 7            ; + odd constant
+        ld (rseed), a       ; save new seed
+        rlca                ; bring the high (well-mixed) bits down
+        rlca
+        and %00000011       ; keep 2 bits -> 0-3        
         ADD HL, A
         LD A, (HL)
 
         RET
 
-seed:
-    DW 1234                 ; Initial 16-bit seed (Must not be zero!)        ld a, (hl)
+rseed:
+    db 1                 ; Initial 16-bit seed (Must not be zero!)        ld a, (hl)
 
 lut_base:
         db 0, 0, 0, 0                               ;  0  0000 no bits set
