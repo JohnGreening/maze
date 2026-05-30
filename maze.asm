@@ -584,14 +584,6 @@ keyEnd
 moveSprite
         call processBaddies
 
-        ld hl, (player_px)                          ; get player pixel X
-        DIV_HL_8                                    ; divide by 8 to get tile X
-        ld b, l                                     ; and save in b for later
-
-        ld hl, (player_py)                          ; get player pixel Y
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; and save in c for later
-        
 ; ================================================
     ; FINE SCROLLING (pixel-level smooth scroll)
     ; Set hardware tilemap scroll registers using player_px/py
@@ -707,7 +699,6 @@ ENDR
         ret
 
 wait_vblank:
-        push bc
 .loop        
         ld bc, $243B                                ; register select port
         ld a, $1E
@@ -716,7 +707,6 @@ wait_vblank:
         in a, (c)                                   ; read status
         bit 0, a
         jr z, .loop
-        pop bc
         ret
 
 setTilemapBorder:
@@ -1013,72 +1003,99 @@ doMoveUp1
 
 
 displayBaddie:
-        ; IX already points at the baddie record (from processBaddies)
-        ; ------------------------------------------------------------
-        ; Compute screen X = baddie_x - player_px + CENTER_SCREEN_X
-        ld l, (ix + baddieRecord.lowX)
-        ld h, (ix + baddieRecord.highX)
-        ld bc, (player_px)
-        or a
-        sbc hl, bc
-        ld bc, cam_px
-        add hl, bc                  ; HL = screen_x
+    ; ============================================================
+    ; Draw baddie sprite (sprite #1) relative to the centred player.
+    ; Player is locked to screen centre, so:
+    ;     screenPos = baddieWorldPos - playerWorldPos + screenCentre
+    ; A 16x16 sprite is shown whenever ANY part overlaps the display,
+    ; so we allow up to 15px of overhang at each edge before hiding.
+    ; IX already points at the baddie record (set by processBaddies).
+    ; ============================================================
 
-        ; Check if in view (0 ≤ X ≤ 319)
-        bit 7, h
-        jr nz, .hideBaddie          ; off left
-        ld a, h
-        or a
-        jr nz, .hideBaddie          ; way off right
-        ld a, l
-        cp 255
-        jr nc, .hideBaddie          ; off right
+    ; ---------- SCREEN X ----------
+    ; HL = baddie world X
+    ld l, (ix + baddieRecord.lowX)
+    ld h, (ix + baddieRecord.highX)
+    ld bc, (player_px)              ; BC = player world X
+    or a                           ; clear carry for a clean subtract
+    sbc hl, bc                     ; HL = baddieX - playerX  (signed)
+    ; add screen centre AND the 15px overhang bias in one go.
+    ; CENTER_SCREEN_X + 15 = 152 + 15 = 167, which fits in 8 bits,
+    ; so we can use the Z80N "add hl,a" (cheaper to set up than add hl,bc).
+    ld a, cam_px + 15                               ; A = 167  (centre + bias)
+    add hl, a                      ; Z80N: HL = biased screen X
+    ; HL now holds (screenX + 15). Visible-with-overhang means the
+    ; UN-biased X is in -15..319, i.e. the BIASED value is in 0..334.
+    ; Reject anything outside 0..334 with an unsigned range test.
+    ld a, h                        ; look at high byte of biased X
+    cp 1                           ; H = 0 ?  (biased X = 0..255)
+    jr c, .xInRange                ; H = 0 -> definitely <= 334, in range
+    jr nz, .hideBaddie             ; H >= 2 -> biased X >= 512 -> off right
+    ; H = 1 here, so biased X = 256..511; allowed only up to 334 ($014E),
+    ; meaning the low byte must be < 79 (334 - 256 = 78).
+    ld a, l
+    cp 79
+    jr nc, .hideBaddie             ; low byte >= 79 -> off right edge
+.xInRange:
+    push hl                        ; save biased X (we still need it later)
 
-        push hl                     ; save screen X
+    ; ---------- SCREEN Y ----------
+    ; HL = baddie world Y
+    ld l, (ix + baddieRecord.lowY)
+    ld h, (ix + baddieRecord.highY)
+    ld bc, (player_py)             ; BC = player world Y
+    or a                           ; clear carry
+    sbc hl, bc                     ; HL = baddieY - playerY  (signed)
+    ; centre + bias again: CENTER_SCREEN_Y + 15 = 120 + 15 = 135, fits in 8 bits.
+    ld a, cam_py + 15     ; A = 135
+    add hl, a                      ; Z80N: HL = biased screen Y
+    ; Visible-with-overhang: un-biased Y in -15..255, i.e. biased Y in 0..270.
+    ld a, h                        ; high byte of biased Y
+    cp 1                           ; H = 0 ?
+    jr c, .yInRange                ; H = 0 -> <= 270, in range
+    jr nz, .hidePop                ; H >= 2 -> off bottom
+    ; H = 1: biased Y = 256..511, allowed only up to 270 ($010E),
+    ; so low byte must be < 15 (270 - 256 = 14).
+    ld a, l
+    cp 15
+    jr nc, .hidePop                ; low byte >= 15 -> off bottom edge
+.yInRange:
+    ; ---------- BADDIE IS ON SCREEN ----------
+    ; Un-bias Y by 15 to get the real Y the hardware wants.
+    ; The sprite Y register is 8-bit and takes the value mod 256,
+    ; which is exactly what we need: a baddie 15px above the top
+    ; (real Y = -15) writes 241, and the hardware draws it overhanging.
+    ld a, l                        ; low byte of biased Y
+    sub 15                         ; A = real screen Y (mod 256)
+    ld e, a                        ; stash Y in E for the moment
 
-        ; ------------------------------------------------------------
-        ; Compute screen Y = baddie_y - player_py + CENTER_SCREEN_Y
-        ld l, (ix + baddieRecord.lowY)
-        ld h, (ix + baddieRecord.highY)
-        ld bc, (player_py)
-        or a
-        sbc hl, bc
-        ld bc, cam_py
-        add hl, bc                  ; HL = screen_y
+    pop hl                         ; recover biased X
+    ld bc, 15
+    or a                           ; clear carry
+    sbc hl, bc                     ; HL = real screen X (full 9-bit value)
 
-        ; Check if in view (0 ≤ Y ≤ 255)
-        bit 7, h
-        jr nz, .hidePop
-        ld a, h
-        or a
-        jr nz, .hidePop
-
-        ; ============================================================
-        ; BADDIE IS ON SCREEN → show sprite 1
-        pop de                      ; DE = screen_x (E=LSB, D=MSB)
-        ld a, 1                     ; sprite index 1
-        NEXTREG $34, a
-        ld a, e
-        NEXTREG $35, a              ; X LSB
-        ld a, l                     ; Y LSB (still in L)
-        NEXTREG $36, a
-        ld a, d
-        and 1
-        NEXTREG $37, a              ; X MSB (matches your player sprite style)
-        ld a, (ix + baddieRecord.pattern)
-        or %10000000                ; visible bit
-        NEXTREG $38, a
-        ret
+    ; ---------- WRITE SPRITE 1 ----------
+    ld a, 1
+    NEXTREG $34, a                 ; select sprite slot 1
+    ld a, l
+    NEXTREG $35, a                 ; attr 0: X low 8 bits
+    ld a, e
+    NEXTREG $36, a                 ; attr 1: Y (8-bit)
+    ld a, h
+    and 1                          ; X is 9-bit; keep only bit 8
+    NEXTREG $37, a                 ; attr 2: X MSB in bit 0
+    ld a, (ix + baddieRecord.pattern)
+    or %10000000                   ; bit 7 = visible
+    NEXTREG $38, a                 ; attr 3: pattern + visible flag
+    ret
 
 .hidePop:
-        pop hl
+    pop hl                         ; balance the stack (biased X was pushed)
 .hideBaddie:
-        ; hide sprite 1 (just clear visible bit)
-        ld a, 1
-        NEXTREG $34, a
-        NEXTREG $38, 0              ; visible = off
-        ret
-
+    ld a, 1
+    NEXTREG $34, a                 ; select sprite slot 1
+    NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
+    ret
 
 random:
         and $0f                                     ; limit to 0-15, this is the available directions bitmask
