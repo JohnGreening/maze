@@ -89,7 +89,7 @@ dir                 byte
 pattern             byte
     ENDS
 
-baddieCount         equ 10
+baddieCount         equ 20
 baddieData          defs baddieRecord * baddieCount
 
 ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
@@ -103,7 +103,7 @@ otherSetup:
         LD A, 0             ; Load speed index (3 = 28 MHz)
         NEXTREG $07, A
 
-        ld a, 7
+        ld a, 0
         out (254), a
 
         call setClipping
@@ -112,25 +112,6 @@ otherSetup:
         call showSprite
 
         call initBaddies
-/*        
-        ld ix, baddieData
-        ld a, 1
-        ld (ix +baddieRecord.index), a
-        ld hl, 472 - 8
-        ld (ix +baddieRecord.highX), h
-        ld (ix +baddieRecord.lowX), l
-        ld hl, 376 - 24
-        ld (ix +baddieRecord.highY), h
-        ld (ix +baddieRecord.lowY), l
-        ld a, 1
-        ld (ix +baddieRecord.pattern), a
-        ld a, vdir_left
-        ld (ix +baddieRecord.dir), a
-        ld a, 58
-        ld (ix +baddieRecord.tileX), a
-        ld a, 44
-        ld (ix +baddieRecord.tileY), a
-*/
 
 main:
         call keyProcess
@@ -919,7 +900,7 @@ displayBaddie:
     sbc hl, bc                     ; HL = real screen X (full 9-bit value)
 
     ; ---------- WRITE SPRITE 1 ----------
-    ld a, 1
+    ld a, (ix +baddieRecord.index)
     NEXTREG $34, a                 ; select sprite slot 1
     ld a, l
     NEXTREG $35, a                 ; attr 0: X low 8 bits
@@ -936,7 +917,7 @@ displayBaddie:
 .hidePop:
     pop hl                         ; balance the stack (biased X was pushed)
 .hideBaddie:
-    ld a, 1
+    ld a, (ix +baddieRecord.index)
     NEXTREG $34, a                 ; select sprite slot 1
     NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
     ret
@@ -1048,6 +1029,7 @@ initBaddies:
         jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
         ld e, a                     ; E = candidate tileY
 
+.loop
         ; --- test all four tiles of the 2x2 footprint are open ---
         ld b, d
         ld c, e
@@ -1063,7 +1045,7 @@ initBaddies:
         jr nz, .tryPos
 
         ld b, d
-        ld c, e
+        ld c, e        
         inc c
         GET_WORLD_TILE              ; (tx, ty+1)
         and a
@@ -1108,9 +1090,11 @@ initBaddies:
         ; random initial direction 0..3 (bit-number form, as your dir uses)
         call rnd8
         and %00000011
+        ld hl, vdirTable
+        add hl, a                    ; Z80N
+        ld a, (hl)
         ld (ix + baddieRecord.dir), a
 
-        ; pattern 0
         ld a, 1
         ld (ix + baddieRecord.pattern), a
 
@@ -1131,6 +1115,8 @@ initBaddies:
         dec b
         jp nz, .nextBaddie
         ret
+
+vdirTable: db 1, 2, 4, 8             ; vdir_left, right, down, up
 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
