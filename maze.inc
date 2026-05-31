@@ -6,7 +6,7 @@ ORG $6000
 ; Tilemap definition
 ; defines what tiles go where in the 40x32 grid
 ; currently 1 byte tilemap mode only
-tileMapData:
+tileMap:
 DEFS 1280, 0
 
 TilePatterns:
@@ -116,7 +116,7 @@ SpritePalette0Len EQU ($ - SpritePalette0) / 2
 spriteSetup:
 
 ; Configure tilemap control
- NEXTREG $6b, %10100001
+    NEXTREG $6b, %10100001
 ; bit 7 1= enable tilemap
 ; bit 6 1= 80x32, 0=40x32
 ; bit 5 1= use 6c for attributes (i.e. 1 byte tilemap mode)
@@ -129,7 +129,7 @@ spriteSetup:
 ; Default tilemap attribute for 8bit maps
 ; i.e. when using 1 byte tilemap mode
 ; NB limits colours to 0-15
- NEXTREG $6c, $0
+    NEXTREG $6c, $0
 ; bit 7-4 Palette offset
 ; bit 3 1=mirror in X direction
 ; bit 2 1=mirror in Y direction
@@ -137,7 +137,7 @@ spriteSetup:
 ; bit 0 1=ula overtilemap, 0=tilemap over ULA
  
 ; ULA control
-  NEXTREG $68, $0
+    NEXTREG $68, $0
 ; bit 7 1=disable ULA output
 ; bit 6 concerned with blending in SLU modes 6/7
 ;       1=select ULA/tilemap mix
@@ -146,12 +146,12 @@ spriteSetup:
 ; bit 0 1=enable stencil mode when ULA & tilemap enabled
  
 ; point to the tilemap and tile pattern data
-  NEXTREG $6e, tileMapData / 256
-  NEXTREG $6f, TilePatterns / 256
+    NEXTREG $6e, tileMap / 256
+    NEXTREG $6f, TilePatterns / 256
  
 ; Palette Control
 ; set values for Tilemap palette 0
-  NEXTREG $43, %00110000
+    NEXTREG $43, %00110000
 ; bit 7 1=disable palette auto inc
 ; bit 6-4 select palette for r/w
 ; 000 = ULA palette 1
@@ -175,26 +175,29 @@ spriteSetup:
 ; here we are using 9 bit colours, so use $44 to do the load
 
 ; first initialise the palette index to 0
-  NEXTREG $40, 0
+    NEXTREG $40, 0
 
 ; set the number of colours 
 ; set location of Tilemap palette data
-  LD B, TilePalette0Len
-  LD HL, TilePalette0
+    LD BC, TilePalette0Len
+    LD HL, TilePalette0
 
 ; write palette data, 2 bytes per colour
 tilemapPalette0Loop:
-  LD A, (HL)
-  INC HL
-  NEXTREG $44, A
-  LD A, (HL)
-  INC HL
-  NEXTREG $44, A
-  DJNZ tilemapPalette0Loop
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    DEC BC
+    LD A, B
+    OR C
+    JR NZ, tilemapPalette0Loop
  
 ; Configure Sprite and Layers System
 ; NEXTREG $15, %00000011
-  NEXTREG $15, %00010111
+    NEXTREG $15, %00010111
 ; bit 7 1=enable lo-res 
 ; bit 6 1=flip sprite rendering priority
 ; bit 5 1=change clipping over border mode
@@ -202,26 +205,26 @@ tilemapPalette0Loop:
 ; bit 1 1=enable sprites over border
 ; bit 0 1=enable sprite visibility
  
-  LD BC, $303b                 ; set port for Sprites
-  SUB A, A                     ; Set sprite index to 0
-  OUT (C), A                   ; write to port
+    LD BC, $303b                 ; set port for Sprites
+    SUB A, A                     ; Set sprite index to 0
+    OUT (C), A                   ; write to port
 
- LD HL, SpritePatterns; point to sprite patterns
- LD BC, $5b                    ; set port to write patterns to
- LD DE, endofSprites - SpritePatterns
+    LD HL, SpritePatterns; point to sprite patterns
+    LD BC, $5b                    ; set port to write patterns to
+    LD DE, endofSprites - SpritePatterns
 
 spritePatternLoop:
- LD A, (HL)                    ; get each byte of pattern data
- INC HL                        ; ready for next read
- OUT (C), A                    ; upload to sprite memory
- DEC DE                        ; dec loop count
- LD A, E                       ; test for 0
- OR A, D
- JR NZ, spritePatternLoop      ; loop if more data
+    LD A, (HL)                    ; get each byte of pattern data
+    INC HL                        ; ready for next read
+    OUT (C), A                    ; upload to sprite memory
+    DEC DE                        ; dec loop count
+    LD A, E                       ; test for 0
+    OR A, D
+    JR NZ, spritePatternLoop      ; loop if more data
 
 ; Palette Control
 ; set values for Sprites palette 1
- NEXTREG $43, %00100000
+    NEXTREG $43, %00100000
 ; bit 7 1=disable palette auto inc
 ; bit 6-4 select palette for r/w
 ; 000 = ULA palette 1
@@ -240,26 +243,30 @@ spritePatternLoop:
 TRANSPARENT_SPRITE_SLOT
 
 ; set global transparency fallback
- NEXTREG $14, 0
+    NEXTREG $14, 0
 
 ; load the colours into the palette memory
 ; here we are using 9 bit colours, so use $44 to do the load
 
 ; first initialise the palette index to 0
- NEXTREG $40, 0
+    NEXTREG $40, 0
 
 ; set the number of colours 
 ; set location of sprite palette data
- LD B, SpritePalette0Len
- LD HL, SpritePalette0
+    LD BC, SpritePalette0Len
+    LD HL, SpritePalette0
 
-; write palette data, 2 bytes per colour
+    ; write palette data, 2 bytes per colour
 spritePalette0Loop:
- LD A, (HL)
- INC HL
- NEXTREG $44, A
- LD A, (HL)
- INC HL
- NEXTREG $44, A
- DJNZ spritePalette0Loop
- RET
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    LD A, (HL)
+    INC HL
+    NEXTREG $44, A
+    DEC BC
+    LD A, B
+    OR C
+    JR NZ, spritePalette0Loop
+ 
+    RET

@@ -1,3 +1,4 @@
+INCLUDE "maze.inc"
 device ZXSPECTRUMNEXT
 DIV_HL_8 MACRO
 ; simple 16-bit divide without the CALL/RET overhead
@@ -45,111 +46,6 @@ GET_WORLD_TILE MACRO
                                                     ; HL now points directly at the first byte we want to copy
         ld a, (hl)                                  ; so get the byte
         ENDM
-        
-org $4000
-
-tileMap:
-DEFS 1280, 1
-
-TilePatterns:
-; Tile000
-DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-; Tile001
-DB $00,$00,$01,$00,$00,$00,$01,$00,$11,$11,$11,$11,$00,$10,$00,$00
-DB $00,$10,$00,$00,$11,$11,$11,$11,$00,$00,$01,$00,$00,$00,$01,$00
-
-TilePalette0:
-DB $E0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
-TilePalette0Len EQU ($ - TilePalette0) / 2
-
-SpritePalette0:
-;DB $03,$01,$E3,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-;DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $03,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$10,$00,$1C,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-DB $00,$00,$00,$00,$00,$00,$E3,$01
-SpritePalette0Len EQU ($ - SpritePalette0) / 2
-
-SpritePatterns:
-; Sprite000
-DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00
-DB $00,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$00,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00
-DB $00,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00
-DB $00,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00
-DB $00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$00
-DB $00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$00,$00,$E3,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$E3,$00
-DB $00,$E3,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$E3,$00,$00,$E3,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$E3,$00
-DB $00,$00,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; Sprite001
-DB $E3,$E3,$E3,$E3,$0A,$0A,$0A,$0A,$0B,$0B,$0B,$0B,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$0A,$E3,$E3,$E3,$E3,$0A,$0A,$0A,$0A,$0B,$E3,$E3,$E3
-DB $E3,$E3,$0A,$E3,$0A,$0A,$0A,$0A,$E3,$0A,$0A,$0A,$0A,$0A,$E3,$E3,$E3,$E3,$0A,$E3,$0B,$E3,$0B,$0A,$0A,$0B,$E3,$0B,$0A,$0A,$E3,$E3
-DB $E3,$E3,$0A,$0A,$0B,$E3,$E3,$0B,$0B,$E3,$E3,$0B,$0A,$0A,$E3,$E3,$E3,$E3,$0A,$0B,$E3,$E3,$E3,$0B,$0B,$E3,$E3,$E3,$0B,$0A,$E3,$E3
-DB $E3,$E3,$0A,$0A,$0B,$E3,$E3,$0B,$0A,$0B,$E3,$E3,$0B,$0A,$E3,$E3,$E3,$E3,$0A,$0A,$0A,$0B,$0B,$0A,$0A,$0A,$0B,$0B,$0B,$0A,$E3,$E3
-DB $E3,$E3,$E3,$0A,$0A,$0A,$0A,$E3,$E3,$0A,$0A,$0A,$0A,$E3,$E3,$E3,$0A,$0A,$E3,$E3,$E3,$0A,$0A,$0A,$0A,$0A,$0A,$E3,$E3,$E3,$0A,$0A
-DB $E3,$0B,$0A,$E3,$E3,$0B,$E3,$0A,$0B,$E3,$0B,$E3,$E3,$0A,$0B,$E3,$E3,$E3,$0A,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$0A,$E3,$E3
-DB $E3,$E3,$E3,$E3,$0A,$E3,$0A,$E3,$E3,$0A,$E3,$0A,$E3,$E3,$E3,$E3,$0A,$0A,$0B,$E3,$0A,$0B,$0A,$0B,$0A,$0A,$0B,$0A,$E3,$0B,$0A,$0A
-DB $E3,$0B,$0A,$E3,$E3,$E3,$0B,$0B,$0B,$0B,$E3,$E3,$E3,$0A,$0B,$E3,$E3,$E3,$0A,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$E3,$0A,$E3,$E3
-endofSprites:
-
-
 
 cam_px              equ 19*8
 cam_py              equ 15*8
@@ -193,7 +89,7 @@ dir                 byte
 pattern             byte
     ENDS
 
-baddieCount         equ 1
+baddieCount         equ 10
 baddieData          defs baddieRecord * baddieCount
 
 ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
@@ -201,161 +97,7 @@ baddie_x            dw 00
 baddie_y            dw 00
 
 progStart:
-; *****************************************
-; call to initialise the graphics
-; *****************************************
-
-; Configure tilemap control
-        NEXTREG $6b, %10100001
-; bit 7 1= enable tilemap
-; bit 6 1= 80x32, 0=40x32
-; bit 5 1= use 6c for attributes (i.e. 1 byte tilemap mode)
-; bit 4 1= 2nd tilemap palette, 0= first
-; bit 3 1= activate text mode
-; bit 2 reserved, set to 0
-; bit 1 1=512, 0=256 tilemap mode
-; bit 0 1= force tilemap ontop of ULA
-
-; Default tilemap attribute for 8bit maps
-; i.e. when using 1 byte tilemap mode
-; NB limits colours to 0-15
-        NEXTREG $6c, $0
-; bit 7-4 Palette offset
-; bit 3 1=mirror in X direction
-; bit 2 1=mirror in Y direction
-; bit 1 1=rotate 90deg clockwise
-; bit 0 1=ula overtilemap, 0=tilemap over ULA
-
-; ULA control
-        NEXTREG $68, $0
-; bit 7 1=disable ULA output
-; bit 6 concerned with blending in SLU modes 6/7
-;       1=select ULA/tilemap mix
-;       0=select ULA colour
-; bits 5-1 reserved, always 0
-; bit 0 1=enable stencil mode when ULA & tilemap enabled
-
-; point to the tilemap and tile pattern data
-        NEXTREG $6e, tileMap / 256
-        NEXTREG $6f, TilePatterns / 256
-
-; Palette Control
-; set values for Tilemap palette 0
-        NEXTREG $43, %00110000
-; bit 7 1=disable palette auto inc
-; bit 6-4 select palette for r/w
-; 000 = ULA palette 1
-; 100 = ULA palette 2
-; 001 = Layer 2 palette 1
-; 101 = Layer 2 palette 2
-; 010 = Sprites palette 1
-; 110 = Sprites palette 2
-; 011 = Tilemap palette 1
-; 111 = Tilemap palette 2
-; bit 3
-; bit 2
-; bit 1
-; bit 0
-
-; Set index of transparent colour in Tilemap palette
-        NEXTREG $4c, 15
-
-; load the colours into the palette memory
-; here we are using 9 bit colours, so use $44 to do the load
-
-; first initialise the palette index to 0
-        NEXTREG $40, 0
-
-; set the number of colours
-; set location of Tilemap palette data
-        LD BC, TilePalette0Len
-        LD HL, TilePalette0
-
-; write palette data, 2 bytes per colour
-tilemapPalette0Loop:
-        LD A, (HL)
-        INC HL
-        NEXTREG $44, A
-        LD A, (HL)
-        INC HL
-        NEXTREG $44, A
-        DEC BC
-        LD A, B
-        OR C
-        JR NZ, tilemapPalette0Loop
-;        DJNZ tilemapPalette0Loop
-
-; Configure Sprite and Layers System
-; NEXTREG $15, %00000011
-        NEXTREG $15, %00010111
-; bit 7 1=enable lo-res 
-; bit 6 1=flip sprite rendering priority
-; bit 5 1=change clipping over border mode
-; bit 4-2 000=sprites on top, layer 2 under
-; bit 1 1=enable sprites over border
-; bit 0 1=enable sprite visibility
- 
-        LD BC, $303b                 ; set port for Sprites
-        SUB A, A                     ; Set sprite index to 0
-        OUT (C), A                   ; write to port
-
-        LD HL, SpritePatterns; point to sprite patterns
-        LD BC, $5b                    ; set port to write patterns to
-        LD DE, endofSprites - SpritePatterns
-
-spritePatternLoop:
-        LD A, (HL)                    ; get each byte of pattern data
-        INC HL                        ; ready for next read
-        OUT (C), A                    ; upload to sprite memory
-        DEC DE                        ; dec loop count
-        LD A, E                       ; test for 0
-        OR A, D
-        JR NZ, spritePatternLoop      ; loop if more data
-
-; Palette Control
-; set values for Sprites palette 1
-        NEXTREG $43, %00100000
-; bit 7 1=disable palette auto inc
-; bit 6-4 select palette for r/w
-; 000 = ULA palette 1
-; 100 = ULA palette 2
-; 001 = Layer 2 palette 1
-; 101 = Layer 2 palette 2
-; 010 = Sprites palette 1
-; 110 = Sprites palette 2
-; 011 = Tilemap palette 1
-; 111 = Tilemap palette 2
-; bit 3
-; bit 2
-; bit 1
-; bit 0
-
-; set global transparency fallback
-        NEXTREG $14, 0
-
-; load the colours into the palette memory
-; here we are using 9 bit colours, so use $44 to do the load
-
-; first initialise the palette index to 0
-        NEXTREG $40, 0
-
-; set the number of colours 
-; set location of sprite palette data
-        LD BC, SpritePalette0Len
-        LD HL, SpritePalette0
-
-; write palette data, 2 bytes per colour
-spritePalette0Loop:
-        LD A, (HL)
-        INC HL
-        NEXTREG $44, A
-        LD A, (HL)
-        INC HL
-        NEXTREG $44, A
-        DEC BC
-        LD A, B
-        OR C
-        JR NZ, spritePalette0Loop
+    call spriteSetup
 
 otherSetup:
         LD A, 0             ; Load speed index (3 = 28 MHz)
@@ -364,10 +106,13 @@ otherSetup:
         ld a, 7
         out (254), a
 
-        call setTilemapBorder
+        call setClipping
         call copy_visible_window
+        call initHUD
         call showSprite
 
+        call initBaddies
+/*        
         ld ix, baddieData
         ld a, 1
         ld (ix +baddieRecord.index), a
@@ -385,7 +130,7 @@ otherSetup:
         ld (ix +baddieRecord.tileX), a
         ld a, 44
         ld (ix +baddieRecord.tileY), a
-
+*/
 
 main:
         call keyProcess
@@ -787,21 +532,32 @@ wait_vblank:
         jr z, .loop
         ret
 
-setTilemapBorder:
+setClipping:
         nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)
 
-    ; ------------------------------------------------------------
     ; Write the four clip coordinates to register $1B
     ; X values are in 2-pixel units (0-159 = full 320px width)
     ; Y values are 1:1 pixels (0-255)
     ; 4px border = inset of 2 X-units and 4 Y-pixels
-    ; ------------------------------------------------------------
         nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
         nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
-        ;nextreg $1B, 4                              ; Y1 = 4   → top edge   = pixel 4
-        nextreg $1b, 32
+        nextreg $1b, 64                             ; Y! = 64, top 4 border lines + top 4 ULA lines
         nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
+    ; setSpriteClip - clip sprites to the play area (below the HUD).
+    ; Over-border mode is active, so:
+    ;   - X coords use the SAME doubling as the tilemap clip (copy 2,157)
+    ;   - Y coords are in sprite space: ULA-origin pixel + 32
+    ;       tilemap top  pixel 64  -> 64+32 = 96
+    ;       tilemap bot  pixel 251 -> 283 (overflows) -> clamp to 255
+    ; Requires $15 bit 5 (clip-over-border) set - see note.
+        NEXTREG $15, %00110111                      ; was %00010111; bit 5 = enable sprite clip over border
+
+        nextreg $1C, 2                              ; bit 1 = reset the SPRITE clip index
+        nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
+        nextreg $19, 159                            ; X2 -> pixel 315
+        nextreg $19, 64                             ; Y1 = 64 -> top of play area
+        nextreg $19, 255                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
         ret
 
 showSprite
@@ -825,7 +581,19 @@ showSprite
 
 processBaddies
         ld ix, baddieData                           ; point to start of baddie data
+        ld b, baddieCount
 
+.loop
+        push bc
+        call processBaddie
+        pop bc
+
+        ld de, baddieRecord
+        add ix, de
+        djnz .loop
+        ret
+
+processBaddie:
         ld h, (ix +baddieRecord.highX)              ; get baddie X
         ld l, (ix +baddieRecord.lowX)
         ld (baddie_x), hl
@@ -844,19 +612,6 @@ processBaddies
         DIV_HL_8                                    ; divide by 8 to get tile Y
         ld c, l                                     ; save in C
 
-
-;        ld a, (ix +baddieRecord.tileX)              ; get last tile X
-;        cp b                                        ; change from last time
-;        jr nz, newTile                              ; jump if so
-;
-;        ld a, (ix +baddieRecord.tileY)              ; get last tile Y
-;        cp c                                        ; change from last time
-;        jr nz, newTile                              ; jump if so
-;
-;        ; baddie is not newly on a new tile, therefore continue in current direction (d)
-;        ld a, (ix +baddieRecord.dir)                ; get current direction in d
-;        ld b, a
-;        jp reverse
 ; Decide only when grid-aligned (iyh==0 AND iyl==0) - the only
         ; moment a turn is possible. "Tile changed" fired at the far tile
         ; edge when moving up/left, where the turn check is gated out.
@@ -1186,6 +941,25 @@ displayBaddie:
     NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
     ret
 
+
+HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
+
+initHUD:
+; clear top third of display file ($4000-$47FF) so the band is clean
+    ld hl, $4000
+    ld (hl), 0
+    ld de, $4001
+    ld bc, 2048 - 1
+    ldir
+
+; flood top 4 char rows of attributes ($5800-$587F) with yellow
+    ld hl, $5800
+    ld (hl), HUD_ATTR
+    ld de, $5801
+    ld bc, 128 - 1
+    ldir
+    ret
+
 random:
         and $0f                                     ; limit to 0-15, this is the available directions bitmask
         ld l, a                                     ; l = 0-15
@@ -1197,9 +971,10 @@ random:
         
 RND_GEN:
         ld a, (rseed)
+        ld d, a
         add a, a            ; *2
         add a, a            ; *4
-        add a, (rseed)      ; *5
+        add a, d            ; *5
         add a, 7            ; + odd constant
         ld (rseed), a       ; save new seed
         rlca                ; bring the high (well-mixed) bits down
@@ -1208,6 +983,18 @@ RND_GEN:
         ADD HL, A
         LD A, (HL)
 
+        RET
+
+rnd8:
+        ld a, (rseed)
+        ld d, a
+        add a, a            ; *2
+        add a, a            ; *4
+        add a, d            ; *5
+        add a, 7            ; + odd constant
+        ld (rseed), a       ; save new seed
+        rlca                ; bring the high (well-mixed) bits down
+        rlca
         RET
 
 rseed:
@@ -1230,6 +1017,121 @@ lut_base:
         db 1, 4, 8, 1                               ; 13  1101
         db 2, 4, 8, 2                               ; 14  1110
         db 1, 2, 4, 8                               ; 15  1111 
+
+
+initBaddies:
+; ============================================================
+; initBaddies - place baddieCount baddies at random valid 2x2
+; positions in the maze. Each needs its 2x2 tile footprint clear.
+; Sets world pixel position, tile position, a random direction,
+; sprite index (1..N, player is sprite 0), and pattern 0.
+; Setup-time only: uses rejection loops freely (timing irrelevant).
+; Assumes: rnd8 returns raw 0-255 in A; GET_WORLD_TILE takes
+;          B=tileX, C=tileY, returns tile byte in A (0 = open).
+; ============================================================
+        ld ix, baddieData
+        ld b, baddieCount           ; loop counter (B not used by inner logic until call)
+.nextBaddie:
+        push bc                     ; preserve outer counter
+
+        ; --- find a random clear 2x2 tile (tx in C-ish, ty) ---
+.tryPos:
+        ; random tile X 0..254
+.rx:    call rnd8
+        cp 255
+        jr z, .rx                   ; reject 255 (no room for tx+1)
+        ld d, a                     ; D = candidate tileX
+
+        ; random tile Y 0..190
+.ry:    call rnd8
+        cp 191
+        jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
+        ld e, a                     ; E = candidate tileY
+
+        ; --- test all four tiles of the 2x2 footprint are open ---
+        ld b, d
+        ld c, e
+        GET_WORLD_TILE              ; (tx, ty)
+        and a
+        jr nz, .tryPos              ; wall -> reject, draw again
+
+        ld b, d
+        ld c, e
+        inc b
+        GET_WORLD_TILE              ; (tx+1, ty)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        ld c, e
+        inc c
+        GET_WORLD_TILE              ; (tx, ty+1)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        inc b
+        ld c, e
+        inc c
+        GET_WORLD_TILE              ; (tx+1, ty+1)
+        and a
+        jp nz, .tryPos
+
+        ; --- position is valid: D=tileX, E=tileY. Fill the record ---
+        ld a, d
+        ld (ix + baddieRecord.tileX), a
+        ld a, e
+        ld (ix + baddieRecord.tileY), a
+
+        ; world pixel X = tileX * 8  (HL = D*8)
+        ld h, 0
+        ld l, d
+        add hl, hl
+        add hl, hl
+        add hl, hl                  ; HL = tileX * 8
+        ld a, l
+        ld (ix + baddieRecord.lowX), a
+        ld a, h
+        ld (ix + baddieRecord.highX), a
+
+        ; world pixel Y = tileY * 8
+        ld h, 0
+        ld l, e
+        add hl, hl
+        add hl, hl
+        add hl, hl                  ; HL = tileY * 8
+        ld a, l
+        ld (ix + baddieRecord.lowY), a
+        ld a, h
+        ld (ix + baddieRecord.highY), a
+
+        ; random initial direction 0..3 (bit-number form, as your dir uses)
+        call rnd8
+        and %00000011
+        ld (ix + baddieRecord.dir), a
+
+        ; pattern 0
+        ld a, 1
+        ld (ix + baddieRecord.pattern), a
+
+        ; sprite index: baddies are sprites 1..N.
+        ; recover which baddie we're on: outer counter still on stack.
+        pop bc                      ; B = remaining count (baddieCount..1)
+        ld a, baddieCount
+        sub b                       ; A = 0..N-1 (how many done so far)
+        inc a                       ; A = 1..N  (sprite slot, player is 0)
+        ld (ix + baddieRecord.index), a
+        push bc                     ; restore for the djnz below
+
+        ; advance IX to next record
+        ld de, baddieRecord
+        add ix, de
+
+        pop bc
+        dec b
+        jp nz, .nextBaddie
+        ret
+
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
 ; ----------------------------------------------------------------
