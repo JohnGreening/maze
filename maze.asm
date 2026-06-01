@@ -97,7 +97,7 @@ baddie_x            dw 00
 baddie_y            dw 00
 
 progStart:
-    call spriteSetup
+        call spriteSetup
 
 otherSetup:
         LD A, 0             ; Load speed index (3 = 28 MHz)
@@ -112,6 +112,7 @@ otherSetup:
         call showSprite
 
         call initBaddies
+        call setupIM2
 
 main:
         call keyProcess
@@ -172,13 +173,13 @@ chkEnd:
 ; d = keys pressed	
 ; e = vert/horiz potentially allowed	
 	
-	ld a, d
-	and e
-	ld d, a
+	    ld a, d
+	    and e
+	    ld d, a
 	
 ; d is keys pressed potentially allowed	
 	
-	ld e, 0
+	    ld e, 0
 
 .testDirections
     	bit dir_left, d
@@ -838,108 +839,108 @@ displayBaddie:
     ; ============================================================
 
     ; ---------- SCREEN X ----------
-    ; HL = baddie world X
-    ld l, (ix + baddieRecord.lowX)
-    ld h, (ix + baddieRecord.highX)
-    ld bc, (player_px)              ; BC = player world X
-    or a                           ; clear carry for a clean subtract
-    sbc hl, bc                     ; HL = baddieX - playerX  (signed)
+        ; HL = baddie world X
+        ld l, (ix + baddieRecord.lowX)
+        ld h, (ix + baddieRecord.highX)
+        ld bc, (player_px)              ; BC = player world X
+        or a                           ; clear carry for a clean subtract
+        sbc hl, bc                     ; HL = baddieX - playerX  (signed)
     ; add screen centre AND the 15px overhang bias in one go.
     ; CENTER_SCREEN_X + 15 = 152 + 15 = 167, which fits in 8 bits,
     ; so we can use the Z80N "add hl,a" (cheaper to set up than add hl,bc).
-    ld a, cam_px + 15                               ; A = 167  (centre + bias)
-    add hl, a                      ; Z80N: HL = biased screen X
+        ld a, cam_px + 15                               ; A = 167  (centre + bias)
+        add hl, a                      ; Z80N: HL = biased screen X
     ; HL now holds (screenX + 15). Visible-with-overhang means the
     ; UN-biased X is in -15..319, i.e. the BIASED value is in 0..334.
     ; Reject anything outside 0..334 with an unsigned range test.
-    ld a, h                        ; look at high byte of biased X
-    cp 1                           ; H = 0 ?  (biased X = 0..255)
-    jr c, .xInRange                ; H = 0 -> definitely <= 334, in range
-    jr nz, .hideBaddie             ; H >= 2 -> biased X >= 512 -> off right
+        ld a, h                        ; look at high byte of biased X
+        cp 1                           ; H = 0 ?  (biased X = 0..255)
+        jr c, .xInRange                ; H = 0 -> definitely <= 334, in range
+        jr nz, .hideBaddie             ; H >= 2 -> biased X >= 512 -> off right
     ; H = 1 here, so biased X = 256..511; allowed only up to 334 ($014E),
     ; meaning the low byte must be < 79 (334 - 256 = 78).
-    ld a, l
-    cp 79
-    jr nc, .hideBaddie             ; low byte >= 79 -> off right edge
+        ld a, l
+        cp 79
+        jr nc, .hideBaddie             ; low byte >= 79 -> off right edge
 .xInRange:
-    push hl                        ; save biased X (we still need it later)
+        push hl                        ; save biased X (we still need it later)
 
     ; ---------- SCREEN Y ----------
     ; HL = baddie world Y
-    ld l, (ix + baddieRecord.lowY)
-    ld h, (ix + baddieRecord.highY)
-    ld bc, (player_py)             ; BC = player world Y
-    or a                           ; clear carry
-    sbc hl, bc                     ; HL = baddieY - playerY  (signed)
+        ld l, (ix + baddieRecord.lowY)
+        ld h, (ix + baddieRecord.highY)
+        ld bc, (player_py)             ; BC = player world Y
+        or a                           ; clear carry
+        sbc hl, bc                     ; HL = baddieY - playerY  (signed)
     ; centre + bias again: CENTER_SCREEN_Y + 15 = 120 + 15 = 135, fits in 8 bits.
-    ld a, cam_py + 15     ; A = 135
-    add hl, a                      ; Z80N: HL = biased screen Y
+        ld a, cam_py + 15     ; A = 135
+        add hl, a                      ; Z80N: HL = biased screen Y
     ; Visible-with-overhang: un-biased Y in -15..255, i.e. biased Y in 0..270.
-    ld a, h                        ; high byte of biased Y
-    cp 1                           ; H = 0 ?
-    jr c, .yInRange                ; H = 0 -> <= 270, in range
-    jr nz, .hidePop                ; H >= 2 -> off bottom
+        ld a, h                        ; high byte of biased Y
+        cp 1                           ; H = 0 ?
+        jr c, .yInRange                ; H = 0 -> <= 270, in range
+        jr nz, .hidePop                ; H >= 2 -> off bottom
     ; H = 1: biased Y = 256..511, allowed only up to 270 ($010E),
     ; so low byte must be < 15 (270 - 256 = 14).
-    ld a, l
-    cp 15
-    jr nc, .hidePop                ; low byte >= 15 -> off bottom edge
+        ld a, l
+        cp 15
+        jr nc, .hidePop                ; low byte >= 15 -> off bottom edge
 .yInRange:
     ; ---------- BADDIE IS ON SCREEN ----------
     ; Un-bias Y by 15 to get the real Y the hardware wants.
     ; The sprite Y register is 8-bit and takes the value mod 256,
     ; which is exactly what we need: a baddie 15px above the top
     ; (real Y = -15) writes 241, and the hardware draws it overhanging.
-    ld a, l                        ; low byte of biased Y
-    sub 15                         ; A = real screen Y (mod 256)
-    ld e, a                        ; stash Y in E for the moment
+        ld a, l                        ; low byte of biased Y
+        sub 15                         ; A = real screen Y (mod 256)
+        ld e, a                        ; stash Y in E for the moment
 
-    pop hl                         ; recover biased X
-    ld bc, 15
-    or a                           ; clear carry
-    sbc hl, bc                     ; HL = real screen X (full 9-bit value)
+        pop hl                         ; recover biased X
+        ld bc, 15
+        or a                           ; clear carry
+        sbc hl, bc                     ; HL = real screen X (full 9-bit value)
 
     ; ---------- WRITE SPRITE 1 ----------
-    ld a, (ix +baddieRecord.index)
-    NEXTREG $34, a                 ; select sprite slot 1
-    ld a, l
-    NEXTREG $35, a                 ; attr 0: X low 8 bits
-    ld a, e
-    NEXTREG $36, a                 ; attr 1: Y (8-bit)
-    ld a, h
-    and 1                          ; X is 9-bit; keep only bit 8
-    NEXTREG $37, a                 ; attr 2: X MSB in bit 0
-    ld a, (ix + baddieRecord.pattern)
-    or %10000000                   ; bit 7 = visible
-    NEXTREG $38, a                 ; attr 3: pattern + visible flag
-    ret
+        ld a, (ix +baddieRecord.index)
+        NEXTREG $34, a                 ; select sprite slot 1
+        ld a, l
+        NEXTREG $35, a                 ; attr 0: X low 8 bits
+        ld a, e
+        NEXTREG $36, a                 ; attr 1: Y (8-bit)
+        ld a, h
+        and 1                          ; X is 9-bit; keep only bit 8
+        NEXTREG $37, a                 ; attr 2: X MSB in bit 0
+        ld a, (ix + baddieRecord.pattern)
+        or %10000000                   ; bit 7 = visible
+        NEXTREG $38, a                 ; attr 3: pattern + visible flag
+        ret
 
 .hidePop:
-    pop hl                         ; balance the stack (biased X was pushed)
+        pop hl                         ; balance the stack (biased X was pushed)
 .hideBaddie:
-    ld a, (ix +baddieRecord.index)
-    NEXTREG $34, a                 ; select sprite slot 1
-    NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
-    ret
+        ld a, (ix +baddieRecord.index)
+        NEXTREG $34, a                 ; select sprite slot 1
+        NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
+        ret
 
 
 HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
 
 initHUD:
-; clear top third of display file ($4000-$47FF) so the band is clean
-    ld hl, $4000
-    ld (hl), 0
-    ld de, $4001
-    ld bc, 2048 - 1
-    ldir
+    ; clear top third of display file ($4000-$47FF) so the band is clean
+        ld hl, $4000
+        ld (hl), 0
+        ld de, $4001
+        ld bc, 2048 - 1
+        ldir
 
-; flood top 4 char rows of attributes ($5800-$587F) with yellow
-    ld hl, $5800
-    ld (hl), HUD_ATTR
-    ld de, $5801
-    ld bc, 128 - 1
-    ldir
-    ret
+    ; flood top 3 char rows of attributes ($5800-$587F) with yellow
+        ld hl, $5800
+        ld (hl), HUD_ATTR
+        ld de, $5801
+        ld bc, 96 - 1
+        ldir
+        ret
 
 random:
         and $0f                                     ; limit to 0-15, this is the available directions bitmask
@@ -1117,6 +1118,94 @@ initBaddies:
         ret
 
 vdirTable: db 1, 2, 4, 8             ; vdir_left, right, down, up
+
+
+setupIM2:
+; sub routine to set-up IM2 to point to BB
+        DI 
+        LD HL, IM2Tab
+        LD DE, IM2Tab +1
+        LD A, H
+        LD I , A
+        LD A, $f0
+        LD (HL), A
+        LD BC, 256
+        LDIR 
+
+        IM 2
+        EI
+        RET
+
+AYSelect        EQU $FFFD
+AYrw            EQU $bffd
+AYPortC         EQU $FD                     ; Port low byte, stays in C
+AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
+AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
+channel1ToneL   equ 0
+channel1ToneH   equ 1
+channel2ToneL   equ 2
+channel2ToneH   equ 3
+channel3ToneL   equ 4
+channel3ToneH   equ 5
+channel1Volume  equ 8
+channel2Volume  equ 9
+channel3Volume  equ 10
+mixerFlag       equ 7
+frameCount   DB $01                         ; interrupt count for note set
+framePointer DW frameTable                  ; pointer to the ic and note set
+volume       DB %00001111                   ; volume
+Ch1:
+Ch1Pitch:    DW 0
+Ch1PitchD:   DW 0
+Ch1Volume    DW 00
+Ch1VolumeD:  DW 00
+Ch1Flags:    DB 0
+Ch1Length:   DB 0
+
+Ch2:
+Ch2Pitch:    DW 00
+Ch2PitchD:   DW 00
+Ch2Volume    DW 00
+Ch2VolumeD:  DW 00
+Ch2Flags:    DB 0
+Ch2Length:   DB 0
+
+Ch3:
+Ch3Pitch:    DW 00
+Ch3PitchD:   DW 00
+Ch3Volume    DW 00
+Ch3VolumeD:  DW 00
+Ch3Flags:    DB 0
+Ch3Length:   DB 0
+
+mixerFlags  
+                db %11111111, %11111110, %11110111, %11110110
+                db %11111111, %11111101, %11101111, %11101101
+                db %11111111, %11111011, %11011111, %11011011
+
+INCLUDE "inspectorclouseau.inc"
+
+ALIGN 256
+IM2Tab:
+        DEFS 257, 0
+
+ORG $f0f0
+im2Routine
+        PUSH AF
+        PUSH BC
+        PUSH DE
+        PUSH HL
+
+INCLUDE "im2Routine.inc"
+
+        POP HL
+        POP DE
+        POP BC
+        POP AF
+
+        EI
+        RETI 
+
 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
