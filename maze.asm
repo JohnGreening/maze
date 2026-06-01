@@ -76,6 +76,7 @@ vdir_right          equ 2
 vdir_down           equ 4
 vdir_up             equ 8
 
+maze_text           defb 22, 0, 0, "Maze Game", $ff
 
     struct baddieRecord
 index               byte
@@ -113,6 +114,9 @@ otherSetup:
 
         call initBaddies
         call setupIM2
+        
+        ld iy, maze_text
+        call displayText
 
 main:
         call keyProcess
@@ -1188,6 +1192,9 @@ INCLUDE "inspectorclouseau.inc"
 ALIGN 256
 IM2Tab:
         DEFS 257, 0
+
+INCLUDE "text.inc"
+
 
 ORG $f0f0
 im2Routine
