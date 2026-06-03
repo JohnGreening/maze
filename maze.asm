@@ -76,6 +76,10 @@ vdir_right          equ 2
 vdir_down           equ 4
 vdir_up             equ 8
 
+mode_auto           equ 0
+mode_hunt           equ 1
+mode_wander         equ 2
+
 maze_text           defb 22, 0, 0, "Maze Game", $ff
 
     struct baddieRecord
@@ -88,6 +92,8 @@ tileX               byte
 tileY               byte
 dir                 byte
 pattern             byte
+mode                byte
+lastDist            byte
     ENDS
 
 baddieCount         equ 20
@@ -96,6 +102,14 @@ baddieData          defs baddieRecord * baddieCount
 ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
 baddie_x            dw 00
 baddie_y            dw 00
+
+QUEUE_SIZE      equ 256                 ; max wavefront is ~27, so this is ample
+floodQueue      ds  QUEUE_SIZE * 2      ; ring buffer of 16-bit cell offsets (y*256+x)
+qHeadIdx        dw  0
+qTailIdx        dw  0
+qCount          dw  0
+floodTargetX    db  0
+floodTargetY    db  0
 
 progStart:
         call spriteSetup
@@ -114,9 +128,16 @@ otherSetup:
 
         call initBaddies
         call setupIM2
-        
+        call moveSprite1
+
         ld iy, maze_text
         call displayText
+
+         ld a, 58;       
+        ld (floodTargetX), a
+        ld a, 44
+        ld (floodTargetY), a
+        call floodFill
 
 main:
         call keyProcess
@@ -393,6 +414,7 @@ keyEnd
 moveSprite
         call processBaddies
 
+moveSprite1:
 ; ================================================
     ; FINE SCROLLING (pixel-level smooth scroll)
     ; Set hardware tilemap scroll registers using player_px/py
@@ -1102,6 +1124,8 @@ initBaddies:
 
         ld a, 1
         ld (ix + baddieRecord.pattern), a
+        ld a, mode_auto
+        ld (ix +baddieRecord.mode), a
 
         ; sprite index: baddies are sprites 1..N.
         ; recover which baddie we're on: outer counter still on stack.
@@ -1195,6 +1219,275 @@ IM2Tab:
 
 INCLUDE "text.inc"
 
+; ============================================================
+; clearDistanceField - set all 49152 field bytes to 255
+; (255 = unvisited/wall). Pages each of the 6 field pages into
+; slot 6 and floods it. INERT for now - nothing calls this yet.
+; ============================================================
+clearDistanceField:
+        ld a, DFIELD_PAGE           ; first field page
+        ld b, 6                     ; six pages to clear
+.clrPage:
+        push bc
+        nextreg $56, a              ; page this 8K bank into slot 6 ($C000)
+        push af
+        ; smear 255 across $C000..$DFFF (8192 bytes)
+        ld hl, $C000
+        ld (hl), 255
+        ld de, $C001
+        ld bc, 8192 - 1
+        ldir
+        pop af
+        inc a                       ; next page
+        pop bc
+        djnz .clrPage
+        ret
+
+getFieldByte:
+; HL = YX tile into our distance map
+; we get A = distanceMap(x,y)
+        push hl
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a                           ; A = y/32 (page within field block)
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+        pop hl
+        ret
+
+putFieldByte:
+; HL = YX tile into our distance map
+; we set distanceMap(x,y) = A
+        push hl                                     ; preserve HL
+        push af                                     ; preserve AF, we need A to set the value
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        pop af                                      ; restore A to set value
+        ld (hl), a
+        pop hl
+        ret
+
+getMapByte:
+; HL = YX tile into our regular map
+; we get A = Map(x,y); i.e. either 0=path or 1=wall
+        push hl
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, TILEMAP_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+        pop hl
+        ret
+
+; ---- push cell offset in DE onto queue ----
+qPushDE:
+; DE = YX
+; add this to our ring buffer for processing
+        ld hl, (qTailIdx)                           ; get the buffer tail index
+        add hl, hl                                  ; we store WORD, so double it
+        ld bc, floodQueue                           ; point to the ring buffer start
+        add hl, bc                                  ; and add the new index
+
+    ; add XY to the end of the ring buffer
+        ld (hl), e                          
+        inc hl
+        ld (hl), d
+
+    ; add 1 to the tail index
+        ld hl, (qTailIdx)                           ; get tail index
+        inc hl                                      ; add 1
+        ld bc, QUEUE_SIZE                           ; get queue size constant
+        or a                                        ; clear carry
+        sbc hl, bc                                  ; test if we are at queue size
+        jr nz, .noWrap                              ; branch if not
+        ld hl, 0                                    ; we have wrapped around to the front
+        jr .store                                   ; branch to store index as 0
+.noWrap:
+        add hl, bc                                  ; add bc back in to restore tail index + 1
+.store:
+        ld (qTailIdx), hl                           ; store index (0 or tailindex +1)
+        ld hl, (qCount)                             ; either way, increase the queue count
+        inc hl                                      ; by 1
+        ld (qCount), hl                             ; store it
+        ret
+
+; ---- pop cell offset from queue into DE ----
+qPopDE:
+; we take a tile off the front of the queue and return it in DE
+; no need to push anything since this will be the start of processing for this tile
+
+        ld hl, (qHeadIdx)                           ; get the head queue index
+        add hl, hl                                  ; we store WORDs, so double it
+        ld bc, floodQueue                           ; get the start of the actual queue
+        add hl, bc                                  ; hence point to the front of the next item to come off
+
+        ld e, (hl)                                  ; store the low byte
+        inc hl                                      ; point to the high byte
+        ld d, (hl)                                  ; store the high byte
+
+        ld hl, (qHeadIdx)                           ; get the head queue index again
+        inc hl                                      ; add 1 to the index
+        ld bc, QUEUE_SIZE                           ; get the queue size (probably 256)
+        or a                                        ; clear the carry flag
+        sbc hl, bc                                  ; take off the queue size from HL
+        jr nz, .noWrap                              ; test for 0, i.e. end of queue
+
+        ld hl, 0                                    ; wrap around to start if it was the end of the queue
+        jr .store                                   ; and branch to store index
+.noWrap:
+        add hl, bc                                  ; get back index + 1 value (before the subtraction)
+.store:
+        ld (qHeadIdx), hl                           ; and store it
+        ld hl, (qCount)                             ; reduce the queue depth
+        dec hl
+        ld (qCount), hl
+
+        ret
+
+; ============================================================
+; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
+; distance field: 0 at target, increasing outward, clamped at
+; 254. 255 = wall/unvisited/unreachable. INERT until called.
+; ============================================================
+floodFill:
+        ld hl, 0                                    ; ready to initialise
+        ld (qHeadIdx), hl                           ; set q head (word) to 0
+        ld (qTailIdx), hl                           ; set q tail (word) to 0
+        ld (qCount), hl                             ; set q depth (word) to 0
+
+        call clearDistanceField                     ; call all 48k of distance map to all 255
+
+        ld a, (floodTargetY)                        ; get our target cell Y
+        ld d, a                                     ; put in D
+        ld a, (floodTargetX)                        ; get out target cell X
+        ld e, a                                     ; put in E
+
+        ld h, d                                     ; Y also in H
+        ld l, e                                     ; X alos in L
+        xor a                                       ; a = 0
+        call putFieldByte                           ; field[target] = 0
+        call qPushDE                                ; push target (d = y, e = x)
+
+.mainLoop:
+        ld hl, (qCount)                             ; get the count of items on the queue
+        ld a, h                                     ; test for 0
+        or l
+        ret z                                       ; empty -> done
+
+        ; qPopDE is only called from here
+        ; it's effectively the driver for the processing for this tile
+        call qPopDE                                 ; DE = current cell (D=y, E=x)
+        ld h, d                                     ; copy  H = y
+        ld l, e                                     ;       L = x
+
+
+        ; H = y L = x
+        ; get for the tile taken off the queue, it's distance that was previously set
+        call getFieldByte                           ; A = current distance
+        ld c, a                                     ; C = current distance
+
+
+        ; ----------------------------------------------------------------------------
+        ; we've popped a tile of the queue (having previously processed it)
+        ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
+        ; ----------------------------------------------------------------------------
+
+        ; LEFT
+        ld a, e                                     ; get tile X
+        or a                                        ; test for 0, lhs of maze
+        jr z, .skipL                                ; branch if so, nothing to do
+        dec a                                       ; get x - 1
+        ld l, a                                     ; set L = X - 1 to test it
+        ld h, d                                     ; set H = y  to test it
+        call .tryCell                               ; do the test. HL is now x-1, y
+.skipL:
+        ; RIGHT
+        ld a, e                                     ; get tile X
+        cp 255                                      ; test for 255, rhs of maze
+        jr z, .skipR                                ; branch if so, nothing to do
+        inc a                                       ; get X + 1
+        ld l, a                                     ; set L = X + 1 to test it
+        ld h, d                                     ; set H = y to test it
+        call .tryCell                               ; do the test. HL is now x+1, y
+.skipR:
+        ; UP
+        ld a, d                                     ; get tile Y
+        or a                                        ; test for 0, top of maze
+        jr z, .skipU                                ; branch if so, nothing to do
+        dec a                                       ; get y -1
+        ld l, e                                     ; set L = X to test it
+        ld h, a                                     ; set H = y - 1 to test it
+        call .tryCell                               ; do the test, HL is now x, y-1
+.skipU:
+        ; DOWN
+        ld a, d
+        cp 191
+        jr z, .skipD
+        inc a
+        ld l, e
+        ld h, a
+        call .tryCell
+.skipD:
+        jr .mainLoop
+
+.tryCell:
+; test one of the x +/- 1, y+/- 1 tiles
+; here DE = yx of the tile taken off the queue
+;      HL = tile being tested, i.e. +/- 1 of x or y
+        push de
+
+        ; H = y, L = x (of tile being tested, NOT the tile popped of the queue)
+        ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
+        call getMapByte
+        and a
+        jr nz, .tcDone                  ; wall, the distance value is left as default 255 value
+
+        ; H = y, L = x
+        ; get distance value for this tile
+        call getFieldByte
+        cp 255
+        jr nz, .tcDone                  ; branch if we've already visited this tile
+        ld a, c                         ; current distance (from mainLoop)
+        cp 254
+        jr nc, .clampMax                ; C >= 254 -> store 254
+        inc a                           ; C+1
+        jr .storeDist
+.clampMax:
+        ld a, 254
+.storeDist:
+        call putFieldByte               ; put this tested tile into the distance map
+        ex de, hl                       ; we want to push this tested tile onto the queue, but need it in DE
+        call qPushDE
+.tcDone:
+        pop de
+        ret
+
 
 ORG $f0f0
 im2Routine
@@ -1239,6 +1532,34 @@ MMU     7, TILEMAP_PAGE + 5
 ORG     $C000
 tilemap_part3:
 INCBIN  "testmaze.map", 32768, 16384
+
+; ----------------------------------------------------------------
+; Distance field - 48 KB, one byte per maze cell (256x192).
+; Same layout as the map (256-byte rows) but in pages 46-51, so the
+; tile (x,y) -> address arithmetic is identical to GET_WORLD_TILE
+; with base page DFIELD_PAGE instead of TILEMAP_PAGE.
+; Filled by the flood-fill; 255 = wall/unvisited/unreachable.
+; ----------------------------------------------------------------
+DFIELD_PAGE     EQU     TILEMAP_PAGE + 6
+
+; reserve the six pages so they exist in the .nex (contents set at runtime)
+MMU     6, DFIELD_PAGE
+MMU     7, DFIELD_PAGE + 1
+ORG     $C000
+dfield_part1:
+DEFS    16384
+
+MMU     6, DFIELD_PAGE + 2
+MMU     7, DFIELD_PAGE + 3
+ORG     $C000
+dfield_part2:
+DEFS    16384
+
+MMU     6, DFIELD_PAGE + 4
+MMU     7, DFIELD_PAGE + 5
+ORG     $C000
+dfield_part3:
+DEFS    16384
 
 ; ----------------------------------------------------------------
 ; Build the .nex file (automatically includes all used banks)
