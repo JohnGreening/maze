@@ -133,9 +133,9 @@ otherSetup:
         ld iy, maze_text
         call displayText
 
-         ld a, 58;       
+         ld a, 59;       
         ld (floodTargetX), a
-        ld a, 44
+        ld a, 47
         ld (floodTargetY), a
         call floodFill
 
@@ -412,6 +412,7 @@ chkUp
 
 keyEnd
 moveSprite
+;        call debugs
         call processBaddies
 
 moveSprite1:
@@ -609,7 +610,7 @@ processBaddie:
         and 7
         ld iyh, a
         DIV_HL_8                                    ; div by 8 to get tile Y
-        ld b, l                                     ; save in D
+        ld b, l                                     ; save in D, see newTile below
 
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
@@ -618,7 +619,7 @@ processBaddie:
         and 7
         ld iyl, a
         DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; save in C
+        ld c, l                                     ; save in C, see newTile below
 
 ; Decide only when grid-aligned (iyh==0 AND iyl==0) - the only
         ; moment a turn is possible. "Tile changed" fired at the far tile
@@ -685,9 +686,43 @@ newTile:
         ld a, e                                     ; get what moves were possible
         and a                                       ; are there any?
         jr z, reverse
-moveAvailable
-        call random                                ; pick one if so
-        ld b, a
+
+moveAvailable:
+        ; E = available-direction mask. Choose pick method by mode.
+        ; Read own-cell distance first (one field read) -> sets lastDist.
+        ld b, (ix + baddieRecord.tileX)             ; B = tileX
+        ld c, (ix + baddieRecord.tileY)             ; C = tileY
+        ld l, b
+        ld h, c
+        call getFieldByte                           ; A = own-cell distance
+        ld (ix + baddieRecord.lastDist), a
+        ld c, a                                     ; keep own distance in C for the mode test
+                                                    ; (B no longer needed; pickByField re-reads tileX/Y)
+
+        ld a, (ix + baddieRecord.mode)
+        cp mode_wander
+        jr z, .pickWander                           ; forced wander
+
+        cp mode_hunt
+        jr z, .pickHunt                             ; forced hunt
+
+        ; mode_auto: hunt only if own distance <= 253 (scent present)
+        ld a, c
+        cp 254
+        jr nc, .pickWander                          ; >=254 -> no scent -> wander
+
+.pickHunt:
+        call pickByField                            ; A = chosen vdir, or 0 if none
+        and a
+        jr nz, .gotDir                              ; got a direction
+        ; fall through to wander if field gave nothing
+
+.pickWander:
+        ld a, e
+        call random
+
+.gotDir:
+        ld b, a                                     ; B = chosen direction (vdir flag)
 
 reverse:
         ld a, b                                     ; set d to be the reverse direction
@@ -700,6 +735,77 @@ reverse:
         ld h, (hl)
         ld l, a
         jp (hl)
+
+; ============================================================
+; pickByField - of the available directions (mask in E), choose the
+; neighbour with the lowest field distance. Returns vdir flag in A,
+; or 0 if none usable. Reads tileX/tileY from the record.
+; ============================================================
+pickByField:
+        ld b, (ix + baddieRecord.tileX)             ; get baddie tile X
+        ld c, (ix + baddieRecord.tileY)             ; get baddie tile Y
+        ld a, (ix + baddieRecord.lastDist)  ; own-cell distance
+    ;    ld a, 255                                   ; initialise to 255
+        ld (pf_best), a                             ; save best found
+
+        xor a                                       ; A = 0
+        ld (pf_dir), a                              ; current direction is nothing
+
+        bit dir_left, e
+        jr z, .noL
+        ld a, b
+        dec a
+        ld l, a
+        ld h, c
+        call getFieldByte
+        ld d, vdir_left
+        call .consider
+.noL:
+        bit dir_right, e
+        jr z, .noR
+        ld a, b
+        inc a
+        ld l, a
+        ld h, c
+        call getFieldByte
+        ld d, vdir_right
+        call .consider
+.noR:
+        bit dir_down, e
+        jr z, .noD
+        ld l, b
+        ld a, c
+        inc a
+        ld h, a
+        call getFieldByte
+        ld d, vdir_down
+        call .consider
+.noD:
+        bit dir_up, e
+        jr z, .noU
+        ld l, b
+        ld a, c
+        dec a
+        ld h, a
+        call getFieldByte
+        ld d, vdir_up
+        call .consider
+.noU:
+        ld a, (pf_dir)
+        ret
+
+.consider:
+        ld hl, pf_best
+        cp (hl)
+        ret nc                                      ; candidate >= best -> keep
+        ld (hl), a
+        ld a, d
+        ld (pf_dir), a
+        ret
+
+pf_best     db 0
+pf_dir      db 0
+
 
 baddieMoveLUT:
 defw    0, doMoveLeft1, doMoveRight1, 0, doMoveDown1, 0, 0, 0, doMoveUp1
@@ -1222,7 +1328,7 @@ INCLUDE "text.inc"
 ; ============================================================
 ; clearDistanceField - set all 49152 field bytes to 255
 ; (255 = unvisited/wall). Pages each of the 6 field pages into
-; slot 6 and floods it. INERT for now - nothing calls this yet.
+; slot 6 and floods it.
 ; ============================================================
 clearDistanceField:
         ld a, DFIELD_PAGE           ; first field page
@@ -1370,6 +1476,8 @@ qPopDE:
 
         ret
 
+
+dist    db 0
 ; ============================================================
 ; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
 ; distance field: 0 at target, increasing outward, clamped at
@@ -1410,8 +1518,7 @@ floodFill:
         ; H = y L = x
         ; get for the tile taken off the queue, it's distance that was previously set
         call getFieldByte                           ; A = current distance
-        ld c, a                                     ; C = current distance
-
+        ld (dist), a                                ; save distance
 
         ; ----------------------------------------------------------------------------
         ; we've popped a tile of the queue (having previously processed it)
@@ -1473,7 +1580,8 @@ floodFill:
         call getFieldByte
         cp 255
         jr nz, .tcDone                  ; branch if we've already visited this tile
-        ld a, c                         ; current distance (from mainLoop)
+
+        ld a, (dist)                    ; get distance for original tile XY (from mainloop)
         cp 254
         jr nc, .clampMax                ; C >= 254 -> store 254
         inc a                           ; C+1

@@ -11,10 +11,11 @@ displayText:
         ld a, (IY +0)                               ; get control or char to display
         cp $ff                                      ; end of string
         ret z                                       ; return if so        
+
         cp 22                                       ; AT control
         jr z, .at                                   ; branch if so
-        call displayChar                            ; display char
-        inc c                                       ; next column        
+
+        call displayChar                            ; display char and advance column
         inc iy                                      ; point to next in string
         jr .loop                                    ; and loop
 .at
@@ -26,9 +27,11 @@ displayText:
         jr .loop                                    ; loop
 
 displayChar:
-; D = char row (0..23), E = char col (0..31), A = char (32..127)
+; B = char row (0..23), C = char col (0..31), A = char (32..127)
 ; corrupts AF, DE, HL
         push bc                                     ; save the running Y/X screen positions
+        push de                                     ; save DE in case of call from Bin8ToDec
+
         sla b                                       ; multiply Y by 8 to get pixel Y
         sla b
         sla b
@@ -52,6 +55,84 @@ dcLine:
         inc de                                      ; next row
         inc h                                       ; down one pixel line within the cell
         djnz dcLine                                 ; loop for all 8 lines
+        pop de
         pop bc
+        inc c                                       ; advance to next column
+        ld a, c                                     ; put A to clamp
+        and 31                                      ; clamp at 31
+        ld c, a                                     ; put back into C
         ret                
 
+; 8-Bit Binary to Decimal Digits Extraction
+; Input:  A  = 8-bit binary number (0 - 255)
+;         B  = char row (0..23), C = char col (0..31)
+; Calls displayChar with A to display each digit
+Bin8ToDec:
+; --- Step 1: Extract 100s Digit ---
+        ld      e, '0' - 1                          ; Initialize ASCII counter
+.Loop100:
+        inc     e                                   ; Increment ASCII character
+        sub     100                                 ; Subtract 100
+        jr      nc, .Loop100                        ; Repeat if no underflow (result >= 0)
+        add     a, 100                              ; Restore the remainder (add 100 back)
+
+        ld      d, a                                ; Temporarily save remainder in B
+        ld      a, e                                ; Get 100s digit
+        call displayChar
+        ld      a, d                                ; Restore remainder to A
+
+; --- Step 2: Extract 10s Digit ---
+        ld      e, '0' - 1                          ; Re-initialize ASCII counter
+.Loop10:
+        inc     e                                   ; Increment ASCII character
+        sub     10                                  ; Subtract 10
+        jr      nc, .Loop10                         ; Repeat if no underflow (result >= 0)
+        add     a, 10                               ; Restore the remainder (add 10 back)
+
+        ld      d, a                                ; Temporarily save 1s digit in B
+        ld      a, e                                ; Get 10s digit
+        call displayChar
+
+; --- Step 3: Extract 1s Digit ---
+        ld      a, d                                ; Restore 1s digit to A
+        add     a, '0'                              ; Convert the leftover 1s digit to ASCII
+        call displayChar
+        ret
+
+
+debugs:
+        ; get distance
+        call getTileY
+        ld bc, 10
+        call Bin8ToDec
+
+        call getTileX
+        ld bc, 14
+        call Bin8ToDec
+
+        call getTileY        
+        ld d, a
+
+        call getTileX
+        ld e, a
+
+        ex de, hl
+        call getFieldByte
+        ld bc, 18
+        call Bin8ToDec
+        ret
+
+getTileY
+        ld hl, (player_py)
+        DIV_HL_8
+        ld a, l
+        ret
+
+getTileX
+        ld hl, (player_px)
+        DIV_HL_8
+        ld a, l
+        ret
+
+debugs1:
+        
