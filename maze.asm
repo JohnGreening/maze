@@ -60,7 +60,7 @@ player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
 
-move_delta          equ 1
+move_delta          equ 2
 
 min_px              equ 19 * 8
 max_px              equ (255 - 20) * 8
@@ -94,6 +94,8 @@ dir                 byte
 pattern             byte
 mode                byte
 lastDist            byte
+radarX              byte            ; last position drawn on radar
+radarY              byte
     ENDS
 
 baddieCount         equ 20
@@ -105,11 +107,23 @@ baddie_y            dw 00
 
 QUEUE_SIZE      equ 256                 ; max wavefront is ~27, so this is ample
 floodQueue      ds  QUEUE_SIZE * 2      ; ring buffer of 16-bit cell offsets (y*256+x)
-qHeadIdx        dw  0
-qTailIdx        dw  0
+qHeadIdx        db  0
+qTailIdx        db  0
 qCount          dw  0
 floodTargetX    db  0
 floodTargetY    db  0
+FLOOD_LIMIT     equ 254
+
+L2_WALL         equ %11100000           ; red
+L2_PATH         equ %11111111           ; white
+L2_BADDIE       equ %00011100           ; green
+L2_PLAYER       equ %00000011           ; blue
+
+viewMode        db 0                    ; 0 = normal, 1 = radar
+yKeyWas         db 0                    ; debounce for Y key
+player_radarX   db 0                    ; player's last-drawn radar position
+player_radarY   db 0
+
 
 progStart:
         call spriteSetup
@@ -127,6 +141,22 @@ otherSetup:
         call showSprite
 
         call initBaddies
+
+        call buildMapImage          ; render maze into Layer 2 pages (once)
+        ; Layer 2 setup (configured now, visibility off until Y)
+        nextreg $12, L2_BANK16
+        nextreg $70, %00000000      ; 256x192x8bpp
+        nextreg $16, 0
+        nextreg $17, 0
+        nextreg $18, 0
+        nextreg $18, 255
+        nextreg $18, 0
+        nextreg $18, 191
+        ; ensure it starts hidden
+        ld bc, $123b
+        xor a
+        out (c), a
+
         call setupIM2
         call moveSprite1
 
@@ -152,6 +182,57 @@ main:
 
 
 keyProcess:	
+chkKeyRadar:
+        ld bc, $dffe                                ; Y U I O P row
+        in a, (c)                                   ; read port
+        bit 4, a                                    ; Y key (active low)
+        jr nz, .yUp                                 ; not pressed
+        ld a, (yKeyWas)                             ; 
+        or a
+        jr nz, .yEnd                ; already handled (held) -> ignore
+        ld a, 1
+        ld (yKeyWas), a
+
+        ; toggle viewMode
+        ld a, (viewMode)
+        xor 1
+        ld (viewMode), a
+        jr z, .radarOff
+
+        ; --- switch to radar: draw all markers, show layer ---
+        ; --- switch to radar: hide other layers, show Layer 2 ---
+        ; sprites off (clear $15 bit 0, keep your other $15 bits as set at init)
+        nextreg $15, %00010110                      ; <-- your init $15 value with bit0 (sprite visible) cleared
+        ; tilemap off ($6B bit7 = 0)
+        nextreg $6B, %00100001                      ; <-- your init $6B value with bit7 cleared
+        ; ULA off ($68 bit7 = 1 disables ULA)
+        nextreg $68, %10000000                      ; <-- your init $68 value with bit7 set        
+        call radarDrawAll
+
+        ld bc, $123b
+        ld a, 2                     ; enable Layer 2
+        out (c), a
+        jr .yEnd
+
+.radarOff:
+        ; --- switch to normal: erase markers, hide layer ---
+        call radarEraseAll
+        ld bc, $123b
+        xor a                       ; disable Layer 2
+        out (c), a
+
+        ; restore the other layers to your init values
+        nextreg $15, %00010111                      ; <-- your ACTUAL init $15 value
+        nextreg $6B, %10100001                      ; <-- your ACTUAL init $6B value
+        nextreg $68, %00000000                      ; <-- your ACTUAL init $68 value
+        jr .yEnd
+.yUp:
+        xor a
+        ld (yKeyWas), a
+.yEnd:
+
+
+; regular left/right/up/down kwyboard processing follows
 	    ld d, 0
 chkKeyLeft:	
 	    LD BC, $dffe                                ; keys Y U I O P
@@ -412,7 +493,7 @@ chkUp
 
 keyEnd
 moveSprite
-;        call debugs
+        call debugs
         call processBaddies
 
 moveSprite1:
@@ -453,11 +534,18 @@ moveSprite1:
 copy_visible_window:
         ld a, b                                     ; get current player tile X
         ld (player_tile_x), a                       ; save it away
-        sub cam_tx                                  ; - 19 for lhs of screen
-        ld b, a                                     ; save
-        
         ld a, c                                     ; get current player tile Y
         ld (player_tile_y), a                       ; save it away
+
+        ; --- radar: update player marker (before B/C get reused below) ---
+;        call radarUpdatePlayer
+
+        ld a, (player_tile_x)
+        ld b, a
+        sub cam_tx                                  ; - 19 for lhs of screen
+        ld b, a                                     ; save
+
+        ld a, (player_tile_y)
         sub cam_ty                                  ; - 15 for top of screen
         ld c, a                                     ; save
 
@@ -600,6 +688,7 @@ processBaddies
         ld de, baddieRecord
         add ix, de
         djnz .loop
+        call radarUpdatePlayer
         ret
 
 processBaddie:
@@ -1045,6 +1134,7 @@ displayBaddie:
         ld a, (ix + baddieRecord.pattern)
         or %10000000                   ; bit 7 = visible
         NEXTREG $38, a                 ; attr 3: pattern + visible flag
+        call radarUpdateBaddie         ; update this baddie's radar marker
         ret
 
 .hidePop:
@@ -1053,7 +1143,53 @@ displayBaddie:
         ld a, (ix +baddieRecord.index)
         NEXTREG $34, a                 ; select sprite slot 1
         NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
+        call radarUpdateBaddie         ; off-screen baddies still show on radar
         ret
+
+; ============================================================
+; radarUpdateBaddie - erase this baddie's old radar marker, draw
+; it at its current tile (blue), record the position. IX = record.
+; Only acts when radar is showing.
+; ============================================================
+radarUpdateBaddie:
+        ld a, (viewMode)
+        or a
+        ret z                          ; radar off -> nothing to do
+        ld a, (ix + baddieRecord.radarX)
+        ld b, a
+        ld a, (ix + baddieRecord.radarY)
+        ld c, a
+        call radarErase                ; erase old marker
+        ld a, (ix + baddieRecord.tileX)
+        ld b, a
+        ld (ix + baddieRecord.radarX), a
+        ld a, (ix + baddieRecord.tileY)
+        ld c, a
+        ld (ix + baddieRecord.radarY), a
+        ld a, L2_BADDIE
+        jp radarBlock                  ; draw new marker (tail-call, returns to caller)
+
+; ============================================================
+; radarUpdatePlayer - erase the player's old radar marker, draw it
+; at the current player tile (green). Only acts when radar showing.
+; ============================================================
+radarUpdatePlayer:
+        ld a, (viewMode)
+        or a
+        ret z
+        ld a, (player_radarX)
+        ld b, a
+        ld a, (player_radarY)
+        ld c, a
+        call radarErase
+        ld a, (player_tile_x)
+        ld b, a
+        ld (player_radarX), a
+        ld a, (player_tile_y)
+        ld c, a
+        ld (player_radarY), a
+        ld a, L2_PLAYER
+        jp radarBlock
 
 
 HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
@@ -1158,6 +1294,8 @@ initBaddies:
 
         ; random tile Y 0..190
 .ry:    call rnd8
+        cp 5
+        jr c, .ry
         cp 191
         jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
         ld e, a                     ; E = candidate tileY
@@ -1412,70 +1550,45 @@ getMapByte:
         ret
 
 ; ---- push cell offset in DE onto queue ----
-qPushDE:
 ; DE = YX
 ; add this to our ring buffer for processing
-        ld hl, (qTailIdx)                           ; get the buffer tail index
-        add hl, hl                                  ; we store WORD, so double it
-        ld bc, floodQueue                           ; point to the ring buffer start
-        add hl, bc                                  ; and add the new index
-
-    ; add XY to the end of the ring buffer
-        ld (hl), e                          
+qPushDE:
+; DE = YX, add to ring buffer
+        ld a, (qTailIdx)            ; tail index (byte, 0-255)
+        ld l, a
+        ld h, 0
+        add hl, hl                  ; *2 (word entries)
+        ld bc, floodQueue
+        add hl, bc                  ; HL -> slot
+        ld (hl), e
         inc hl
         ld (hl), d
-
-    ; add 1 to the tail index
-        ld hl, (qTailIdx)                           ; get tail index
-        inc hl                                      ; add 1
-        ld bc, QUEUE_SIZE                           ; get queue size constant
-        or a                                        ; clear carry
-        sbc hl, bc                                  ; test if we are at queue size
-        jr nz, .noWrap                              ; branch if not
-        ld hl, 0                                    ; we have wrapped around to the front
-        jr .store                                   ; branch to store index as 0
-.noWrap:
-        add hl, bc                                  ; add bc back in to restore tail index + 1
-.store:
-        ld (qTailIdx), hl                           ; store index (0 or tailindex +1)
-        ld hl, (qCount)                             ; either way, increase the queue count
-        inc hl                                      ; by 1
-        ld (qCount), hl                             ; store it
+        ld a, (qTailIdx)
+        inc a                       ; tail+1, wraps 255->0 automatically (byte)
+        ld (qTailIdx), a
+        ld a, (qCount)
+        inc a
+        ld (qCount), a
         ret
 
 ; ---- pop cell offset from queue into DE ----
 qPopDE:
-; we take a tile off the front of the queue and return it in DE
-; no need to push anything since this will be the start of processing for this tile
-
-        ld hl, (qHeadIdx)                           ; get the head queue index
-        add hl, hl                                  ; we store WORDs, so double it
-        ld bc, floodQueue                           ; get the start of the actual queue
-        add hl, bc                                  ; hence point to the front of the next item to come off
-
-        ld e, (hl)                                  ; store the low byte
-        inc hl                                      ; point to the high byte
-        ld d, (hl)                                  ; store the high byte
-
-        ld hl, (qHeadIdx)                           ; get the head queue index again
-        inc hl                                      ; add 1 to the index
-        ld bc, QUEUE_SIZE                           ; get the queue size (probably 256)
-        or a                                        ; clear the carry flag
-        sbc hl, bc                                  ; take off the queue size from HL
-        jr nz, .noWrap                              ; test for 0, i.e. end of queue
-
-        ld hl, 0                                    ; wrap around to start if it was the end of the queue
-        jr .store                                   ; and branch to store index
-.noWrap:
-        add hl, bc                                  ; get back index + 1 value (before the subtraction)
-.store:
-        ld (qHeadIdx), hl                           ; and store it
-        ld hl, (qCount)                             ; reduce the queue depth
-        dec hl
-        ld (qCount), hl
-
+        ld a, (qHeadIdx)            ; head index (byte)
+        ld l, a
+        ld h, 0
+        add hl, hl                  ; *2
+        ld bc, floodQueue
+        add hl, bc                  ; HL -> slot
+        ld e, (hl)
+        inc hl
+        ld d, (hl)
+        ld a, (qHeadIdx)
+        inc a                       ; head+1, wraps automatically
+        ld (qHeadIdx), a
+        ld a, (qCount)
+        dec a
+        ld (qCount), a
         ret
-
 
 dist    db 0
 ; ============================================================
@@ -1490,7 +1603,7 @@ floodFill:
         ld (qCount), hl                             ; set q depth (word) to 0
 
         call clearDistanceField                     ; call all 48k of distance map to all 255
-
+        
         ld a, (floodTargetY)                        ; get our target cell Y
         ld d, a                                     ; put in D
         ld a, (floodTargetX)                        ; get out target cell X
@@ -1503,9 +1616,8 @@ floodFill:
         call qPushDE                                ; push target (d = y, e = x)
 
 .mainLoop:
-        ld hl, (qCount)                             ; get the count of items on the queue
-        ld a, h                                     ; test for 0
-        or l
+        ld a, (qCount)                              ; get the count of items on the queue
+        or a
         ret z                                       ; empty -> done
 
         ; qPopDE is only called from here
@@ -1519,7 +1631,8 @@ floodFill:
         ; get for the tile taken off the queue, it's distance that was previously set
         call getFieldByte                           ; A = current distance
         ld (dist), a                                ; save distance
-
+        cp FLOOD_LIMIT
+        jr nc, .mainLoop
         ; ----------------------------------------------------------------------------
         ; we've popped a tile of the queue (having previously processed it)
         ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
@@ -1596,6 +1709,165 @@ floodFill:
         pop de
         ret
 
+; ============================================================
+; radarBlock - write a 2x2 block of colour A at tile (B=x, C=y)
+; to Layer 2. Top row (x,y),(x+1,y); bottom (x,y+1),(x+1,y+1).
+; Page computed separately per row (y and y+1 can differ).
+; Preserves B and C.
+; ============================================================
+radarBlock:
+        ld d, a                                     ; D = colour
+        ; --- top row, y ---
+        ld a, c
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a                                       ; A = y/32
+        add a, L2_PAGE
+        nextreg $56, a
+        ld a, c
+        and $1F
+        ld h, a
+        ld l, b                                     ; HL = (y&31)*256 + x
+        add hl, $C000
+        ld a, d
+        ld (hl), a                                  ; (x,y)
+        inc hl
+        ld (hl), a                                  ; (x+1,y)
+
+        ; --- bottom row, y+1 ---
+        ld a, c
+        inc a                                       ; y+1
+        ld e, a
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, L2_PAGE
+        nextreg $56, a
+        ld a, e
+        and $1F
+        ld h, a
+        ld l, b
+        add hl, $C000
+        ld a, d
+        ld (hl), a                                  ; (x,y+1)
+        inc hl
+        ld (hl), a                                  ; (x+1,y+1)
+        ret
+
+; ============================================================
+; radarErase - restore 2x2 maze colour (white path) at (B=x, C=y).
+; Entities occupy open space, so white is correct for all 4.
+; ============================================================
+radarErase:
+        ld a, L2_PATH
+        jr radarBlock
+
+radarDrawAll:
+        ; player
+        ld a, (player_tile_x)
+        ld b, a
+        ld (player_radarX), a
+        ld a, (player_tile_y)
+        ld c, a
+        ld (player_radarY), a
+        ld a, L2_PLAYER
+        call radarBlock
+
+        ; baddies
+        ld ix, baddieData
+        ld a, baddieCount
+        ld (rd_count), a
+.bLoop:
+        ld a, (ix + baddieRecord.tileX)
+        ld b, a
+        ld (ix + baddieRecord.radarX), a
+        ld a, (ix + baddieRecord.tileY)
+        ld c, a
+        ld (ix + baddieRecord.radarY), a
+        ld a, L2_BADDIE
+        call radarBlock
+        ld de, baddieRecord
+        add ix, de
+        ld a, (rd_count)
+        dec a
+        ld (rd_count), a
+        jr nz, .bLoop
+        ret
+
+rd_count    db 0
+
+radarEraseAll:
+        ld a, (player_radarX)
+        ld b, a
+        ld a, (player_radarY)
+        ld c, a
+        call radarErase
+
+        ld ix, baddieData
+        ld a, baddieCount
+        ld (rd_count), a
+.bLoop:
+        ld a, (ix + baddieRecord.radarX)
+        ld b, a
+        ld a, (ix + baddieRecord.radarY)
+        ld c, a
+        call radarErase
+        ld de, baddieRecord
+        add ix, de
+        ld a, (rd_count)
+        dec a
+        ld (rd_count), a
+        jr nz, .bLoop
+        ret
+
+buildMapImage:
+        ld c, 0                                     ; Y tile co-ord
+.rowLoop:
+        ld b, 0                                     ; X tile co-ord
+.colLoop:
+        ld h, c                                     ; get Y
+        ld l, b                                     ; get X
+
+        ; calculate map page
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        ld e, a                                     ; keep the page offset
+        add a, MAP_PAGE                             
+        nextreg $56, a                              ; page in the map page
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)                                  ; get tile at these map tile co-ordinates
+        or a                                        ; test for 0 (path)
+        ld d, L2_PATH                               ; set D upfront = white pixel (path)
+        jr z, .haveColour                           ; if 0, branch
+        ld d, L2_WALL                               ; otherwise set D = Red pixel (wall)
+
+.haveColour:
+        ; the offsets etc into the radar map will be the same
+        ; we just need to page in the correct page and set the pixel
+        ld a, e                                     ; retrieve the page offset from earlier
+        add a, L2_PAGE                              ; add in the radar base
+        nextreg $56, a                              ; page in the radar page
+
+        ld a, d                                     ; get pixel colour from above
+        ld (hl), a                                  ; put into radar map
+        inc b
+        jr nz, .colLoop
+        inc c
+        ld a, c
+        cp 192
+        jr nz, .rowLoop
+        ret
 
 ORG $f0f0
 im2Routine
@@ -1668,6 +1940,26 @@ MMU     7, DFIELD_PAGE + 5
 ORG     $C000
 dfield_part3:
 DEFS    16384
+
+; --- radar / Layer 2 ---
+MAP_PAGE        equ TILEMAP_PAGE        ; map data lives here (40)
+L2_PAGE         equ DFIELD_PAGE + 6     ; Layer 2 image pages (52-57), after the field
+L2_BANK16       equ L2_PAGE / 2         ; 16K bank number for reg $12 (=26)
+
+MMU 6, L2_PAGE
+MMU 7, L2_PAGE + 1
+org $C000
+DEFS 16384
+
+MMU 6, L2_PAGE + 2
+MMU 7, L2_PAGE + 3
+org $C000
+DEFS 16384
+
+MMU 6, L2_PAGE + 4
+MMU 7, L2_PAGE + 5
+org $C000
+DEFS 16384
 
 ; ----------------------------------------------------------------
 ; Build the .nex file (automatically includes all used banks)
