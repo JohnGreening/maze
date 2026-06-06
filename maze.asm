@@ -109,7 +109,7 @@ QUEUE_SIZE      equ 256                 ; max wavefront is ~27, so this is ample
 floodQueue      ds  QUEUE_SIZE * 2      ; ring buffer of 16-bit cell offsets (y*256+x)
 qHeadIdx        db  0
 qTailIdx        db  0
-qCount          dw  0
+qCount          db  0
 floodTargetX    db  0
 floodTargetY    db  0
 FLOOD_LIMIT     equ 254
@@ -324,8 +324,8 @@ chkEnd:
         ld d, a
 
 	
-doMove	
-doMoveLeft	
+doMove:
+doMoveLeft:
 	    bit dir_left, d
 	    jr z, doMoveRight
 
@@ -338,7 +338,7 @@ doMoveLeft
         ld (lastMove), a
 	    jp moveSprite
 
-doMoveRight	
+doMoveRight:	
 	    bit dir_right, d
 	    jr z, doMoveDown
 
@@ -351,7 +351,7 @@ doMoveRight
         ld (lastMove), a
 	    jp moveSprite
 
-doMoveDown	
+doMoveDown:
 	    bit dir_down, d
 	    jr z, doMoveUp
 
@@ -364,7 +364,7 @@ doMoveDown
         ld (lastMove), a
 	    jp moveSprite
 
-doMoveUp	
+doMoveUp:
 	    bit dir_up, d
 	    jp z, moveSprite
 
@@ -377,7 +377,7 @@ doMoveUp
         ld (lastMove), a
 	    jp moveSprite
 
-chkLeft	
+chkLeft:
 	    ld hl, (player_px)                          ; get player px
 	    ld bc, move_delta                           ; get move delta
 	    sbc hl, bc                                  ; "try" move
@@ -405,7 +405,7 @@ chkLeft
 	    set dir_left, e                             ; set ok
         ret                                         ; return
 
-chkRight
+chkRight:
 	    ld hl, (player_px)                          ; get player px
 	    ld bc, move_delta                           ; get move delta
         adc hl, bc
@@ -434,7 +434,7 @@ chkRight
         set dir_right, e
         ret
 
-chkDown
+chkDown:
         ld hl, (player_py)
         ld bc, move_delta                           ; get pixel delta
         adc hl, bc                                  ; do move
@@ -462,7 +462,7 @@ chkDown
         set dir_down, e
         ret
 
-chkUp
+chkUp:
         ld hl, (player_py)                          ; get player y
         ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
@@ -491,8 +491,8 @@ chkUp
         ret
 
 
-keyEnd
-moveSprite
+keyEnd:
+moveSprite:
         call debugs
         call processBaddies
 
@@ -536,9 +536,6 @@ copy_visible_window:
         ld (player_tile_x), a                       ; save it away
         ld a, c                                     ; get current player tile Y
         ld (player_tile_y), a                       ; save it away
-
-        ; --- radar: update player marker (before B/C get reused below) ---
-;        call radarUpdatePlayer
 
         ld a, (player_tile_x)
         ld b, a
@@ -657,7 +654,7 @@ setClipping:
         nextreg $19, 255                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
         ret
 
-showSprite
+showSprite:
         LD A, 0                                     ; get the sprite index
         NEXTREG $34, A                              ; set sprite to activate
         ld hl, cam_px
@@ -676,7 +673,7 @@ showSprite
         NEXTREG $38, A                              ; bits 7 1=make sprite visible
         RET
 
-processBaddies
+processBaddies:
         ld ix, baddieData                           ; point to start of baddie data
         ld b, baddieCount
 
@@ -688,7 +685,11 @@ processBaddies
         ld de, baddieRecord
         add ix, de
         djnz .loop
-        call radarUpdatePlayer
+
+        ld a, (viewMode)
+        or a
+        call nz, radarUpdatePlayer
+
         ret
 
 processBaddie:
@@ -699,7 +700,7 @@ processBaddie:
         and 7
         ld iyh, a
         DIV_HL_8                                    ; div by 8 to get tile Y
-        ld b, l                                     ; save in D, see newTile below
+        ld b, l                                     ; save in B, see newTile below
 
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
@@ -1134,7 +1135,10 @@ displayBaddie:
         ld a, (ix + baddieRecord.pattern)
         or %10000000                   ; bit 7 = visible
         NEXTREG $38, a                 ; attr 3: pattern + visible flag
-        call radarUpdateBaddie         ; update this baddie's radar marker
+
+        ld a, (viewMode)
+        or a
+        call nz, radarUpdateBaddie
         ret
 
 .hidePop:
@@ -1143,18 +1147,17 @@ displayBaddie:
         ld a, (ix +baddieRecord.index)
         NEXTREG $34, a                 ; select sprite slot 1
         NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
-        call radarUpdateBaddie         ; off-screen baddies still show on radar
+
+        ld a, (viewMode)
+        or a
+        call nz, radarUpdateBaddie        
         ret
 
 ; ============================================================
 ; radarUpdateBaddie - erase this baddie's old radar marker, draw
 ; it at its current tile (blue), record the position. IX = record.
-; Only acts when radar is showing.
 ; ============================================================
 radarUpdateBaddie:
-        ld a, (viewMode)
-        or a
-        ret z                          ; radar off -> nothing to do
         ld a, (ix + baddieRecord.radarX)
         ld b, a
         ld a, (ix + baddieRecord.radarY)
@@ -1171,12 +1174,9 @@ radarUpdateBaddie:
 
 ; ============================================================
 ; radarUpdatePlayer - erase the player's old radar marker, draw it
-; at the current player tile (green). Only acts when radar showing.
+; at the current player tile (green).
 ; ============================================================
 radarUpdatePlayer:
-        ld a, (viewMode)
-        or a
-        ret z
         ld a, (player_radarX)
         ld b, a
         ld a, (player_radarY)
@@ -1597,10 +1597,10 @@ dist    db 0
 ; 254. 255 = wall/unvisited/unreachable. INERT until called.
 ; ============================================================
 floodFill:
-        ld hl, 0                                    ; ready to initialise
-        ld (qHeadIdx), hl                           ; set q head (word) to 0
-        ld (qTailIdx), hl                           ; set q tail (word) to 0
-        ld (qCount), hl                             ; set q depth (word) to 0
+        ld a, 0                                     ; ready to initialise
+        ld (qHeadIdx), a                            ; set q head to 0
+        ld (qTailIdx), a                            ; set q tail to 0
+        ld (qCount), a                              ; set q depth to 0
 
         call clearDistanceField                     ; call all 48k of distance map to all 255
         
