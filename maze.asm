@@ -59,7 +59,14 @@ player_py           dw 376
 player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
+playerAnimFrame     db 0            ; current animation frame 0-3
+playerAnimTick      db 0            ; counts frames to slow the animation
 
+PAT_DOWN            equ 4           ; forward
+PAT_RIGHT           equ 8
+PAT_LEFT            equ 12
+PAT_UP              equ 16          ; away
+ANIM_SPEED          equ 4           ; advance frame every N moves (higher = slower)
 move_delta          equ 2
 
 min_px              equ 19 * 8
@@ -183,6 +190,7 @@ chkKeyRadar:
         in a, (c)                                   ; read port
         bit 4, a                                    ; Y key (active low)
         jr nz, .yUp                                 ; not pressed
+
         ld a, (yKeyWas)                             ; 
         or a
         jr nz, .yEnd                ; already handled (held) -> ignore
@@ -193,14 +201,24 @@ chkKeyRadar:
         ld a, (viewMode)
         xor 1
         ld (viewMode), a
-        jr z, .radarOff
+
+        jr z, .radarOff                             ; if it's off, jump to radarOff routine
+                                                    ; otherwise drop thru to radar on routine below
 
         ; --- switch to radar: draw all markers, show layer ---
         ; --- switch to radar: hide other layers, show Layer 2 ---
         ; sprites off (clear $15 bit 0, keep your other $15 bits as set at init)
-;        nextreg $15, %00010110                      ; <-- your init $15 value with bit0 (sprite visible) cleared
+        nextreg $15, %00000011                      ; <-- your init $15 value with bit0 (sprite visible) cleared
+;        nextreg $1C, 0                               ; bit 1 = reset the SPRITE clip index
+        ;nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
+        ;nextreg $19, 255                            ; X2 -> pixel 315
+        ;nextreg $19, 0                             ; Y1 = 64 -> top of play area
+        ;nextreg $19, 191                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
+
+
         ; tilemap off ($6B bit7 = 0)
         nextreg $6B, %00100001                      ; <-- your init $6B value with bit7 cleared
+
         ; ULA off ($68 bit7 = 1 disables ULA)
         nextreg $68, %10000000                      ; <-- your init $68 value with bit7 set        
 
@@ -216,9 +234,15 @@ chkKeyRadar:
         out (c), a
 
         ; restore the other layers to your init values
-;        nextreg $15, %00010111                      ; <-- your ACTUAL init $15 value
+        nextreg $15, %00100011                      ; <-- your ACTUAL init $15 value
         nextreg $6B, %10100001                      ; <-- your ACTUAL init $6B value
         nextreg $68, %00000000                      ; <-- your ACTUAL init $68 value
+        nextreg $1C, 2                              ; bit 1 = reset the SPRITE clip index
+        nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
+        nextreg $19, 159                            ; X2 -> pixel 315
+        nextreg $19, 64                             ; Y1 = 64 -> top of play area
+        nextreg $19, 255                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
+
         call showSprite
 
         jr .yEnd
@@ -332,7 +356,7 @@ doMoveLeft:
 
         ld a, vdir_left
         ld (lastMove), a
-	    jp moveSprite
+	    jp doMoveDone
 
 doMoveRight:	
 	    bit dir_right, d
@@ -345,7 +369,7 @@ doMoveRight:
 
         ld a, vdir_right
         ld (lastMove), a
-	    jp moveSprite
+	    jp doMoveDone
 
 doMoveDown:
 	    bit dir_down, d
@@ -358,7 +382,7 @@ doMoveDown:
 
         ld a, vdir_down
         ld (lastMove), a
-	    jp moveSprite
+	    jp doMoveDone
 
 doMoveUp:
 	    bit dir_up, d
@@ -371,8 +395,26 @@ doMoveUp:
 
         ld a, vdir_up
         ld (lastMove), a
-	    jp moveSprite
+	    jp doMoveDone
 
+; --- a move was committed: advance the walk animation (throttled) ---
+; --- a move was committed: advance the walk animation (throttled) ---
+doMoveDone:
+        ld a, (playerAnimTick)
+        inc a
+        ld (playerAnimTick), a
+        cp ANIM_SPEED
+        jr c, .noAdvance                            ; not time to advance frame yet
+        xor a
+        ld (playerAnimTick), a
+        ld a, (playerAnimFrame)
+        inc a
+        and 3                                        ; cycle 0-3
+        ld (playerAnimFrame), a
+.noAdvance:
+        call showSprite                             ; write new pattern (direction + frame)
+        jp moveSprite
+        
 chkLeft:
 	    ld hl, (player_px)                          ; get player px
 	    ld bc, move_delta                           ; get move delta
@@ -651,22 +693,40 @@ setClipping:
         ret
 
 showSprite:
-        LD A, 0                                     ; get the sprite index
-        NEXTREG $34, A                              ; set sprite to activate
+        LD A, 0                                     ; sprite index
+        NEXTREG $34, A
         ld hl, cam_px
         ld de, cam_py
-        LD A, l                                     ; get sprite X lsb
-        NEXTREG $35, A                              ; set attr byte 0 of port $0057
-        LD A, e                                     ; get sprite Y lsb
-        NEXTREG $36, A                              ; set attr byte 1 of port $0057
-        LD A, h                                     ; get sprite X msb
-        AND 1                                       ; only need bit 0 of X msb
-        NEXTREG $37, A                              ; bits 7-4 palette offset
+        LD A, l
+        NEXTREG $35, A
+        LD A, e
+        NEXTREG $36, A
+        LD A, h
+        AND 1
+        NEXTREG $37, A
 
-        LD A, 0                                     ; get pattern index to use
+        ; --- choose pattern from facing direction + animation frame ---
+        ld a, (lastMove)                            ; vdir flag: 1=L 2=R 4=D 8=U
+        ld b, PAT_DOWN                              ; default down
+        cp vdir_left
+        jr nz, .notL
+        ld b, PAT_LEFT
+        jr .haveBase
+.notL:
+        cp vdir_right
+        jr nz, .notR
+        ld b, PAT_RIGHT
+        jr .haveBase
+.notR:
+        cp vdir_up
+        jr nz, .haveBase                            ; else stays PAT_DOWN
+        ld b, PAT_UP
+.haveBase:
+        ld a, (playerAnimFrame)                     ; 0-3
+        add a, b                                    ; base + frame = pattern
 
-        OR %10000000                                ;
-        NEXTREG $38, A                              ; bits 7 1=make sprite visible
+        OR %10000000                                ; bit 7 = visible
+        NEXTREG $38, A
         RET
 
 processBaddies:
@@ -694,11 +754,10 @@ processBaddies:
 
         ld a, (player_tile_y)
         add 32
-;        add a, e
         ld e, a
 
         ld a, 0
-        NEXTREG $34, a                 ; select sprite slot 1
+        NEXTREG $34, a                 ; select sprite slot 0 (player)
         ld a, l
         NEXTREG $35, a                 ; attr 0: X low 8 bits
         ld a, e
@@ -856,7 +915,6 @@ pickByField:
         ld b, (ix + baddieRecord.tileX)             ; get baddie tile X
         ld c, (ix + baddieRecord.tileY)             ; get baddie tile Y
         ld a, (ix + baddieRecord.lastDist)  ; own-cell distance
-    ;    ld a, 255                                   ; initialise to 255
         ld (pf_best), a                             ; save best found
 
         xor a                                       ; A = 0
