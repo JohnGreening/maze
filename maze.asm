@@ -94,8 +94,6 @@ dir                 byte
 pattern             byte
 mode                byte
 lastDist            byte
-radarX              byte            ; last position drawn on radar
-radarY              byte
     ENDS
 
 baddieCount         equ 20
@@ -112,17 +110,14 @@ qTailIdx        db  0
 qCount          db  0
 floodTargetX    db  0
 floodTargetY    db  0
-FLOOD_LIMIT     equ 254
+FLOOD_LIMIT     equ 253
 
 L2_WALL         equ %11100000           ; red
-L2_PATH         equ %11111111           ; white
-L2_BADDIE       equ %00011100           ; green
-L2_PLAYER       equ %00000011           ; blue
+L2_PATH         equ %00000000           ; black
+L2_FLOOD        EQU %11111111           ; white
 
 viewMode        db 0                    ; 0 = normal, 1 = radar
 yKeyWas         db 0                    ; debounce for Y key
-player_radarX   db 0                    ; player's last-drawn radar position
-player_radarY   db 0
 
 
 progStart:
@@ -142,7 +137,7 @@ otherSetup:
 
         call initBaddies
 
-        call buildMapImage          ; render maze into Layer 2 pages (once)
+;        call buildMapImage          ; render maze into Layer 2 pages (once)
         ; Layer 2 setup (configured now, visibility off until Y)
         nextreg $12, L2_BANK16
         nextreg $70, %00000000      ; 256x192x8bpp
@@ -168,6 +163,7 @@ otherSetup:
         ld a, 47
         ld (floodTargetY), a
         call floodFill
+        call buildMapImage          ; render maze into Layer 2 pages (once)
 
 main:
         call keyProcess
@@ -202,12 +198,11 @@ chkKeyRadar:
         ; --- switch to radar: draw all markers, show layer ---
         ; --- switch to radar: hide other layers, show Layer 2 ---
         ; sprites off (clear $15 bit 0, keep your other $15 bits as set at init)
-        nextreg $15, %00010110                      ; <-- your init $15 value with bit0 (sprite visible) cleared
+;        nextreg $15, %00010110                      ; <-- your init $15 value with bit0 (sprite visible) cleared
         ; tilemap off ($6B bit7 = 0)
         nextreg $6B, %00100001                      ; <-- your init $6B value with bit7 cleared
         ; ULA off ($68 bit7 = 1 disables ULA)
         nextreg $68, %10000000                      ; <-- your init $68 value with bit7 set        
-        call radarDrawAll
 
         ld bc, $123b
         ld a, 2                     ; enable Layer 2
@@ -216,15 +211,16 @@ chkKeyRadar:
 
 .radarOff:
         ; --- switch to normal: erase markers, hide layer ---
-        call radarEraseAll
         ld bc, $123b
         xor a                       ; disable Layer 2
         out (c), a
 
         ; restore the other layers to your init values
-        nextreg $15, %00010111                      ; <-- your ACTUAL init $15 value
+;        nextreg $15, %00010111                      ; <-- your ACTUAL init $15 value
         nextreg $6B, %10100001                      ; <-- your ACTUAL init $6B value
         nextreg $68, %00000000                      ; <-- your ACTUAL init $68 value
+        call showSprite
+
         jr .yEnd
 .yUp:
         xor a
@@ -645,7 +641,7 @@ setClipping:
     ;       tilemap top  pixel 64  -> 64+32 = 96
     ;       tilemap bot  pixel 251 -> 283 (overflows) -> clamp to 255
     ; Requires $15 bit 5 (clip-over-border) set - see note.
-        NEXTREG $15, %00110111                      ; was %00010111; bit 5 = enable sprite clip over border
+        NEXTREG $15, %00100011                      ; was %00010111; bit 5 = enable sprite clip over border
 
         nextreg $1C, 2                              ; bit 1 = reset the SPRITE clip index
         nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
@@ -688,7 +684,32 @@ processBaddies:
 
         ld a, (viewMode)
         or a
-        call nz, radarUpdatePlayer
+        ret z
+
+
+        ld a, (player_tile_x)
+        ld l, a
+        ld h, 0
+        add hl, 32
+
+        ld a, (player_tile_y)
+        add 32
+;        add a, e
+        ld e, a
+
+        ld a, 0
+        NEXTREG $34, a                 ; select sprite slot 1
+        ld a, l
+        NEXTREG $35, a                 ; attr 0: X low 8 bits
+        ld a, e
+        NEXTREG $36, a                 ; attr 1: Y (8-bit)
+        ld a, h
+        and 1                          ; X is 9-bit; keep only bit 8
+        NEXTREG $37, a                 ; attr 2: X MSB in bit 0
+        ld a, 2
+        or %10000000                   ; bit 7 = visible
+        NEXTREG $38, a                 ; attr 3: pattern + visible flag
+
 
         ret
 
@@ -1060,6 +1081,10 @@ displayBaddie:
     ; IX already points at the baddie record (set by processBaddies).
     ; ============================================================
 
+        ld a, (viewMode)
+        or a
+        jp nz, radarBaddie
+
     ; ---------- SCREEN X ----------
         ; HL = baddie world X
         ld l, (ix + baddieRecord.lowX)
@@ -1136,9 +1161,6 @@ displayBaddie:
         or %10000000                   ; bit 7 = visible
         NEXTREG $38, a                 ; attr 3: pattern + visible flag
 
-        ld a, (viewMode)
-        or a
-        call nz, radarUpdateBaddie
         ret
 
 .hidePop:
@@ -1148,48 +1170,33 @@ displayBaddie:
         NEXTREG $34, a                 ; select sprite slot 1
         NEXTREG $38, 0                 ; clear visible bit -> sprite hidden
 
-        ld a, (viewMode)
-        or a
-        call nz, radarUpdateBaddie        
         ret
 
-; ============================================================
-; radarUpdateBaddie - erase this baddie's old radar marker, draw
-; it at its current tile (blue), record the position. IX = record.
-; ============================================================
-radarUpdateBaddie:
-        ld a, (ix + baddieRecord.radarX)
-        ld b, a
-        ld a, (ix + baddieRecord.radarY)
-        ld c, a
-        call radarErase                ; erase old marker
-        ld a, (ix + baddieRecord.tileX)
-        ld b, a
-        ld (ix + baddieRecord.radarX), a
-        ld a, (ix + baddieRecord.tileY)
-        ld c, a
-        ld (ix + baddieRecord.radarY), a
-        ld a, L2_BADDIE
-        jp radarBlock                  ; draw new marker (tail-call, returns to caller)
+radarBaddie:
+        ld a, 32
 
-; ============================================================
-; radarUpdatePlayer - erase the player's old radar marker, draw it
-; at the current player tile (green).
-; ============================================================
-radarUpdatePlayer:
-        ld a, (player_radarX)
-        ld b, a
-        ld a, (player_radarY)
-        ld c, a
-        call radarErase
-        ld a, (player_tile_x)
-        ld b, a
-        ld (player_radarX), a
-        ld a, (player_tile_y)
-        ld c, a
-        ld (player_radarY), a
-        ld a, L2_PLAYER
-        jp radarBlock
+        ld l, (ix +baddieRecord.tileX)
+        ld h, 0
+        add hl, a
+
+        ld e, (ix +baddieRecord.tileY)
+        add a, e
+        ld e, a
+
+        ld a, (ix +baddieRecord.index)
+        NEXTREG $34, a                 ; select sprite slot 1
+        ld a, l
+        NEXTREG $35, a                 ; attr 0: X low 8 bits
+        ld a, e
+        NEXTREG $36, a                 ; attr 1: Y (8-bit)
+        ld a, h
+        and 1                          ; X is 9-bit; keep only bit 8
+        NEXTREG $37, a                 ; attr 2: X MSB in bit 0
+        ld a, 3
+        or %10000000                   ; bit 7 = visible
+        NEXTREG $38, a                 ; attr 3: pattern + visible flag
+
+        ret
 
 
 HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
@@ -1709,120 +1716,6 @@ floodFill:
         pop de
         ret
 
-; ============================================================
-; radarBlock - write a 2x2 block of colour A at tile (B=x, C=y)
-; to Layer 2. Top row (x,y),(x+1,y); bottom (x,y+1),(x+1,y+1).
-; Page computed separately per row (y and y+1 can differ).
-; Preserves B and C.
-; ============================================================
-radarBlock:
-        ld d, a                                     ; D = colour
-        ; --- top row, y ---
-        ld a, c
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a                                       ; A = y/32
-        add a, L2_PAGE
-        nextreg $56, a
-        ld a, c
-        and $1F
-        ld h, a
-        ld l, b                                     ; HL = (y&31)*256 + x
-        add hl, $C000
-        ld a, d
-        ld (hl), a                                  ; (x,y)
-        inc hl
-        ld (hl), a                                  ; (x+1,y)
-
-        ; --- bottom row, y+1 ---
-        ld a, c
-        inc a                                       ; y+1
-        ld e, a
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a
-        add a, L2_PAGE
-        nextreg $56, a
-        ld a, e
-        and $1F
-        ld h, a
-        ld l, b
-        add hl, $C000
-        ld a, d
-        ld (hl), a                                  ; (x,y+1)
-        inc hl
-        ld (hl), a                                  ; (x+1,y+1)
-        ret
-
-; ============================================================
-; radarErase - restore 2x2 maze colour (white path) at (B=x, C=y).
-; Entities occupy open space, so white is correct for all 4.
-; ============================================================
-radarErase:
-        ld a, L2_PATH
-        jr radarBlock
-
-radarDrawAll:
-        ; player
-        ld a, (player_tile_x)
-        ld b, a
-        ld (player_radarX), a
-        ld a, (player_tile_y)
-        ld c, a
-        ld (player_radarY), a
-        ld a, L2_PLAYER
-        call radarBlock
-
-        ; baddies
-        ld ix, baddieData
-        ld a, baddieCount
-        ld (rd_count), a
-.bLoop:
-        ld a, (ix + baddieRecord.tileX)
-        ld b, a
-        ld (ix + baddieRecord.radarX), a
-        ld a, (ix + baddieRecord.tileY)
-        ld c, a
-        ld (ix + baddieRecord.radarY), a
-        ld a, L2_BADDIE
-        call radarBlock
-        ld de, baddieRecord
-        add ix, de
-        ld a, (rd_count)
-        dec a
-        ld (rd_count), a
-        jr nz, .bLoop
-        ret
-
-rd_count    db 0
-
-radarEraseAll:
-        ld a, (player_radarX)
-        ld b, a
-        ld a, (player_radarY)
-        ld c, a
-        call radarErase
-
-        ld ix, baddieData
-        ld a, baddieCount
-        ld (rd_count), a
-.bLoop:
-        ld a, (ix + baddieRecord.radarX)
-        ld b, a
-        ld a, (ix + baddieRecord.radarY)
-        ld c, a
-        call radarErase
-        ld de, baddieRecord
-        add ix, de
-        ld a, (rd_count)
-        dec a
-        ld (rd_count), a
-        jr nz, .bLoop
-        ret
 
 buildMapImage:
         ld c, 0                                     ; Y tile co-ord
@@ -1831,7 +1724,7 @@ buildMapImage:
 .colLoop:
         ld h, c                                     ; get Y
         ld l, b                                     ; get X
-
+ 
         ; calculate map page
         ld a, h
         srl a
@@ -1846,19 +1739,31 @@ buildMapImage:
         and $1F
         ld h, a
         add hl, $C000
-        ld a, (hl)                                  ; get tile at these map tile co-ordinates
+        ld a, (hl)                                  ; get map tile at this cell
         or a                                        ; test for 0 (path)
-        ld d, L2_PATH                               ; set D upfront = white pixel (path)
-        jr z, .haveColour                           ; if 0, branch
-        ld d, L2_WALL                               ; otherwise set D = Red pixel (wall)
-
+        jr z, .checkFlood                           ; path -> check flood field
+        ld d, L2_WALL                               ; wall -> red
+        jr .haveColour                              ; walls never flooded
+ 
+.checkFlood:
+        ; HL still points at the cell's slot-6 address. The field uses the
+        ; same layout, so the SAME HL is correct once we page the field bank in.
+        ld d, L2_PATH
+        ld a, e                                     ; page offset (y/32) saved earlier
+        add a, DFIELD_PAGE                          ; field base page
+        nextreg $56, a                              ; page field bank into slot 6
+        ld a, (hl)                                  ; A = distance value at this cell
+        cp 255                             ; <= FLOOD_LIMIT ?
+        jr Z, .haveColour                          ; 255 (or > limit) -> not flooded, keep white
+        ld d, L2_FLOOD                              ; flooded -> yellow
+ 
 .haveColour:
         ; the offsets etc into the radar map will be the same
         ; we just need to page in the correct page and set the pixel
         ld a, e                                     ; retrieve the page offset from earlier
         add a, L2_PAGE                              ; add in the radar base
         nextreg $56, a                              ; page in the radar page
-
+ 
         ld a, d                                     ; get pixel colour from above
         ld (hl), a                                  ; put into radar map
         inc b
@@ -1868,6 +1773,7 @@ buildMapImage:
         cp 192
         jr nz, .rowLoop
         ret
+
 
 ORG $f0f0
 im2Routine
