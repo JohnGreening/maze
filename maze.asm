@@ -47,15 +47,25 @@ GET_WORLD_TILE MACRO
         ld a, (hl)                                  ; so get the byte
         ENDM
 
-cam_px              equ 19*8
-cam_py              equ 15*8
-cam_tx              equ 19
-cam_ty              equ 15
+cam_px              dw  0
+cam_py              dw  0
+cam_tx              db  0
+cam_ty              db  0
+
+cam_fx              equ 19
+cam_fy              equ 15
+CENTRE_X     equ 152
+CENTRE_Y     equ 120
+CAM_MIN_X   equ 0
+CAM_MIN_Y   equ 0
+CAM_MAX_X   equ (256 - 40) * 8       ; 1728  (map width - view width)
+CAM_MAX_Y   equ (192 - 32) * 8       ; 1280  (map height - visible rows incl partial)
+
 
 tilemapPage         db 0
 
-player_px           dw 472                          ; world pixel position of sprite
-player_py           dw 376
+player_px           dw 464                        ; world pixel position of sprite
+player_py           dw 344
 player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
@@ -129,6 +139,26 @@ yKeyWas         db 0                    ; debounce for Y key
 
 progStart:
         call spriteSetup
+        ld hl, (player_px)
+        ld bc, CENTRE_X
+        or a
+        sbc hl, bc
+        ld (cam_px), hl
+
+        ld hl, (player_py)
+        ld bc, CENTRE_Y
+        or a
+        sbc hl, bc
+        ld (cam_py), hl
+
+        ld hl, (cam_px)
+        DIV_HL_8
+        ld a, l
+        ld (cam_tx), a
+        ld hl, (cam_py)
+        DIV_HL_8
+        ld a, l
+        ld (cam_ty), a
 
 otherSetup:
         LD A, 0             ; Load speed index (3 = 28 MHz)
@@ -356,7 +386,7 @@ doMoveLeft:
 
         ld a, vdir_left
         ld (lastMove), a
-	    jp doMoveDone
+        jp updateCameraXY
 
 doMoveRight:	
 	    bit dir_right, d
@@ -364,12 +394,14 @@ doMoveRight:
 
 	    ld hl, (player_px)
 	    ld bc, move_delta
+        and a
 	    adc hl, bc 
 	    ld (player_px), hl
 
         ld a, vdir_right
         ld (lastMove), a
-	    jp doMoveDone
+
+        jp updateCameraXY
 
 doMoveDown:
 	    bit dir_down, d
@@ -377,12 +409,14 @@ doMoveDown:
 
 	    ld hl, (player_py)
 	    ld bc, move_delta
+        and a 
 	    adc hl, bc 
 	    ld (player_py), hl
 
         ld a, vdir_down
         ld (lastMove), a
-	    jp doMoveDone
+
+        jp updateCameraXY
 
 doMoveUp:
 	    bit dir_up, d
@@ -390,14 +424,57 @@ doMoveUp:
 
 	    ld hl, (player_py)
 	    ld bc, move_delta
+        or a
 	    sbc hl, bc 
 	    ld (player_py), hl
 
         ld a, vdir_up
         ld (lastMove), a
-	    jp doMoveDone
 
-; --- a move was committed: advance the walk animation (throttled) ---
+        jp updateCameraXY
+
+; ============================================================
+; updateCameraXY - recompute camera from player, clamped to map.
+;   cam = player - CENTRE, then clamped to [0 .. CAM_MAX]
+; Low clamp: if (player - CENTRE) < 0  -> 0   (sign test)
+; High clamp: if value > CAM_MAX       -> CAM_MAX
+; ============================================================
+updateCameraXY:
+        ; ---------- X ----------
+        ld hl, (player_px)
+        ld bc, CENTRE_X
+        or a
+        sbc hl, bc                      ; hl = player_px - CENTRE_X
+        jp p, .camXLowOK                ; >= 0 -> keep
+        ld hl, 0                        ; negative -> clamp to 0
+.camXLowOK:
+        ld bc, CAM_MAX_X
+        or a
+        sbc hl, bc                      ; hl = value - CAM_MAX_X
+        jr c, .camXHighOK               ; carry set => value < max -> keep (after add back)
+        ld hl, 0                        ; value >= max -> result = max (after add back)
+.camXHighOK:
+        add hl, bc                      ; add CAM_MAX_X back
+        ld (cam_px), hl
+
+        ; ---------- Y ----------
+        ld hl, (player_py)
+        ld bc, CENTRE_Y
+        or a
+        sbc hl, bc                      ; hl = player_py - CENTRE_Y
+        jp p, .camYLowOK
+        ld hl, 0
+.camYLowOK:
+        ld bc, CAM_MAX_Y
+        or a
+        sbc hl, bc
+        jr c, .camYHighOK
+        ld hl, 0
+.camYHighOK:
+        add hl, bc
+        ld (cam_py), hl
+        jp doMoveDone
+
 ; --- a move was committed: advance the walk animation (throttled) ---
 doMoveDone:
         ld a, (playerAnimTick)
@@ -435,10 +512,10 @@ chkLeft:
 	    ret nz
 	
 	    ; now test if we are at limit of maze
-	    ld hl, (player_px)
-	    ld bc, min_px + move_delta                  ; get min pixel allowed
-	    sbc hl, bc                                  ; test
-	    ret c                                       ; return if fail
+	 ;   ld hl, (player_px)
+	 ;   ld bc, min_px + move_delta                  ; get min pixel allowed
+	 ;   sbc hl, bc                                  ; test
+	 ;   ret c                                       ; return if fail
 	
 	    set dir_left, e                             ; set ok
         ret                                         ; return
@@ -464,10 +541,10 @@ chkRight:
         ret nz
 
         ; now test if we are at limit of maze
-        ld hl, (player_px)
-        ld bc, max_px + move_delta
-        sbc hl, bc
-        ret nc
+  ;      ld hl, (player_px)
+  ;      ld bc, max_px + move_delta
+  ;      sbc hl, bc
+  ;      ret nc
 
         set dir_right, e
         ret
@@ -492,10 +569,10 @@ chkDown:
         and a
         ret nz
 
-        ld hl, (player_py)
-        ld bc, max_py + move_delta                  ; get max pixel allowed
-        sbc hl, bc                                  ; test
-        ret nc
+   ;     ld hl, (player_py)
+   ;     ld bc, max_py + move_delta                  ; get max pixel allowed
+   ;     sbc hl, bc                                  ; test
+   ;     ret nc
 
         set dir_down, e
         ret
@@ -520,10 +597,10 @@ chkUp:
         ret nz
 
         ; now test if we are at limit of maze
-        ld hl, (player_py)
-        ld bc, min_py + move_delta                  ; get min pixel allowed
-        sbc hl, bc                                  ; test
-        ret c
+    ;    ld hl, (player_py)
+    ;    ld bc, min_py + move_delta                  ; get min pixel allowed
+    ;    sbc hl, bc                                  ; test
+    ;    ret c
 
         set dir_up, e
         ret
@@ -541,29 +618,33 @@ moveSprite1:
     ; ================================================
         call wait_vblank
 
-        ld a, (player_px)                           ; get LOW byte of player X position
+
+        ; if we ar
+
+        ld a, (cam_px)                           ; get LOW byte of player X position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
         nextreg $30, a                              ; ← X fine offset (MUST be every frame)
 
-        ld a, (player_py)                           ; get LOW byte of player Y position
+        ld a, (cam_py)                           ; get LOW byte of player Y position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
+        ;add 64
         nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
 
 ; ================================================
     ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
     ; ================================================
-        ld hl, (player_px)
+        ld hl, (cam_px)
         DIV_HL_8
         ld b, l
-        ld hl, (player_py)
+        ld hl, (cam_py)
         DIV_HL_8
         ld c, l
         
-        ld a, (player_tile_x)                       ; get last player tile X
+        ld a, (cam_tx)                       ; get last player tile X
         cp b                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
-        ld a, (player_tile_y)                       ; get last player tile Y
+        ld a, (cam_ty)                       ; get last player tile Y
         cp c                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
@@ -571,18 +652,9 @@ moveSprite1:
 
 copy_visible_window:
         ld a, b                                     ; get current player tile X
-        ld (player_tile_x), a                       ; save it away
+        ld (cam_tx), a                       ; save it away
         ld a, c                                     ; get current player tile Y
-        ld (player_tile_y), a                       ; save it away
-
-        ld a, (player_tile_x)
-        ld b, a
-        sub cam_tx                                  ; - 19 for lhs of screen
-        ld b, a                                     ; save
-
-        ld a, (player_tile_y)
-        sub cam_ty                                  ; - 15 for top of screen
-        ld c, a                                     ; save
+        ld (cam_ty), a                       ; save it away
 
     ; STEP 1: Build the starting linear offset in the world map
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
@@ -673,7 +745,7 @@ setClipping:
     ; 4px border = inset of 2 X-units and 4 Y-pixels
         nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
         nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
-        nextreg $1b, 64                             ; Y! = 64, top 4 border lines + top 4 ULA lines
+        nextreg $1b, 64                             ; Y1 = 64, top 4 border lines + top 4 ULA lines
         nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
     ; setSpriteClip - clip sprites to the play area (below the HUD).
@@ -693,17 +765,38 @@ setClipping:
         ret
 
 showSprite:
+        ld hl, (player_px)
+        DIV_HL_8
+        ld a, l
+        ld (player_tile_x), a
+        ld hl, (player_py)
+        DIV_HL_8
+        ld a, l
+        ld (player_tile_y), a
+
+        ld a, (viewMode)
+        or a
+        ret nz
+
         LD A, 0                                     ; sprite index
         NEXTREG $34, A
-        ld hl, cam_px
-        ld de, cam_py
-        LD A, l
+        ld hl, (player_px)
+        ld bc, (cam_px)
+        sbc hl, bc
+        ld e, h
+
+        LD A, l                                     ; set the low byte of player X
         NEXTREG $35, A
-        LD A, e
+
+        ld hl, (player_py)
+        ld bc, (cam_py)
+        sbc hl, bc
+
+        LD A, l                                     ; set the low byte of player Y
         NEXTREG $36, A
-        LD A, h
-        AND 1
-        NEXTREG $37, A
+        LD A, e                                     ; get the high byte of player X
+        AND 1                                       ; we only need bit 0
+        NEXTREG $37, A                              ; set it
 
         ; --- choose pattern from facing direction + animation frame ---
         ld a, (lastMove)                            ; vdir flag: 1=L 2=R 4=D 8=U
@@ -1147,13 +1240,13 @@ displayBaddie:
         ; HL = baddie world X
         ld l, (ix + baddieRecord.lowX)
         ld h, (ix + baddieRecord.highX)
-        ld bc, (player_px)              ; BC = player world X
+        ld bc, (cam_px)              ; BC = player world X
         or a                           ; clear carry for a clean subtract
         sbc hl, bc                     ; HL = baddieX - playerX  (signed)
     ; add screen centre AND the 15px overhang bias in one go.
     ; CENTER_SCREEN_X + 15 = 152 + 15 = 167, which fits in 8 bits,
     ; so we can use the Z80N "add hl,a" (cheaper to set up than add hl,bc).
-        ld a, cam_px + 15                               ; A = 167  (centre + bias)
+        ld a,  15                               ; A = 167  (centre + bias)
         add hl, a                      ; Z80N: HL = biased screen X
     ; HL now holds (screenX + 15). Visible-with-overhang means the
     ; UN-biased X is in -15..319, i.e. the BIASED value is in 0..334.
@@ -1174,11 +1267,11 @@ displayBaddie:
     ; HL = baddie world Y
         ld l, (ix + baddieRecord.lowY)
         ld h, (ix + baddieRecord.highY)
-        ld bc, (player_py)             ; BC = player world Y
+        ld bc, (cam_py)             ; BC = player world Y
         or a                           ; clear carry
         sbc hl, bc                     ; HL = baddieY - playerY  (signed)
     ; centre + bias again: CENTER_SCREEN_Y + 15 = 120 + 15 = 135, fits in 8 bits.
-        ld a, cam_py + 15     ; A = 135
+        ld a, 15     ; A = 135
         add hl, a                      ; Z80N: HL = biased screen Y
     ; Visible-with-overhang: un-biased Y in -15..255, i.e. biased Y in 0..270.
         ld a, h                        ; high byte of biased Y
@@ -1359,7 +1452,7 @@ initBaddies:
 
         ; random tile Y 0..190
 .ry:    call rnd8
-        cp 5
+        cp 8
         jr c, .ry
         cp 191
         jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
