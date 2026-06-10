@@ -1,7 +1,16 @@
 device ZXSPECTRUMNEXT
 
+;attr bytes
+; Bit:  7      6      5    4    3      2    1    0
+;       FLASH  BRIGHT P2   P1   P0     I2   I1   I0
+; Colour codes: 0=black, 1=blue, 2=red, 3=magenta, 4=green, 5=cyan, 6=yellow, 7=white.
 
-HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
+HUD_ATTR        equ %01110000                       ; BRIGHT yellow paper, black ink
+HEALTH_ATTR     equ %01110001
+maze_text       defb 22, 0, 0, "Maze Game", $ff
+health_text     defb 22, 2, 0, "Health:", $ff
+health_bar      defb 22, 2, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, $ff
+healthattr      equ $5847
 
 initHUD:
     ; clear top third of display file ($4000-$47FF) so the band is clean
@@ -16,6 +25,21 @@ initHUD:
         ld (hl), HUD_ATTR
         ld de, $5801
         ld bc, 96 - 1
+        ldir
+
+        ld iy, maze_text
+        call displayText
+
+        ld iy, health_text
+        call displayText
+
+        ld iy, health_bar
+        call displayText
+
+        ld hl, $5847
+        ld (hl), HEALTH_ATTR
+        ld de, $5848
+        ld bc, 24
         ldir
         ret
 
@@ -453,4 +477,32 @@ initBaddies:
         pop bc
         dec b
         jp nz, .nextBaddie
+        ret
+
+setClipping:
+        nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)
+
+    ; Write the four clip coordinates to register $1B
+    ; X values are in 2-pixel units (0-159 = full 320px width)
+    ; Y values are 1:1 pixels (0-255)
+    ; 4px border = inset of 2 X-units and 4 Y-pixels
+        nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
+        nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
+        nextreg $1b, 64                             ; Y1 = 64, top 4 border lines + top 4 ULA lines
+        nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
+
+    ; setSpriteClip - clip sprites to the play area (below the HUD).
+    ; Over-border mode is active, so:
+    ;   - X coords use the SAME doubling as the tilemap clip (copy 2,157)
+    ;   - Y coords are in sprite space: ULA-origin pixel + 32
+    ;       tilemap top  pixel 64  -> 64+32 = 96
+    ;       tilemap bot  pixel 251 -> 283 (overflows) -> clamp to 255
+    ; Requires $15 bit 5 (clip-over-border) set - see note.
+        NEXTREG $15, %00100011                      ; was %00010111; bit 5 = enable sprite clip over border
+
+        nextreg $1C, 2                              ; bit 1 = reset the SPRITE clip index
+        nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
+        nextreg $19, 159                            ; X2 -> pixel 315
+        nextreg $19, 64                             ; Y1 = 64 -> top of play area
+        nextreg $19, 255                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
         ret

@@ -1,7 +1,7 @@
 DEVICE ZXSPECTRUMNEXT
 
 charset equ 15616
-
+udgBase: defb 0, 0, 0, 0, 255, 255, 0, 0            ; udg0
 
 displayText:
 ; IY = text string, terminate with $FF, set AT with 22, Y, X
@@ -42,12 +42,24 @@ displayChar:
         ld e, c                                     ; put X in D for pixelad
         pixelad                                     ; HL -> address of the cell's top pixel line
 
+        cp 128
+        jr nc, .udg
+
         sub 32                                      ; calc index into charset
         ld e, 8                                     ; each char is 8 bytes
         ld d, a                                     ; get index
         mul d, e                                    ; DE = index * 8
         add de, charset                             ; DE -> char bitmap (Z80N: ADD DE,nn)
+        jr .draw
 
+.udg
+        sub 128
+        ld e, 8
+        ld d, a
+        mul d, e
+        add de, udgBase
+
+.draw
         ld b, 8                                     ; 8 lines to a char
 dcLine:
         ld a, (de)                                  ; get the bitmap row

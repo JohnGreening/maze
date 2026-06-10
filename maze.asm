@@ -10,39 +10,32 @@ cam_py              dw  0
 cam_tx              db  0
 cam_ty              db  0
 
-cam_fx              equ 19
-cam_fy              equ 15
-CENTRE_X     equ 152
-CENTRE_Y     equ 120
-CAM_MIN_X   equ 0
-CAM_MIN_Y   equ 0
-CAM_MAX_X   equ (256 - 40) * 8       ; 1728  (map width - view width)
-CAM_MAX_Y   equ (192 - 32) * 8       ; 1280  (map height - visible rows incl partial)
+CENTRE_X            equ 152
+CENTRE_Y            equ 120
+CAM_MIN_X           equ 0
+CAM_MIN_Y           equ 0
+CAM_MAX_X           equ (256 - 40) * 8              ; 1728  (map width - view width)
+CAM_MAX_Y           equ (192 - 32) * 8              ; 1280  (map height - visible rows incl partial)
 
 
 tilemapPage         db 0
 
-player_px           dw 464                        ; world pixel position of sprite
+player_px           dw 464                          ; world pixel position of sprite
 player_py           dw 344
 player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
-playerAnimFrame     db 0            ; current animation frame 0-3
-playerAnimTick      db 0            ; counts frames to slow the animation
+playerAnimFrame     db 0                            ; current animation frame 0-3
+playerAnimTick      db 0                            ; counts frames to slow the animation
 
-PAT_DOWN            equ 4           ; forward
-PAT_RIGHT           equ 8
-PAT_LEFT            equ 12
-PAT_UP              equ 16          ; away
-ANIM_SPEED          equ 4           ; advance frame every N moves (higher = slower)
+PAT_DOWN            equ 4                           ; facing forward
+PAT_RIGHT           equ 8                           ; facing right
+PAT_LEFT            equ 12                          ; facing left
+PAT_UP              equ 16                          ; facing away
+ANIM_SPEED          equ 4                           ; advance frame every N moves (higher = slower)
 
 move_delta          equ 2
 move_delta_baddie   equ 1
-
-min_px              equ 19 * 8
-max_px              equ (255 - 20) * 8
-min_py              equ 15 * 8
-max_py              equ (191 - 16) * 8
 
 dir_left            equ 0
 dir_right           equ 1
@@ -56,8 +49,6 @@ vdir_up             equ 8
 mode_auto           equ 0
 mode_hunt           equ 1
 mode_wander         equ 2
-
-maze_text           defb 22, 0, 0, "Maze Game", $ff
 
     struct baddieRecord
 index               byte
@@ -102,12 +93,12 @@ progStart:
 
         ; set camera X/Y position based on player X/Y
         ld hl, (player_px)                          ; get initial player pixel X
-        ld bc, CENTRE_X                             ; get the camera position
+        ld bc, CENTRE_X                             ; the camera position is roughly centered
         or a                                        ; clear carry
-        sbc hl, bc                                  ; 
-        ld (cam_px), hl
+        sbc hl, bc                                  ; hence get camera "world" X position in HL
+        ld (cam_px), hl                             ; and set it.
 
-        ld hl, (player_py)
+        ld hl, (player_py)                          ; do the same for camera "world" Y position
         ld bc, CENTRE_Y
         or a
         sbc hl, bc
@@ -155,8 +146,6 @@ otherSetup:
         call setupIM2
         call moveSprite1
 
-        ld iy, maze_text
-        call displayText
         call setTrail
 
 main:
@@ -698,33 +687,6 @@ wait_vblank:
         jr z, .loop
         ret
 
-setClipping:
-        nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)
-
-    ; Write the four clip coordinates to register $1B
-    ; X values are in 2-pixel units (0-159 = full 320px width)
-    ; Y values are 1:1 pixels (0-255)
-    ; 4px border = inset of 2 X-units and 4 Y-pixels
-        nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
-        nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
-        nextreg $1b, 64                             ; Y1 = 64, top 4 border lines + top 4 ULA lines
-        nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
-
-    ; setSpriteClip - clip sprites to the play area (below the HUD).
-    ; Over-border mode is active, so:
-    ;   - X coords use the SAME doubling as the tilemap clip (copy 2,157)
-    ;   - Y coords are in sprite space: ULA-origin pixel + 32
-    ;       tilemap top  pixel 64  -> 64+32 = 96
-    ;       tilemap bot  pixel 251 -> 283 (overflows) -> clamp to 255
-    ; Requires $15 bit 5 (clip-over-border) set - see note.
-        NEXTREG $15, %00100011                      ; was %00010111; bit 5 = enable sprite clip over border
-
-        nextreg $1C, 2                              ; bit 1 = reset the SPRITE clip index
-        nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
-        nextreg $19, 159                            ; X2 -> pixel 315
-        nextreg $19, 64                             ; Y1 = 64 -> top of play area
-        nextreg $19, 255                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
-        ret
 
 showSprite:
         ld a, (viewMode)
