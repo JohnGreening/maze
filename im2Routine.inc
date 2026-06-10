@@ -3,6 +3,21 @@
 ; push/pop are in main program
 
 
+        ld a, (floodInProgress)
+        and a
+        jr z, noFlood
+        ld a, (paletteDelay)
+        inc a
+        and 7
+        ld (paletteDelay), a
+        jr nz, noFlood
+        ld a, (paletteFlip)
+        xor 1
+        ld (paletteFlip), a
+        swapnib
+        nextreg $6c, a
+
+noFlood:
         LD C, AYPortC              ; shared port for AY chip access
 
 ; select AY1

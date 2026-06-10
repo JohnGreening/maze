@@ -1,43 +1,66 @@
+INCLUDE "maze.inc"
 device ZXSPECTRUMNEXT
-INCLUDE "macros.inc"
-INCLUDE "maze2.inc"
-INCLUDE "initialisation.inc"
-INCLUDE "text.inc"
-INCLUDE "inspectorclouseau.inc"
+DIV_HL_8 MACRO
+; simple 16-bit divide without the CALL/RET overhead
+        srl h                                       ; divide by 2
+        rr l
+        srl h                                       ; divide by 4
+        rr l
+        srl h                                       ; divide by 8
+        rr l
+        ENDM
 
-cam_px              dw  0
-cam_py              dw  0
-cam_tx              db  0
-cam_ty              db  0
+GET_WORLD_TILE MACRO
+; given B= tile X, C= tile Y, return tile at this position in the world map
+        ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
+                                                    ; put it in H (this is the same as multiplying cam_tile_y by 256)
+        ld l, b                                     ; read the X tile coordinate into L
+                                                    ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
+                                                    ; This is the byte offset into "world" map.
 
-cam_fx              equ 19
-cam_fy              equ 15
-CENTRE_X     equ 152
-CENTRE_Y     equ 120
-CAM_MIN_X   equ 0
-CAM_MIN_Y   equ 0
-CAM_MAX_X   equ (256 - 40) * 8       ; 1728  (map width - view width)
-CAM_MAX_Y   equ (192 - 32) * 8       ; 1280  (map height - visible rows incl partial)
+    ; STEP 2: Calculate which 8K physical page the data lives in
+        ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
+        srl  a                                      ; divide by 2
+        srl  a                                      ; divide by 2 again  → now /4
+        srl  a                                      ; /8
+        srl  a                                      ; /16
+        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
+                                                    ; Why divide by 32?
+                                                    ;   Each page is 8192 bytes.
+                                                    ;   Each row is 256 bytes.
+                                                    ;   8192 ÷ 256 = exactly 32 rows per page.
+                                                    ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
+        add  a,TILEMAP_PAGE                         ; add the starting page number
+        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 
+
+    ; STEP 3: Keep only the part of the address that fits inside one 8K page
+        ld   a,h                                    ; get the high byte again
+        and  $1F                                    ; $1F is binary 00011111 → keeps only the lowest 5 bits
+                                                    ; This is exactly the same as (cam_tile_y * 256 + cam_tile_x) modulo 8192
+                                                    ; (because 8192 = 2^13 and we are discarding everything above bit 12)
+        ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
+
+    ; STEP 4: add the page offset so we can read it
+        add  hl, $C000                              ; HL = $C000 + offset_inside_page
+                                                    ; HL now points directly at the first byte we want to copy
+        ld a, (hl)                                  ; so get the byte
+        ENDM
+
+cam_px              equ 19*8
+cam_py              equ 15*8
+cam_tx              equ 19
+cam_ty              equ 15
 
 tilemapPage         db 0
 
-player_px           dw 464                        ; world pixel position of sprite
-player_py           dw 344
+player_px           dw 472                          ; world pixel position of sprite
+player_py           dw 376
 player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
-playerAnimFrame     db 0            ; current animation frame 0-3
-playerAnimTick      db 0            ; counts frames to slow the animation
-
-PAT_DOWN            equ 4           ; forward
-PAT_RIGHT           equ 8
-PAT_LEFT            equ 12
-PAT_UP              equ 16          ; away
-ANIM_SPEED          equ 4           ; advance frame every N moves (higher = slower)
 
 move_delta          equ 2
-move_delta_baddie   equ 1
 
 min_px              equ 19 * 8
 max_px              equ (255 - 20) * 8
@@ -98,44 +121,21 @@ yKeyWas         db 0                    ; debounce for Y key
 
 
 progStart:
-        call spriteSetup                            ; load sprites, tiles, palettes etc into memory
-
-        ; set camera X/Y position based on player X/Y
-        ld hl, (player_px)                          ; get initial player pixel X
-        ld bc, CENTRE_X                             ; get the camera position
-        or a                                        ; clear carry
-        sbc hl, bc                                  ; 
-        ld (cam_px), hl
-
-        ld hl, (player_py)
-        ld bc, CENTRE_Y
-        or a
-        sbc hl, bc
-        ld (cam_py), hl
-
-        ; camera tile X/Y is pixel X/Y divided by 8
-        ld hl, (cam_px)
-        DIV_HL_8
-        ld a, l
-        ld (cam_tx), a
-        ld hl, (cam_py)
-        DIV_HL_8
-        ld a, l
-        ld (cam_ty), a
+        call spriteSetup
 
 otherSetup:
-        LD A, 0                                     ; Load speed index (3 = 28 MHz)
+        LD A, 0             ; Load speed index (3 = 28 MHz)
         NEXTREG $07, A
 
-        ld a, 0                                     ; colour black
-        out (254), a                                ; set border colour
+        ld a, 0
+        out (254), a
 
-        call setClipping                            ; set tile and sprite clipping
-        call copy_visible_window                    ; initialise maze drawing based on player pixel X/Y
-        call initHUD                                ; clear and draw HUD
-        call showSprite                             ; show player
+        call setClipping
+        call copy_visible_window
+        call initHUD
+        call showSprite
 
-        call initBaddies                            ; initialise baddies 
+        call initBaddies
 
 ;        call buildMapImage          ; render maze into Layer 2 pages (once)
         ; Layer 2 setup (configured now, visibility off until Y)
@@ -157,7 +157,13 @@ otherSetup:
 
         ld iy, maze_text
         call displayText
-        call setTrail
+
+         ld a, 59;       
+        ld (floodTargetX), a
+        ld a, 47
+        ld (floodTargetY), a
+        call floodFill
+        call buildMapImage          ; render maze into Layer 2 pages (once)
 
 main:
         call keyProcess
@@ -169,38 +175,6 @@ main:
         or c
         jr nz, .delay
         jr main
-
-setTrail:
-        ; set player tile X/Y positions
-        LD A, 3                                     ; Load speed index (3 = 28 MHz)
-        NEXTREG $07, A
-
-        ld a, 1
-        ld (floodInProgress), a
-
-        ld hl, (player_px)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_x), a
-        ld hl, (player_py)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_y), a
-
-        ld a, (player_tile_x)       
-        ld (floodTargetX), a
-        ld a, (player_tile_y)
-        ld (floodTargetY), a
-        call floodFill
-        call buildMapImage          ; render maze into Layer 2 pages
-
-        LD A, 0                                     ; Load speed index (3 = 28 MHz)
-        ld (floodInProgress), a
-        NEXTREG $07, A
-
-        nextreg $6c, a
-
-        ret
 
 
 keyProcess:	
@@ -228,6 +202,12 @@ chkKeyRadar:
         ; --- switch to radar: hide other layers, show Layer 2 ---
         ; sprites off (clear $15 bit 0, keep your other $15 bits as set at init)
         nextreg $15, %00000011                      ; <-- your init $15 value with bit0 (sprite visible) cleared
+;        nextreg $1C, 0                               ; bit 1 = reset the SPRITE clip index
+        ;nextreg $19, 0                              ; X1 (doubled units, same as tilemap) -> pixel 4
+        ;nextreg $19, 255                            ; X2 -> pixel 315
+        ;nextreg $19, 0                             ; Y1 = 64 -> top of play area
+        ;nextreg $19, 191                            ; Y2 = clamp (283 overflows a byte; screen edge handles bottom)
+
 
         ; tilemap off ($6B bit7 = 0)
         nextreg $6B, %00100001                      ; <-- your init $6B value with bit7 cleared
@@ -235,16 +215,15 @@ chkKeyRadar:
         ; ULA off ($68 bit7 = 1 disables ULA)
         nextreg $68, %10000000                      ; <-- your init $68 value with bit7 set        
 
-        ; enable Layer 2, the radar view
         ld bc, $123b
-        ld a, 2
+        ld a, 2                     ; enable Layer 2
         out (c), a
         jr .yEnd
 
 .radarOff:
-        ; switch off layer 2
+        ; --- switch to normal: erase markers, hide layer ---
         ld bc, $123b
-        xor a
+        xor a                       ; disable Layer 2
         out (c), a
 
         ; restore the other layers to your init values
@@ -260,7 +239,6 @@ chkKeyRadar:
         call showSprite
 
         jr .yEnd
-
 .yUp:
         xor a
         ld (yKeyWas), a
@@ -268,7 +246,7 @@ chkKeyRadar:
 
 
 ; regular left/right/up/down kwyboard processing follows
-	    ld d, 0                                     ; initialise D as bitmask showing what keys were pressed
+	    ld d, 0
 chkKeyLeft:	
 	    LD BC, $dffe                                ; keys Y U I O P
 	    IN A, (C)                                   ; read port
@@ -294,10 +272,7 @@ chkKeyUp:
     	BIT 0, A                                    ; check for "Q"
     	JR NZ, chkVert                              ; branch if not pressed
     	set dir_up, d
-
-
-; we don't allow movement if partially on a tile for that direction
-; so set up another mask here, E, holding whether vertical and/or horizontal movement is actually allowed
+	
 chkVert:	
     	ld e, 0                                     ; set mask to 0
     	ld a, (player_px)                           ; get player px (low byte   )
@@ -317,12 +292,12 @@ chkEnd:
 ; d = keys pressed	
 ; e = vert/horiz potentially allowed	
 	
-	    ld a, d                                     ; get the keys pressed
-	    and e                                       ; mask with what is allowed
-	    ld d, a                                     ; save back in D, key pressed and direction possibly allowed
+	    ld a, d
+	    and e
+	    ld d, a
 	
 ; d is keys pressed potentially allowed	
-; e is set to bitmask checking if desired movement is permitted, i.e. not blocked by a wall	
+	
 	    ld e, 0
 
 .testDirections
@@ -338,11 +313,11 @@ chkEnd:
     	bit dir_up, d
     	call nz, chkUp
 	
-    	ld a, d                                     ; get the potential moves again
-    	and e                                       ; mask with actually allowed, i.e. not blocked by a wall
-    	ld d, a                                     ; save back into D
+    	ld a, d
+    	and e
+    	ld d, a
 	
-; d holds keys pressed where move is allowed (no collision)
+; d holds keys pressed where move is allowed	(no collision and boundary ok)
 ; see if last move still pressed	
     	ld a, (lastMove)                            ; get last move
         ld e, a                                     ; save in e
@@ -374,7 +349,7 @@ doMoveLeft:
 
         ld a, vdir_left
         ld (lastMove), a
-        jp updateCameraXY
+	    jp moveSprite
 
 doMoveRight:	
 	    bit dir_right, d
@@ -382,14 +357,12 @@ doMoveRight:
 
 	    ld hl, (player_px)
 	    ld bc, move_delta
-        and a
 	    adc hl, bc 
 	    ld (player_px), hl
 
         ld a, vdir_right
         ld (lastMove), a
-
-        jp updateCameraXY
+	    jp moveSprite
 
 doMoveDown:
 	    bit dir_down, d
@@ -397,14 +370,12 @@ doMoveDown:
 
 	    ld hl, (player_py)
 	    ld bc, move_delta
-        and a 
 	    adc hl, bc 
 	    ld (player_py), hl
 
         ld a, vdir_down
         ld (lastMove), a
-
-        jp updateCameraXY
+	    jp moveSprite
 
 doMoveUp:
 	    bit dir_up, d
@@ -412,74 +383,13 @@ doMoveUp:
 
 	    ld hl, (player_py)
 	    ld bc, move_delta
-        or a
 	    sbc hl, bc 
 	    ld (player_py), hl
 
         ld a, vdir_up
         ld (lastMove), a
+	    jp moveSprite
 
-        jp updateCameraXY
-
-; ============================================================
-; updateCameraXY - recompute camera from player, clamped to map.
-;   cam = player - CENTRE, then clamped to [0 .. CAM_MAX]
-; Low clamp: if (player - CENTRE) < 0  -> 0   (sign test)
-; High clamp: if value > CAM_MAX       -> CAM_MAX
-; ============================================================
-updateCameraXY:
-        ; ---------- X ----------
-        ld hl, (player_px)
-        ld bc, CENTRE_X
-        or a
-        sbc hl, bc                      ; hl = player_px - CENTRE_X
-        jp p, .camXLowOK                ; >= 0 -> keep
-        ld hl, 0                        ; negative -> clamp to 0
-.camXLowOK:
-        ld bc, CAM_MAX_X
-        or a
-        sbc hl, bc                      ; hl = value - CAM_MAX_X
-        jr c, .camXHighOK               ; carry set => value < max -> keep (after add back)
-        ld hl, 0                        ; value >= max -> result = max (after add back)
-.camXHighOK:
-        add hl, bc                      ; add CAM_MAX_X back
-        ld (cam_px), hl
-
-        ; ---------- Y ----------
-        ld hl, (player_py)
-        ld bc, CENTRE_Y
-        or a
-        sbc hl, bc                      ; hl = player_py - CENTRE_Y
-        jp p, .camYLowOK
-        ld hl, 0
-.camYLowOK:
-        ld bc, CAM_MAX_Y
-        or a
-        sbc hl, bc
-        jr c, .camYHighOK
-        ld hl, 0
-.camYHighOK:
-        add hl, bc
-        ld (cam_py), hl
-        jp doMoveDone
-
-; --- a move was committed: advance the walk animation (throttled) ---
-doMoveDone:
-        ld a, (playerAnimTick)
-        inc a
-        ld (playerAnimTick), a
-        cp ANIM_SPEED
-        jr c, .noAdvance                            ; not time to advance frame yet
-        xor a
-        ld (playerAnimTick), a
-        ld a, (playerAnimFrame)
-        inc a
-        and 3                                        ; cycle 0-3
-        ld (playerAnimFrame), a
-.noAdvance:
-        call showSprite                             ; write new pattern (direction + frame)
-        jp moveSprite
-        
 chkLeft:
 	    ld hl, (player_px)                          ; get player px
 	    ld bc, move_delta                           ; get move delta
@@ -498,6 +408,12 @@ chkLeft:
 	    GET_WORLD_TILE
 	    and a
 	    ret nz
+	
+	    ; now test if we are at limit of maze
+	    ld hl, (player_px)
+	    ld bc, min_px + move_delta                  ; get min pixel allowed
+	    sbc hl, bc                                  ; test
+	    ret c                                       ; return if fail
 	
 	    set dir_left, e                             ; set ok
         ret                                         ; return
@@ -522,6 +438,12 @@ chkRight:
         and a
         ret nz
 
+        ; now test if we are at limit of maze
+        ld hl, (player_px)
+        ld bc, max_px + move_delta
+        sbc hl, bc
+        ret nc
+
         set dir_right, e
         ret
 
@@ -545,6 +467,11 @@ chkDown:
         and a
         ret nz
 
+        ld hl, (player_py)
+        ld bc, max_py + move_delta                  ; get max pixel allowed
+        sbc hl, bc                                  ; test
+        ret nc
+
         set dir_down, e
         ret
 
@@ -567,6 +494,12 @@ chkUp:
         and a
         ret nz
 
+        ; now test if we are at limit of maze
+        ld hl, (player_py)
+        ld bc, min_py + move_delta                  ; get min pixel allowed
+        sbc hl, bc                                  ; test
+        ret c
+
         set dir_up, e
         ret
 
@@ -583,30 +516,29 @@ moveSprite1:
     ; ================================================
         call wait_vblank
 
-        ld a, (cam_px)                           ; get LOW byte of player X position
+        ld a, (player_px)                           ; get LOW byte of player X position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
         nextreg $30, a                              ; ← X fine offset (MUST be every frame)
 
-        ld a, (cam_py)                           ; get LOW byte of player Y position
+        ld a, (player_py)                           ; get LOW byte of player Y position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
-        ;add 64
         nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
 
 ; ================================================
     ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
     ; ================================================
-        ld hl, (cam_px)
+        ld hl, (player_px)
         DIV_HL_8
         ld b, l
-        ld hl, (cam_py)
+        ld hl, (player_py)
         DIV_HL_8
         ld c, l
         
-        ld a, (cam_tx)                       ; get last player tile X
+        ld a, (player_tile_x)                       ; get last player tile X
         cp b                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
-        ld a, (cam_ty)                       ; get last player tile Y
+        ld a, (player_tile_y)                       ; get last player tile Y
         cp c                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
@@ -614,9 +546,18 @@ moveSprite1:
 
 copy_visible_window:
         ld a, b                                     ; get current player tile X
-        ld (cam_tx), a                       ; save it away
+        ld (player_tile_x), a                       ; save it away
         ld a, c                                     ; get current player tile Y
-        ld (cam_ty), a                       ; save it away
+        ld (player_tile_y), a                       ; save it away
+
+        ld a, (player_tile_x)
+        ld b, a
+        sub cam_tx                                  ; - 19 for lhs of screen
+        ld b, a                                     ; save
+
+        ld a, (player_tile_y)
+        sub cam_ty                                  ; - 15 for top of screen
+        ld c, a                                     ; save
 
     ; STEP 1: Build the starting linear offset in the world map
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
@@ -707,7 +648,7 @@ setClipping:
     ; 4px border = inset of 2 X-units and 4 Y-pixels
         nextreg $1B, 2                              ; X1 = 2   → left edge  = pixel 4
         nextreg $1B, 157                            ; X2 = 157 → right edge = pixel 315 (319-4)
-        nextreg $1b, 64                             ; Y1 = 64, top 4 border lines + top 4 ULA lines
+        nextreg $1b, 64                             ; Y! = 64, top 4 border lines + top 4 ULA lines
         nextreg $1B, 251                            ; Y2 = 251 → bottom edge= pixel 251 (255-4)
 
     ; setSpriteClip - clip sprites to the play area (below the HUD).
@@ -727,110 +668,43 @@ setClipping:
         ret
 
 showSprite:
-        ld a, (viewMode)
-        or a
-        ret nz
+        LD A, 0                                     ; get the sprite index
+        NEXTREG $34, A                              ; set sprite to activate
+        ld hl, cam_px
+        ld de, cam_py
+        LD A, l                                     ; get sprite X lsb
+        NEXTREG $35, A                              ; set attr byte 0 of port $0057
+        LD A, e                                     ; get sprite Y lsb
+        NEXTREG $36, A                              ; set attr byte 1 of port $0057
+        LD A, h                                     ; get sprite X msb
+        AND 1                                       ; only need bit 0 of X msb
+        NEXTREG $37, A                              ; bits 7-4 palette offset
 
-; ============================================================
-; getPlayerFieldValue
-; Returns the floodfill distance for the player's tile in A.
-; 255 = wall / unreached. Lower = closer to flood target.
-; Trashes: AF, HL, BC
-; ============================================================
-getPlayerFieldValue:
-        ld hl, (player_py)
-        DIV_HL_8                    ; L = tileY (player_py / 8)
-        ld a, l
-        ld (player_tile_y), a
-        ld b, l                     ; stash tileY in B
+        LD A, 0                                     ; get pattern index to use
 
-        ld hl, (player_px)
-        DIV_HL_8                    ; L = tileX (player_px / 8)
-        ld a, l
-        ld (player_tile_x), a
-        ld h, b                     ; H = tileY, L = tileX
-        call getFieldByte           ; returns field value in A
-        cp 255
-        call z, setTrail
-
-
-        LD A, 0                                     ; sprite index
-        NEXTREG $34, A
-        ld hl, (player_px)
-        ld bc, (cam_px)
-        sbc hl, bc
-        ld e, h
-
-        LD A, l                                     ; set the low byte of player X
-        NEXTREG $35, A
-
-        ld hl, (player_py)
-        ld bc, (cam_py)
-        sbc hl, bc
-
-        LD A, l                                     ; set the low byte of player Y
-        NEXTREG $36, A
-        LD A, e                                     ; get the high byte of player X
-        AND 1                                       ; we only need bit 0
-        NEXTREG $37, A                              ; set it
-
-        ; --- choose pattern from facing direction + animation frame ---
-        ld a, (lastMove)                            ; vdir flag: 1=L 2=R 4=D 8=U
-        ld b, PAT_DOWN                              ; default down
-        cp vdir_left
-        jr nz, .notL
-        ld b, PAT_LEFT
-        jr .haveBase
-.notL:
-        cp vdir_right
-        jr nz, .notR
-        ld b, PAT_RIGHT
-        jr .haveBase
-.notR:
-        cp vdir_up
-        jr nz, .haveBase                            ; else stays PAT_DOWN
-        ld b, PAT_UP
-.haveBase:
-        ld a, (playerAnimFrame)                     ; 0-3
-        add a, b                                    ; base + frame = pattern
-
-        OR %10000000                                ; bit 7 = visible
-        NEXTREG $38, A
+        OR %10000000                                ;
+        NEXTREG $38, A                              ; bits 7 1=make sprite visible
         RET
 
 processBaddies:
         ld ix, baddieData                           ; point to start of baddie data
-        ld b, baddieCount                           ; count of baddies to process
+        ld b, baddieCount
 
 .loop
-        push bc                                     ; save count
-        call processBaddie                          ; process each baddie in turn
-        pop bc                                      ; return count
+        push bc
+        call processBaddie
+        pop bc
 
-        ld de, baddieRecord                         ; get baddie record length
-        add ix, de                                  ; point ix to next baddie
-        djnz .loop                                  ; loop if more to process
+        ld de, baddieRecord
+        add ix, de
+        djnz .loop
 
-        ld a, (viewMode)                            ; get view mode
-        or a                                        ; is it 0 (normal map view)
-        ret z                                       ; return if normal
+        ld a, (viewMode)
+        or a
+        ret z
 
 
-        ; -------------------------------------------------------
-        ; here we just display the player if we are in Radar mode
-        ; -------------------------------------------------------
-
-        ; first calculate the player tile X/Y 
-        ld hl, (player_px)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_x), a
-        ld hl, (player_py)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_y), a
-
-        ld a, (player_tile_x)                       
+        ld a, (player_tile_x)
         ld l, a
         ld h, 0
         add hl, 32
@@ -1068,7 +942,7 @@ chkLeft1
         ret nz                                      ; return if not
 
         ld hl, (baddie_x)
-        ld bc, move_delta_baddie
+        ld bc, move_delta
         sbc hl, bc
 
         ; now test if we have bumped into a wall
@@ -1095,7 +969,7 @@ chkRight1
         ret nz                                      ; return if not
 
         ld hl, (baddie_x)
-	    ld bc, move_delta_baddie                    ; get move delta
+	    ld bc, move_delta                           ; get move delta
         adc hl, bc
 
         ; now test if we have bumped into a wall
@@ -1122,7 +996,7 @@ chkDown1
         ret nz                                      ; return if not
 
         ld hl, (baddie_y)
-        ld bc, move_delta_baddie                    ; get pixel delta
+        ld bc, move_delta                           ; get pixel delta
         adc hl, bc                                  ; do move
 
         ; now test if we have bumped into a wall
@@ -1149,7 +1023,7 @@ chkUp1
         ret nz                                      ; return if not
 
         ld hl, (baddie_y)
-        ld bc, move_delta_baddie                    ; get pixel delta
+        ld bc, move_delta                           ; get pixel delta
         sbc hl, bc                                  ; do move
 
         ; now test if we have bumped into a wall
@@ -1172,7 +1046,7 @@ chkUp1
 
 doMoveLeft1
         ld hl, (baddie_x)
-        ld bc, move_delta_baddie
+        ld bc, move_delta
         sbc hl, bc
         ld (ix +baddieRecord.highX), h
         ld (ix +baddieRecord.lowX), l
@@ -1182,7 +1056,7 @@ doMoveLeft1
 
 doMoveRight1
         ld hl, (baddie_x)
-        ld bc, move_delta_baddie
+        ld bc, move_delta
         adc hl, bc
         ld (ix +baddieRecord.highX), h
         ld (ix +baddieRecord.lowX), l
@@ -1193,7 +1067,7 @@ doMoveRight1
 
 doMoveDown1
         ld hl, (baddie_y)
-        ld bc, move_delta_baddie
+        ld bc, move_delta
         adc hl, bc
         ld (ix +baddieRecord.highY), h
         ld (ix +baddieRecord.lowY), l
@@ -1204,7 +1078,7 @@ doMoveDown1
 
 doMoveUp1
         ld hl, (baddie_y)
-        ld bc, move_delta_baddie
+        ld bc, move_delta
         sbc hl, bc
         ld (ix +baddieRecord.highY), h
         ld (ix +baddieRecord.lowY), l
@@ -1230,13 +1104,13 @@ displayBaddie:
         ; HL = baddie world X
         ld l, (ix + baddieRecord.lowX)
         ld h, (ix + baddieRecord.highX)
-        ld bc, (cam_px)              ; BC = player world X
+        ld bc, (player_px)              ; BC = player world X
         or a                           ; clear carry for a clean subtract
         sbc hl, bc                     ; HL = baddieX - playerX  (signed)
     ; add screen centre AND the 15px overhang bias in one go.
     ; CENTER_SCREEN_X + 15 = 152 + 15 = 167, which fits in 8 bits,
     ; so we can use the Z80N "add hl,a" (cheaper to set up than add hl,bc).
-        ld a,  15                               ; A = 167  (centre + bias)
+        ld a, cam_px + 15                               ; A = 167  (centre + bias)
         add hl, a                      ; Z80N: HL = biased screen X
     ; HL now holds (screenX + 15). Visible-with-overhang means the
     ; UN-biased X is in -15..319, i.e. the BIASED value is in 0..334.
@@ -1257,11 +1131,11 @@ displayBaddie:
     ; HL = baddie world Y
         ld l, (ix + baddieRecord.lowY)
         ld h, (ix + baddieRecord.highY)
-        ld bc, (cam_py)             ; BC = player world Y
+        ld bc, (player_py)             ; BC = player world Y
         or a                           ; clear carry
         sbc hl, bc                     ; HL = baddieY - playerY  (signed)
     ; centre + bias again: CENTER_SCREEN_Y + 15 = 120 + 15 = 135, fits in 8 bits.
-        ld a, 15     ; A = 135
+        ld a, cam_py + 15     ; A = 135
         add hl, a                      ; Z80N: HL = biased screen Y
     ; Visible-with-overhang: un-biased Y in -15..255, i.e. biased Y in 0..270.
         ld a, h                        ; high byte of biased Y
@@ -1339,6 +1213,25 @@ radarBaddie:
 
         ret
 
+
+HUD_ATTR        equ %01110000               ; BRIGHT yellow paper, black ink
+
+initHUD:
+    ; clear top third of display file ($4000-$47FF) so the band is clean
+        ld hl, $4000
+        ld (hl), 0
+        ld de, $4001
+        ld bc, 2048 - 1
+        ldir
+
+    ; flood top 3 char rows of attributes ($5800-$587F) with yellow
+        ld hl, $5800
+        ld (hl), HUD_ATTR
+        ld de, $5801
+        ld bc, 96 - 1
+        ldir
+        ret
+
 random:
         and $0f                                     ; limit to 0-15, this is the available directions bitmask
         ld l, a                                     ; l = 0-15
@@ -1396,6 +1289,130 @@ lut_base:
         db 1, 4, 8, 1                               ; 13  1101
         db 2, 4, 8, 2                               ; 14  1110
         db 1, 2, 4, 8                               ; 15  1111 
+
+
+initBaddies:
+; ============================================================
+; initBaddies - place baddieCount baddies at random valid 2x2
+; positions in the maze. Each needs its 2x2 tile footprint clear.
+; Sets world pixel position, tile position, a random direction,
+; sprite index (1..N, player is sprite 0), and pattern 0.
+; Setup-time only: uses rejection loops freely (timing irrelevant).
+; Assumes: rnd8 returns raw 0-255 in A; GET_WORLD_TILE takes
+;          B=tileX, C=tileY, returns tile byte in A (0 = open).
+; ============================================================
+        ld ix, baddieData
+        ld b, baddieCount           ; loop counter (B not used by inner logic until call)
+.nextBaddie:
+        push bc                     ; preserve outer counter
+
+        ; --- find a random clear 2x2 tile (tx in C-ish, ty) ---
+.tryPos:
+        ; random tile X 0..254
+.rx:    call rnd8
+        cp 255
+        jr z, .rx                   ; reject 255 (no room for tx+1)
+        ld d, a                     ; D = candidate tileX
+
+        ; random tile Y 0..190
+.ry:    call rnd8
+        cp 5
+        jr c, .ry
+        cp 191
+        jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
+        ld e, a                     ; E = candidate tileY
+
+.loop
+        ; --- test all four tiles of the 2x2 footprint are open ---
+        ld b, d
+        ld c, e
+        GET_WORLD_TILE              ; (tx, ty)
+        and a
+        jr nz, .tryPos              ; wall -> reject, draw again
+
+        ld b, d
+        ld c, e
+        inc b
+        GET_WORLD_TILE              ; (tx+1, ty)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        ld c, e        
+        inc c
+        GET_WORLD_TILE              ; (tx, ty+1)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        inc b
+        ld c, e
+        inc c
+        GET_WORLD_TILE              ; (tx+1, ty+1)
+        and a
+        jp nz, .tryPos
+
+        ; --- position is valid: D=tileX, E=tileY. Fill the record ---
+        ld a, d
+        ld (ix + baddieRecord.tileX), a
+        ld a, e
+        ld (ix + baddieRecord.tileY), a
+
+        ; world pixel X = tileX * 8  (HL = D*8)
+        ld h, 0
+        ld l, d
+        add hl, hl
+        add hl, hl
+        add hl, hl                  ; HL = tileX * 8
+        ld a, l
+        ld (ix + baddieRecord.lowX), a
+        ld a, h
+        ld (ix + baddieRecord.highX), a
+
+        ; world pixel Y = tileY * 8
+        ld h, 0
+        ld l, e
+        add hl, hl
+        add hl, hl
+        add hl, hl                  ; HL = tileY * 8
+        ld a, l
+        ld (ix + baddieRecord.lowY), a
+        ld a, h
+        ld (ix + baddieRecord.highY), a
+
+        ; random initial direction 0..3 (bit-number form, as your dir uses)
+        call rnd8
+        and %00000011
+        ld hl, vdirTable
+        add hl, a                    ; Z80N
+        ld a, (hl)
+        ld (ix + baddieRecord.dir), a
+
+        ld a, 1
+        ld (ix + baddieRecord.pattern), a
+        ld a, mode_auto
+        ld (ix +baddieRecord.mode), a
+
+        ; sprite index: baddies are sprites 1..N.
+        ; recover which baddie we're on: outer counter still on stack.
+        pop bc                      ; B = remaining count (baddieCount..1)
+        ld a, baddieCount
+        sub b                       ; A = 0..N-1 (how many done so far)
+        inc a                       ; A = 1..N  (sprite slot, player is 0)
+        ld (ix + baddieRecord.index), a
+        push bc                     ; restore for the djnz below
+
+        ; advance IX to next record
+        ld de, baddieRecord
+        add ix, de
+
+        pop bc
+        dec b
+        jp nz, .nextBaddie
+        ret
+
+vdirTable: db 1, 2, 4, 8             ; vdir_left, right, down, up
+
 
 setupIM2:
 ; sub routine to set-up IM2 to point to BB
@@ -1460,9 +1477,318 @@ mixerFlags
                 db %11111111, %11111101, %11101111, %11101101
                 db %11111111, %11111011, %11011111, %11011011
 
+INCLUDE "inspectorclouseau.inc"
+
 ALIGN 256
 IM2Tab:
         DEFS 257, 0
+
+INCLUDE "text.inc"
+
+; ============================================================
+; clearDistanceField - set all 49152 field bytes to 255
+; (255 = unvisited/wall). Pages each of the 6 field pages into
+; slot 6 and floods it.
+; ============================================================
+clearDistanceField:
+        ld a, DFIELD_PAGE           ; first field page
+        ld b, 6                     ; six pages to clear
+.clrPage:
+        push bc
+        nextreg $56, a              ; page this 8K bank into slot 6 ($C000)
+        push af
+        ; smear 255 across $C000..$DFFF (8192 bytes)
+        ld hl, $C000
+        ld (hl), 255
+        ld de, $C001
+        ld bc, 8192 - 1
+        ldir
+        pop af
+        inc a                       ; next page
+        pop bc
+        djnz .clrPage
+        ret
+
+getFieldByte:
+; HL = YX tile into our distance map
+; we get A = distanceMap(x,y)
+        push hl
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a                           ; A = y/32 (page within field block)
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+        pop hl
+        ret
+
+putFieldByte:
+; HL = YX tile into our distance map
+; we set distanceMap(x,y) = A
+        push hl                                     ; preserve HL
+        push af                                     ; preserve AF, we need A to set the value
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        pop af                                      ; restore A to set value
+        ld (hl), a
+        pop hl
+        ret
+
+getMapByte:
+; HL = YX tile into our regular map
+; we get A = Map(x,y); i.e. either 0=path or 1=wall
+        push hl
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, TILEMAP_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+        pop hl
+        ret
+
+; ---- push cell offset in DE onto queue ----
+; DE = YX
+; add this to our ring buffer for processing
+qPushDE:
+; DE = YX, add to ring buffer
+        ld a, (qTailIdx)            ; tail index (byte, 0-255)
+        ld l, a
+        ld h, 0
+        add hl, hl                  ; *2 (word entries)
+        ld bc, floodQueue
+        add hl, bc                  ; HL -> slot
+        ld (hl), e
+        inc hl
+        ld (hl), d
+        ld a, (qTailIdx)
+        inc a                       ; tail+1, wraps 255->0 automatically (byte)
+        ld (qTailIdx), a
+        ld a, (qCount)
+        inc a
+        ld (qCount), a
+        ret
+
+; ---- pop cell offset from queue into DE ----
+qPopDE:
+        ld a, (qHeadIdx)            ; head index (byte)
+        ld l, a
+        ld h, 0
+        add hl, hl                  ; *2
+        ld bc, floodQueue
+        add hl, bc                  ; HL -> slot
+        ld e, (hl)
+        inc hl
+        ld d, (hl)
+        ld a, (qHeadIdx)
+        inc a                       ; head+1, wraps automatically
+        ld (qHeadIdx), a
+        ld a, (qCount)
+        dec a
+        ld (qCount), a
+        ret
+
+dist    db 0
+; ============================================================
+; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
+; distance field: 0 at target, increasing outward, clamped at
+; 254. 255 = wall/unvisited/unreachable. INERT until called.
+; ============================================================
+floodFill:
+        ld a, 0                                     ; ready to initialise
+        ld (qHeadIdx), a                            ; set q head to 0
+        ld (qTailIdx), a                            ; set q tail to 0
+        ld (qCount), a                              ; set q depth to 0
+
+        call clearDistanceField                     ; call all 48k of distance map to all 255
+        
+        ld a, (floodTargetY)                        ; get our target cell Y
+        ld d, a                                     ; put in D
+        ld a, (floodTargetX)                        ; get out target cell X
+        ld e, a                                     ; put in E
+
+        ld h, d                                     ; Y also in H
+        ld l, e                                     ; X alos in L
+        xor a                                       ; a = 0
+        call putFieldByte                           ; field[target] = 0
+        call qPushDE                                ; push target (d = y, e = x)
+
+.mainLoop:
+        ld a, (qCount)                              ; get the count of items on the queue
+        or a
+        ret z                                       ; empty -> done
+
+        ; qPopDE is only called from here
+        ; it's effectively the driver for the processing for this tile
+        call qPopDE                                 ; DE = current cell (D=y, E=x)
+        ld h, d                                     ; copy  H = y
+        ld l, e                                     ;       L = x
+
+
+        ; H = y L = x
+        ; get for the tile taken off the queue, it's distance that was previously set
+        call getFieldByte                           ; A = current distance
+        ld (dist), a                                ; save distance
+        cp FLOOD_LIMIT
+        jr nc, .mainLoop
+        ; ----------------------------------------------------------------------------
+        ; we've popped a tile of the queue (having previously processed it)
+        ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
+        ; ----------------------------------------------------------------------------
+
+        ; LEFT
+        ld a, e                                     ; get tile X
+        or a                                        ; test for 0, lhs of maze
+        jr z, .skipL                                ; branch if so, nothing to do
+        dec a                                       ; get x - 1
+        ld l, a                                     ; set L = X - 1 to test it
+        ld h, d                                     ; set H = y  to test it
+        call .tryCell                               ; do the test. HL is now x-1, y
+.skipL:
+        ; RIGHT
+        ld a, e                                     ; get tile X
+        cp 255                                      ; test for 255, rhs of maze
+        jr z, .skipR                                ; branch if so, nothing to do
+        inc a                                       ; get X + 1
+        ld l, a                                     ; set L = X + 1 to test it
+        ld h, d                                     ; set H = y to test it
+        call .tryCell                               ; do the test. HL is now x+1, y
+.skipR:
+        ; UP
+        ld a, d                                     ; get tile Y
+        or a                                        ; test for 0, top of maze
+        jr z, .skipU                                ; branch if so, nothing to do
+        dec a                                       ; get y -1
+        ld l, e                                     ; set L = X to test it
+        ld h, a                                     ; set H = y - 1 to test it
+        call .tryCell                               ; do the test, HL is now x, y-1
+.skipU:
+        ; DOWN
+        ld a, d
+        cp 191
+        jr z, .skipD
+        inc a
+        ld l, e
+        ld h, a
+        call .tryCell
+.skipD:
+        jr .mainLoop
+
+.tryCell:
+; test one of the x +/- 1, y+/- 1 tiles
+; here DE = yx of the tile taken off the queue
+;      HL = tile being tested, i.e. +/- 1 of x or y
+        push de
+
+        ; H = y, L = x (of tile being tested, NOT the tile popped of the queue)
+        ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
+        call getMapByte
+        and a
+        jr nz, .tcDone                  ; wall, the distance value is left as default 255 value
+
+        ; H = y, L = x
+        ; get distance value for this tile
+        call getFieldByte
+        cp 255
+        jr nz, .tcDone                  ; branch if we've already visited this tile
+
+        ld a, (dist)                    ; get distance for original tile XY (from mainloop)
+        cp 254
+        jr nc, .clampMax                ; C >= 254 -> store 254
+        inc a                           ; C+1
+        jr .storeDist
+.clampMax:
+        ld a, 254
+.storeDist:
+        call putFieldByte               ; put this tested tile into the distance map
+        ex de, hl                       ; we want to push this tested tile onto the queue, but need it in DE
+        call qPushDE
+.tcDone:
+        pop de
+        ret
+
+
+buildMapImage:
+        ld c, 0                                     ; Y tile co-ord
+.rowLoop:
+        ld b, 0                                     ; X tile co-ord
+.colLoop:
+        ld h, c                                     ; get Y
+        ld l, b                                     ; get X
+ 
+        ; calculate map page
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        ld e, a                                     ; keep the page offset
+        add a, MAP_PAGE                             
+        nextreg $56, a                              ; page in the map page
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)                                  ; get map tile at this cell
+        or a                                        ; test for 0 (path)
+        jr z, .checkFlood                           ; path -> check flood field
+        ld d, L2_WALL                               ; wall -> red
+        jr .haveColour                              ; walls never flooded
+ 
+.checkFlood:
+        ; HL still points at the cell's slot-6 address. The field uses the
+        ; same layout, so the SAME HL is correct once we page the field bank in.
+        ld d, L2_PATH
+        ld a, e                                     ; page offset (y/32) saved earlier
+        add a, DFIELD_PAGE                          ; field base page
+        nextreg $56, a                              ; page field bank into slot 6
+        ld a, (hl)                                  ; A = distance value at this cell
+        cp 255                             ; <= FLOOD_LIMIT ?
+        jr Z, .haveColour                          ; 255 (or > limit) -> not flooded, keep white
+        ld d, L2_FLOOD                              ; flooded -> yellow
+ 
+.haveColour:
+        ; the offsets etc into the radar map will be the same
+        ; we just need to page in the correct page and set the pixel
+        ld a, e                                     ; retrieve the page offset from earlier
+        add a, L2_PAGE                              ; add in the radar base
+        nextreg $56, a                              ; page in the radar page
+ 
+        ld a, d                                     ; get pixel colour from above
+        ld (hl), a                                  ; put into radar map
+        inc b
+        jr nz, .colLoop
+        inc c
+        ld a, c
+        cp 192
+        jr nz, .rowLoop
+        ret
+
 
 ORG $f0f0
 im2Routine
@@ -1480,6 +1806,7 @@ INCLUDE "im2Routine.inc"
 
         EI
         RETI 
+
 
 ; ----------------------------------------------------------------
 ; Tilemap data - 48 KB stored directly in Pages 40 - 45
