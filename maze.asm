@@ -261,6 +261,10 @@ chkKeyRadar:
 chkKeyLeft:	
 	    LD BC, $dffe                                ; keys Y U I O P
 	    IN A, (C)                                   ; read port
+
+        bit 3, a
+        call z, takeDamage
+
 	    BIT 1, A                                    ; check for "O"
 	    JR NZ, chkKeyRight                          ; branch if not pressed
 	    set dir_left, d

@@ -11,6 +11,34 @@ maze_text       defb 22, 0, 0, "Maze Game", $ff
 health_text     defb 22, 2, 0, "Health:", $ff
 health_bar      defb 22, 2, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, $ff
 healthattr      equ $5847
+playerHealth    db 8
+healthBlock     db 23
+
+takeDamage:
+        ld a, (playerHealth)
+        dec a
+        ld (playerHealth), a
+        ld h,  a
+        
+        ld b, 2
+        ld a, (healthBlock)
+        add a, 7
+        ld c, a
+        ld a, 136
+        sub h
+        call displayChar
+        ld a, (playerHealth)
+        and a
+        ret nz
+
+; block now empty -> redraw it as fully empty (136), then move left
+        ld a, 8
+        ld (playerHealth), a
+        ld a, (healthBlock)
+        dec a
+        ld (healthBlock), a
+        ret
+
 
 initHUD:
     ; clear top third of display file ($4000-$47FF) so the band is clean
