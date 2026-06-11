@@ -18,7 +18,7 @@ The game showcases advanced ZX Spectrum Next techniques:
 
 - Large pre-generated maze (256×192 tiles)
 - Smooth pixel scrolling and camera following
-- Animated 4-direction player sprite (Inspector Clouseau themed)
+- Animated 4-direction player sprite
 - 20 AI enemies with hunt/wander behavior using distance field "scent"
 - Tile-based wall collision + pixel overlap enemy collision
 - Toggleable radar view (Y key) showing walls/paths/flood distances on Layer 2
