@@ -4,7 +4,7 @@ INCLUDE "maze2.inc"
 INCLUDE "initialisation.inc"
 INCLUDE "text.inc"
 INCLUDE "inspectorclouseau.inc"
-
+INCLUDE "soundEffects.inc"
 cam_px              dw  0
 cam_py              dw  0
 cam_tx              db  0
@@ -71,8 +71,11 @@ baddieData          defs baddieRecord * baddieCount
 baddie_x            dw 00
 baddie_y            dw 00
 
-QUEUE_SIZE      equ 256                 ; max wavefront is ~27, so this is ample
-floodQueue      ds  QUEUE_SIZE * 2      ; ring buffer of 16-bit cell offsets (y*256+x)
+COLLIDE_DX      equ 11                              ; X overlap threshold (tune 9-14)
+COLLIDE_DY      equ 11                              ; Y overlap threshold
+
+QUEUE_SIZE      equ 256                             ; max wavefront is ~27, so this is ample
+floodQueue      ds  QUEUE_SIZE * 2                  ; ring buffer of 16-bit cell offsets (y*256+x)
 qHeadIdx        db  0
 qTailIdx        db  0
 qCount          db  0
@@ -80,12 +83,12 @@ floodTargetX    db  0
 floodTargetY    db  0
 FLOOD_LIMIT     equ 253
 
-L2_WALL         equ %11100000           ; red
-L2_PATH         equ %00000000           ; black
-L2_FLOOD        EQU %11111111           ; white
+L2_WALL         equ %11100000                       ; red
+L2_PATH         equ %00000000                       ; black
+L2_FLOOD        EQU %11111111                       ; white
 
-viewMode        db 0                    ; 0 = normal, 1 = radar
-yKeyWas         db 0                    ; debounce for Y key
+viewMode        db 0                                ; 0 = normal, 1 = radar
+yKeyWas         db 0                                ; debounce for Y key
 
 
 progStart:
@@ -768,9 +771,19 @@ processBaddies:
         ld ix, baddieData                           ; point to start of baddie data
         ld b, baddieCount                           ; count of baddies to process
 
-.loop
+.loop:
         push bc                                     ; save count
         call processBaddie                          ; process each baddie in turn
+
+        call checkBaddieCollision
+        jr nc, .skipCollision                       ; no overlap
+        ld A, soundHitskull                         ; ready the skull hit sound
+        call playsound                              ; play it
+
+        call takeDamage
+
+.skipCollision:
+
         pop bc                                      ; return count
 
         ld de, baddieRecord                         ; get baddie record length
@@ -820,6 +833,47 @@ processBaddies:
 
 
         ret
+
+; IX -> baddie record. Returns carry SET if player overlaps this baddie.
+; Trashes AF, DE, HL
+checkBaddieCollision:
+        ; --- X: |player_px - baddie_x| < COLLIDE_DX ? ---
+        ld hl, (player_px)
+        ld e, (ix + baddieRecord.lowX)
+        ld d, (ix + baddieRecord.highX)
+        or a
+        sbc hl, de                  ; HL = player_px - baddie_x
+        bit 7, h                    ; negative?
+        jr z, .xAbs
+        ex de, hl
+        ld hl, 0
+        or a
+        sbc hl, de                  ; HL = |dx|
+.xAbs:
+        ld de, COLLIDE_DX
+        or a
+        sbc hl, de
+        ret nc                      ; |dx| >= threshold -> no hit (carry clear)
+
+        ; --- Y: |player_py - baddie_y| < COLLIDE_DY ? ---
+        ld hl, (player_py)
+        ld e, (ix + baddieRecord.lowY)
+        ld d, (ix + baddieRecord.highY)
+        or a
+        sbc hl, de
+        bit 7, h
+        jr z, .yAbs
+        ex de, hl
+        ld hl, 0
+        or a
+        sbc hl, de
+.yAbs:
+        ld de, COLLIDE_DY
+        or a
+        sbc hl, de
+        ret                         ; carry set if |dy| < threshold -> HIT
+
+
 
 processBaddie:
         ld h, (ix +baddieRecord.highX)              ; get baddie X
@@ -1379,52 +1433,6 @@ setupIM2:
         EI
         RET
 
-AYSelect        EQU $FFFD
-AYrw            EQU $bffd
-AYPortC         EQU $FD                     ; Port low byte, stays in C
-AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
-AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
-channel1ToneL   equ 0
-channel1ToneH   equ 1
-channel2ToneL   equ 2
-channel2ToneH   equ 3
-channel3ToneL   equ 4
-channel3ToneH   equ 5
-channel1Volume  equ 8
-channel2Volume  equ 9
-channel3Volume  equ 10
-mixerFlag       equ 7
-frameCount   DB $01                         ; interrupt count for note set
-framePointer DW frameTable                  ; pointer to the ic and note set
-volume       DB %00001111                   ; volume
-Ch1:
-Ch1Pitch:    DW 0
-Ch1PitchD:   DW 0
-Ch1Volume    DW 00
-Ch1VolumeD:  DW 00
-Ch1Flags:    DB 0
-Ch1Length:   DB 0
-
-Ch2:
-Ch2Pitch:    DW 00
-Ch2PitchD:   DW 00
-Ch2Volume    DW 00
-Ch2VolumeD:  DW 00
-Ch2Flags:    DB 0
-Ch2Length:   DB 0
-
-Ch3:
-Ch3Pitch:    DW 00
-Ch3PitchD:   DW 00
-Ch3Volume    DW 00
-Ch3VolumeD:  DW 00
-Ch3Flags:    DB 0
-Ch3Length:   DB 0
-
-mixerFlags  
-                db %11111111, %11111110, %11110111, %11110110
-                db %11111111, %11111101, %11101111, %11101101
-                db %11111111, %11111011, %11011111, %11011011
 
 ALIGN 256
 IM2Tab:
