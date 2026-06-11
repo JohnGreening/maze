@@ -7,36 +7,119 @@ device ZXSPECTRUMNEXT
 
 HUD_ATTR        equ %01110000                       ; BRIGHT yellow paper, black ink
 HEALTH_ATTR     equ %01110001
-maze_text       defb 22, 0, 0, "Maze Game", $ff
+score_text      defb 22, 0, 0, "Score: ", $ff
+hiscore_text    defb 22, 1, 0, "High : ", $ff
 health_text     defb 22, 2, 0, "Health:", $ff
+lives_text      defb 22, 0, 24, "Lives: ", $ff
+keys_text       defb 22, 0, 13, "Keys:  / ", $ff
 health_bar      defb 22, 2, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, $ff
 healthattr      equ $5847
-playerHealth    db 8
-healthBlock     db 23
 
-takeDamage:
-        ld a, (playerHealth)
-        dec a
-        ld (playerHealth), a
-        ld h,  a
-        
-        ld b, 2
-        ld a, (healthBlock)
-        add a, 7
-        ld c, a
-        ld a, 136
-        sub h
-        call displayChar
-        ld a, (playerHealth)
-        and a
-        ret nz
 
-; block now empty -> redraw it as fully empty (136), then move left
+addScore:
+        ld hl, score0
+.addScore1:
+        ld a, (hl)
+        cp 9
+        jr z, .scoreCarry
+        inc (hl)
+        ret
+
+.scoreCarry:
+        ld (hl), 0
+        dec hl
+        ld a, l
+        cp score3 / 256
+        jr nz, .addScore1
+        ret
+
+newGame:
+        ld a, 3
+        ld (playerLives), a
+        ld a, 0
+        ld (playerKeys), a
+        ld (score3), a
+        ld (score2), a
+        ld (score1), a
+        ld (score0), a
+
         ld a, 8
         ld (playerHealth), a
-        ld a, (healthBlock)
-        dec a
+        
+        ld a, 23
         ld (healthBlock), a
+        
+        ld iy, health_bar
+        call displayText
+
+        call showLives
+        call showKeys
+        call showScore        
+        ret
+
+takeDamage:
+        ld a, (playerHealth)                        ; get current health value
+        dec a                                       ; take damage !
+        ld (playerHealth), a                        ; set it back
+        ld h,  a                                    ; preserve in H
+        
+        ld b, 2                                     ; set row 2
+        ld a, (healthBlock)                         ; get current health block
+        add a, 7                                    ; add starting column
+        ld c, a                                     ; set column for display
+        ld a, 136                                   ; udg graphic to use, 136 is 0 length, 128 is full block strength
+        sub h                                       ; deduct current health block value
+        call displayChar                            ; display the char
+        ld a, (playerHealth)                        ; get the health block value again, prev H is no longer usable                    
+        and a                                       ; was it 0
+        ret nz                                      ; done if not
+
+; block now empty -> redraw it as fully empty (136), then move left
+        ld a, 8                                     ; full health value
+        ld (playerHealth), a                        ; set it
+        ld a, (healthBlock)                         ; but health block value needs to reduce
+        dec a                                       ; deduct 1
+        ld (healthBlock), a                         ; save health block value
+        ret                                         ; and return, A=0 means dead
+
+
+showScore:
+        ld bc, 7
+        ld de, score3
+        ld a, (de)
+        call DisplayDigit
+        inc de
+        ld a, (de)
+        call DisplayDigit
+        inc de
+        ld a, (de)
+        call DisplayDigit
+        inc de
+        ld a, (de)
+        call DisplayDigit
+
+        ret
+
+
+showLives:
+        ld iy, lives_text
+        call displayText
+
+        ld bc, 31
+        ld a, (playerLives)
+        call DisplayDigit
+        ret
+
+showKeys:
+        ld iy, keys_text
+        call displayText
+        ld bc, 19
+        ld a, (playerKeys)
+        call DisplayDigit
+
+        ld bc, 21
+        ld a, KEY_COUNT 
+        call DisplayDigit
         ret
 
 
@@ -55,20 +138,26 @@ initHUD:
         ld bc, 96 - 1
         ldir
 
-        ld iy, maze_text
+        ld iy, score_text
+        call displayText
+
+        ld iy, hiscore_text
         call displayText
 
         ld iy, health_text
         call displayText
 
-        ld iy, health_bar
-        call displayText
+;        ld iy, health_bar
+;        call displayText
 
         ld hl, $5847
         ld (hl), HEALTH_ATTR
         ld de, $5848
         ld bc, 24
         ldir
+
+;        call showLives
+;        call showKeys
         ret
 
 
@@ -171,26 +260,42 @@ floodFill:
 
         ; H = y, L = x (of tile being tested, NOT the tile popped of the queue)
         ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
-        call getMapByte
-        and a
-        jr nz, .tcDone                  ; wall, the distance value is left as default 255 value
+        push hl
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, TILEMAP_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+        pop hl
+
+;        call getMapByte
+        cp 1
+        jr z, .tcDone                               ; wall, the distance value is left as default 255 value
 
         ; H = y, L = x
         ; get distance value for this tile
         call getFieldByte
         cp 255
-        jr nz, .tcDone                  ; branch if we've already visited this tile
+        jr nz, .tcDone                              ; branch if we've already visited this tile
 
-        ld a, (dist)                    ; get distance for original tile XY (from mainloop)
+        ld a, (dist)                                ; get distance for original tile XY (from mainloop)
         cp 254
-        jr nc, .clampMax                ; C >= 254 -> store 254
-        inc a                           ; C+1
+        jr nc, .clampMax                            ; C >= 254 -> store 254
+        inc a                                       ; C+1
         jr .storeDist
 .clampMax:
         ld a, 254
 .storeDist:
-        call putFieldByte               ; put this tested tile into the distance map
-        ex de, hl                       ; we want to push this tested tile onto the queue, but need it in DE
+        call putFieldByte                           ; put this tested tile into the distance map
+        ex de, hl                                   ; we want to push this tested tile onto the queue, but need it in DE
         call qPushDE
 .tcDone:
 
@@ -263,7 +368,7 @@ putFieldByte:
         pop hl
         ret
 
-getMapByte:
+;getMapByte:
 ; HL = YX tile into our regular map
 ; we get A = Map(x,y); i.e. either 0=path or 1=wall
         push hl
@@ -348,8 +453,8 @@ buildMapImage:
         ld h, a
         add hl, $C000
         ld a, (hl)                                  ; get map tile at this cell
-        or a                                        ; test for 0 (path)
-        jr z, .checkFlood                           ; path -> check flood field
+        cp 1                                        ; test for 1 (wall)
+        jr nz, .checkFlood                          ; path or something else -> check flood field
         ld d, L2_WALL                               ; wall -> red
         jr .haveColour                              ; walls never flooded
  

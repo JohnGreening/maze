@@ -20,6 +20,18 @@ CAM_MAX_Y           equ (192 - 32) * 8              ; 1280  (map height - visibl
 
 tilemapPage         db 0
 
+playerHealth        db 8
+healthBlock         db 23
+playerLives         db 0
+playerKeys          db 0
+playerAlive         db 0
+KEY_COUNT           EQU 4
+
+score3              db 0                            ; thousands
+score2              db 0                            ; hundreds
+score1              db 0                            ; tens
+score0              db 0                            ; units
+
 player_px           dw 464                          ; world pixel position of sprite
 player_py           dw 344
 player_tile_x       db 0
@@ -147,9 +159,10 @@ otherSetup:
         out (c), a
 
         call setupIM2
-        call moveSprite1
 
+        call moveSprite1
         call setTrail
+        call newGame
 
 main:
         call keyProcess
@@ -314,8 +327,13 @@ chkEnd:
 ; e = vert/horiz potentially allowed	
 	
 	    ld a, d                                     ; get the keys pressed
+;        and a                                       ; anything?
+;        jp z, moveSprite                            ; jp if not
+
+
 	    and e                                       ; mask with what is allowed
 	    ld d, a                                     ; save back in D, key pressed and direction possibly allowed
+
 	
 ; d is keys pressed potentially allowed	
 ; e is set to bitmask checking if desired movement is permitted, i.e. not blocked by a wall	
@@ -424,6 +442,12 @@ doMoveUp:
 ; High clamp: if value > CAM_MAX       -> CAM_MAX
 ; ============================================================
 updateCameraXY:
+ ;       push de
+        call addScore
+        call showScore
+ ;       pop de        
+
+
         ; ---------- X ----------
         ld hl, (player_px)
         ld bc, CENTRE_X
@@ -488,12 +512,12 @@ chkLeft:
 	    DIV_HL_8
 	    ld c, l
 	    GET_WORLD_TILE
-	    and a
-	    ret nz
+	    cp 1
+	    ret z
 	    inc c
 	    GET_WORLD_TILE
-	    and a
-	    ret nz
+	    cp 1
+	    ret z
 	
 	    set dir_left, e                             ; set ok
         ret                                         ; return
@@ -511,12 +535,12 @@ chkRight:
         DIV_HL_8
         ld c, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc c
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_right, e
         ret
@@ -534,12 +558,12 @@ chkDown:
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc b
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_down, e
         ret
@@ -556,12 +580,12 @@ chkUp:
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc b
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_up, e
         ret
@@ -569,7 +593,7 @@ chkUp:
 
 keyEnd:
 moveSprite:
-        call debugs
+;        call debugs
         call processBaddies
 
 moveSprite1:
@@ -579,13 +603,12 @@ moveSprite1:
     ; ================================================
         call wait_vblank
 
-        ld a, (cam_px)                           ; get LOW byte of player X position
+        ld a, (cam_px)                              ; get LOW byte of player X position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
         nextreg $30, a                              ; ← X fine offset (MUST be every frame)
 
-        ld a, (cam_py)                           ; get LOW byte of player Y position
+        ld a, (cam_py)                              ; get LOW byte of player Y position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
-        ;add 64
         nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
 
 ; ================================================
@@ -696,17 +719,11 @@ wait_vblank:
 
 
 showSprite:
-        ld a, (viewMode)
-        or a
-        ret nz
-
 ; ============================================================
-; getPlayerFieldValue
 ; Returns the floodfill distance for the player's tile in A.
 ; 255 = wall / unreached. Lower = closer to flood target.
 ; Trashes: AF, HL, BC
 ; ============================================================
-getPlayerFieldValue:
         ld hl, (player_py)
         DIV_HL_8                    ; L = tileY (player_py / 8)
         ld a, l
@@ -721,6 +738,10 @@ getPlayerFieldValue:
         call getFieldByte           ; returns field value in A
         cp 255
         call z, setTrail
+
+        ld a, (viewMode)                            ; get the view mode, normal or radar
+        or a                                        ; see it it is 0 (normal)
+        ret nz                                      ; return if Radar (player sprite rendered in process baddie routine)
 
 
         LD A, 0                                     ; sprite index
@@ -774,14 +795,15 @@ processBaddies:
 .loop:
         push bc                                     ; save count
         call processBaddie                          ; process each baddie in turn
+        call checkBaddieCollision                   ; check collision
+        jr nc, .skipCollision                       ; branch if no collision
 
-        call checkBaddieCollision
-        jr nc, .skipCollision                       ; no overlap
+        ; collision routine
         ld A, soundHitskull                         ; ready the skull hit sound
         call playsound                              ; play it
-
-        call takeDamage
-
+        call takeDamage                             ; update health bar
+        and a
+        jp z, 0
 .skipCollision:
 
         pop bc                                      ; return count
@@ -1098,13 +1120,13 @@ chkLeft1
         DIV_HL_8
         ld c, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         inc c
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_left, e
         ret
@@ -1126,12 +1148,12 @@ chkRight1
         DIV_HL_8
         ld c, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc c
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_right, e
         ret
@@ -1153,12 +1175,12 @@ chkDown1
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc b
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_down, e
         ret
@@ -1179,12 +1201,12 @@ chkUp1
         DIV_HL_8
         ld b, l
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
         inc b
         GET_WORLD_TILE
-        and a
-        ret nz
+        cp 1
+        ret z
 
         set dir_up, e
         ret

@@ -1,7 +1,15 @@
 DEVICE ZXSPECTRUMNEXT
 
 charset equ 15616
-udgBase: defb 0, 0, 0, 0, 255, 255, 0, 0            ; udg0
+udgBase:    defb 0, 0, 0, 0, 255, 255, 0, 0
+            defb 0, 0, 0, 0, 254, 254, 0, 0
+            defb 0, 0, 0, 0, 252, 252, 0, 0
+            defb 0, 0, 0, 0, 248, 248, 0, 0
+            defb 0, 0, 0, 0, 240, 240, 0, 0
+            defb 0, 0, 0, 0, 224, 224, 0, 0
+            defb 0, 0, 0, 0, 192, 192, 0, 0
+            defb 0, 0, 0, 0, 128, 128, 0, 0
+            defb 0, 0, 0, 0,   0,   0, 0, 0
 
 displayText:
 ; IY = text string, terminate with $FF, set AT with 22, Y, X
@@ -107,6 +115,8 @@ Bin8ToDec:
 
 ; --- Step 3: Extract 1s Digit ---
         ld      a, d                                ; Restore 1s digit to A
+DisplayDigit:
+        ; if calling from here then BC must be set with B=row, C=Column
         add     a, '0'                              ; Convert the leftover 1s digit to ASCII
         call displayChar
         ret
