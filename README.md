@@ -56,7 +56,7 @@ The maze tile data (`testmaze.map`) is embedded directly into the NEX file acros
 
 ## Maze Generation
 
-The maze was created using the included `MAZE1.bas` (QB64PE / QuickBASIC 64 PE):
+The maze was created using the included `MAZE1.bas` (QB64PE):
 
 - Recursive backtracker algorithm (perfect maze, no loops)
 - 256 × 192 byte array (`1` = wall, `0` = path)
