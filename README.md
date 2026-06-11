@@ -70,12 +70,10 @@ You can modify parameters in `MAZE1.bas` (e.g. `topOpenRows`) and re-run it to g
 
 ```
 MAZE1.bas              # QB64PE maze generator (creates testmaze.map)
-maze.asm               # Main game source (current active version)
-maze1.asm              # Older/alternative main source
+maze.asm               # Main game source
 *.inc                  # Modular include files (see list below)
 testmaze.map           # Binary maze data (48 KB, embedded in NEX)
-mansprite.zip          # Sprite graphics source
-maze.stt / maze2.stt   # Sprite/tile attribute data
+mansprite.zip          # Original sprite graphics source
 im2Routine.inc         # IM2 interrupt handler (included from maze.asm)
 ```
 
