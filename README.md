@@ -69,21 +69,30 @@ You can modify parameters in `MAZE1.bas` (e.g. `topOpenRows`) and re-run it to g
 ## Project Structure
 
 ```
-MAZE1.bas              # QB64PE maze generator
+MAZE1.bas              # QB64PE maze generator (creates testmaze.map)
 maze.asm               # Main game source (current active version)
 maze1.asm              # Older/alternative main source
-*.inc                  # Modular includes (initialisation, sound, text, music, macros, etc.)
-testmaze.map           # Binary maze data (48 KB)
+*.inc                  # Modular include files (see list below)
+testmaze.map           # Binary maze data (48 KB, embedded in NEX)
 mansprite.zip          # Sprite graphics source
 maze.stt / maze2.stt   # Sprite/tile attribute data
+im2Routine.inc         # IM2 interrupt handler (included from maze.asm)
 ```
 
-Key modules:
-- `initialisation.inc` — Sprite setup, palettes, clipping, HUD
-- `soundEffects.inc` — AY sound effects + playback
-- `inspectorclouseau.inc` — Melody / music data
-- `im2Routine.inc` — Interrupt handler
-- `text.inc` — Text rendering
+### Files Included by `maze.asm`
+
+`maze.asm` uses the following `INCLUDE` directives:
+
+| File                    | Purpose                                      |
+|-------------------------|----------------------------------------------|
+| `macros.inc`            | Useful macros (`DIV_HL_8`, `GET_WORLD_TILE`, etc.) |
+| `maze2.inc`             | Core maze logic, flood-fill, distance field, baddie AI |
+| `initialisation.inc`    | Sprite setup, palettes, clipping windows, HUD initialization |
+| `text.inc`              | Text rendering routines                      |
+| `inspectorclouseau.inc` | Music / melody data (Inspector Clouseau theme) |
+| `soundEffects.inc`      | Sound effect definitions + `playsound` routine |
+
+> **Note:** `im2Routine.inc` is included inside the interrupt setup section of `maze.asm`.
 
 ## Development Status
 
