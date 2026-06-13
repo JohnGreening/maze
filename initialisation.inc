@@ -87,16 +87,20 @@ showScore:
         ld bc, 7
         ld de, score3
         ld a, (de)
-        call DisplayDigit
+        add a, "0"
+        call displayChar
         inc de
         ld a, (de)
-        call DisplayDigit
+        add a, "0"
+        call displayChar
         inc de
         ld a, (de)
-        call DisplayDigit
+        add a, "0"
+        call displayChar
         inc de
         ld a, (de)
-        call DisplayDigit
+        add a, "0"
+        call displayChar
 
         ret
 
@@ -184,7 +188,7 @@ floodFill:
         ld e, a                                     ; put in E
 
         ld h, d                                     ; Y also in H
-        ld l, e                                     ; X alos in L
+        ld l, e                                     ; X also in L
         xor a                                       ; a = 0
         call putFieldByte                           ; field[target] = 0
         call qPushDE                                ; push target (d = y, e = x)
@@ -212,7 +216,6 @@ floodFill:
         ; we've popped a tile of the queue (having previously processed it)
         ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
         ; ----------------------------------------------------------------------------
-
 .skip
         ; LEFT
         ld a, e                                     ; get tile X
@@ -258,15 +261,18 @@ floodFill:
 ;      HL = tile being tested, i.e. +/- 1 of x or y
         push de
 
-        ; H = y, L = x (of tile being tested, NOT the tile popped of the queue)
+        ld b, h
+        ld c, l
+
+        ; H = y, L = x (of tile being tested, NOT the tile popped of the queue (this is held in DE))
         ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
-        push hl
         ld a, h
         srl a
         srl a
         srl a
         srl a
         srl a
+        ld e, a
         add a, TILEMAP_PAGE
         nextreg $56, a
         ld a, h
@@ -274,15 +280,27 @@ floodFill:
         ld h, a
         add hl, $C000
         ld a, (hl)
-        pop hl
 
-;        call getMapByte
-        cp 1
+        cp MAP_WALL                                 ; is it a wall?
         jr z, .tcDone                               ; wall, the distance value is left as default 255 value
 
         ; H = y, L = x
         ; get distance value for this tile
-        call getFieldByte
+        ld h, b
+        ld l, c
+        
+        ld a, e
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        ld a, (hl)
+
+        ld h, b
+        ld l, c
+        
         cp 255
         jr nz, .tcDone                              ; branch if we've already visited this tile
 
@@ -295,7 +313,9 @@ floodFill:
         ld a, 254
 .storeDist:
         call putFieldByte                           ; put this tested tile into the distance map
-        ex de, hl                                   ; we want to push this tested tile onto the queue, but need it in DE
+        ld d, b
+        ld e, c
+        ;ex de, hl                                   ; we want to push this tested tile onto the queue, but need it in DE
         call qPushDE
 .tcDone:
 
@@ -329,7 +349,7 @@ clearDistanceField:
 getFieldByte:
 ; HL = YX tile into our distance map
 ; we get A = distanceMap(x,y)
-        push hl
+;        push hl
         ld a, h
         srl a
         srl a
@@ -343,13 +363,13 @@ getFieldByte:
         ld h, a
         add hl, $C000
         ld a, (hl)
-        pop hl
+;        pop hl
         ret
 
 putFieldByte:
 ; HL = YX tile into our distance map
 ; we set distanceMap(x,y) = A
-        push hl                                     ; preserve HL
+;        push hl                                     ; preserve HL
         push af                                     ; preserve AF, we need A to set the value
         ld a, h
         srl a
@@ -365,7 +385,7 @@ putFieldByte:
         add hl, $C000
         pop af                                      ; restore A to set value
         ld (hl), a
-        pop hl
+;        pop hl
         ret
 
 ;getMapByte:
@@ -397,8 +417,8 @@ qPushDE:
         ld l, a
         ld h, 0
         add hl, hl                  ; *2 (word entries)
-        ld bc, floodQueue
-        add hl, bc                  ; HL -> slot
+        ;ld bc, floodQueue
+        add hl, floodQueue                  ; HL -> slot
         ld (hl), e
         inc hl
         ld (hl), d
@@ -416,8 +436,8 @@ qPopDE:
         ld l, a
         ld h, 0
         add hl, hl                  ; *2
-        ld bc, floodQueue
-        add hl, bc                  ; HL -> slot
+;        ld bc, floodQueue
+        add hl, floodQueue                  ; HL -> slot
         ld e, (hl)
         inc hl
         ld d, (hl)

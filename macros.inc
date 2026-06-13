@@ -10,7 +10,7 @@ DIV_HL_8 MACRO
         rr l
         ENDM
 
-GET_WORLD_TILE MACRO
+GET_WORLD_TILE MACRO 
 ; given B= tile X, C= tile Y, return tile at this position in the world map
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
                                                     ; put it in H (this is the same as multiplying cam_tile_y by 256)

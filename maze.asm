@@ -46,6 +46,14 @@ PAT_LEFT            equ 12                          ; facing left
 PAT_UP              equ 16                          ; facing away
 ANIM_SPEED          equ 4                           ; advance frame every N moves (higher = slower)
 
+
+MAP_PATH            EQU 0
+MAP_WALL            EQU 1
+MAP_KEYTL           EQU 4
+MAP_KEYTR           EQU 5
+MAP_KEYBL           EQU 6
+MAP_KEYBR           EQU 7
+
 move_delta          equ 2
 move_delta_baddie   equ 1
 
@@ -734,6 +742,7 @@ showSprite:
         DIV_HL_8                    ; L = tileX (player_px / 8)
         ld a, l
         ld (player_tile_x), a
+        
         ld h, b                     ; H = tileY, L = tileX
         call getFieldByte           ; returns field value in A
         cp 255
