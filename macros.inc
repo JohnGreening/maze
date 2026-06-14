@@ -24,24 +24,24 @@ MACRO GET_WORLD_VALUE arg, arg1
 ;
         if arg1 = 0
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
-                                                    ; put it in H (this is the same as multiplying cam_tile_y by 256)
+                                                    ; put it in H (this is the same as multiplying by 256)
         ld l, b                                     ; read the X tile coordinate into L
-                                                    ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
+                                                    ; Result: HL now holds tile_y * 256 + tile_x
                                                     ; This is the byte offset into "world" map.
         endif
 
     ; STEP 2: Calculate which 8K physical page the data lives in
-        ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
+        ld   a,h                                    ; take the high byte of the offset (which is tile_y)
         srl  a                                      ; divide by 2
         srl  a                                      ; divide by 2 again  → now /4
         srl  a                                      ; /8
         srl  a                                      ; /16
-        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
+        srl  a                                      ; /32   ← this is the same as tile_y ÷ 32
                                                     ; Why divide by 32?
                                                     ;   Each page is 8192 bytes.
                                                     ;   Each row is 256 bytes.
                                                     ;   8192 ÷ 256 = exactly 32 rows per page.
-                                                    ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
+                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 
         add  a, arg                                 ; add the starting page number
 
@@ -51,7 +51,7 @@ MACRO GET_WORLD_VALUE arg, arg1
     ; STEP 3: Keep only the part of the address that fits inside one 8K page
         ld   a,h                                    ; get the high byte again
         and  $1F                                    ; $1F is binary 00011111 → keeps only the lowest 5 bits
-                                                    ; This is exactly the same as (cam_tile_y * 256 + cam_tile_x) modulo 8192
+                                                    ; This is exactly the same as (tile_y * 256 + tile_x) modulo 8192
                                                     ; (because 8192 = 2^13 and we are discarding everything above bit 12)
         ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
 

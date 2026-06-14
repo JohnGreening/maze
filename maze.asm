@@ -612,11 +612,11 @@ moveSprite1:
     ; ================================================
         call wait_vblank
 
-        ld a, (cam_px)                              ; get LOW byte of player X position
+        ld a, (cam_px)                              ; get LOW byte of camera X position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
         nextreg $30, a                              ; ← X fine offset (MUST be every frame)
 
-        ld a, (cam_py)                              ; get LOW byte of player Y position
+        ld a, (cam_py)                              ; get LOW byte of camera Y position
         and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
         nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
 
@@ -1064,7 +1064,6 @@ pickByField:
         ld l, a                                     ; save in L, L= tile X
         ld h, c                                     ; get tile Y
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-;        call getFieldByte
         ld d, vdir_left
         call .consider
 .noL:
@@ -1075,7 +1074,6 @@ pickByField:
         ld l, a
         ld h, c
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-;        call getFieldByte
         ld d, vdir_right
         call .consider
 .noR:
@@ -1086,7 +1084,6 @@ pickByField:
         inc a
         ld h, a
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-;        call getFieldByte
         ld d, vdir_down
         call .consider
 .noD:
@@ -1097,7 +1094,6 @@ pickByField:
         dec a
         ld h, a
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-;        call getFieldByte
         ld d, vdir_up
         call .consider
 .noU:
@@ -1125,27 +1121,27 @@ chkLeft1
         and a                                       ; is it?
         ret nz                                      ; return if not
 
-        ld hl, (baddie_x)
-        ld bc, move_delta_baddie
-        sbc hl, bc
+        ld hl, (baddie_x)                           ; get current baddie X pixel
+        ld bc, move_delta_baddie                    ; x pixel delta
+        sbc hl, bc                                  ; simulate move left
 
         ; now test if we have bumped into a wall
-        DIV_HL_8
-        ld b, l
-        ld hl, (baddie_y)
-        DIV_HL_8
-        ld c, l
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
-        ret z
+        DIV_HL_8                                    ; divide by 8 to get tile X
+        ld b, l                                     ; B = tile X
+        ld hl, (baddie_y)                           ; get current baddie Y pixel
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; C = tile Y
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp 1                                        ; is it a wall?
+        ret z                                       ; return if so, do nothing
 
-        inc c
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
-        ret z
+        inc c                                       ; sprites are 2 tiles tall, so we will check tile Y+1
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp 1                                        ; is it a wall?
+        ret z                                       ; return if so, do nothing
 
-        set dir_left, e
-        ret
+        set dir_left, e                             ; set bit in E indicating move is allowed
+        ret                                         ; and return
 
 chkRight1
         ld a, iyl                                   ; we only want to test horizontal moves if baddie Y is exactly on a tile
@@ -1288,28 +1284,28 @@ displayBaddie:
         ; HL = baddie world X
         ld l, (ix + baddieRecord.lowX)
         ld h, (ix + baddieRecord.highX)
-        ld bc, (cam_px)              ; BC = player world X
-        or a                           ; clear carry for a clean subtract
-        sbc hl, bc                     ; HL = baddieX - playerX  (signed)
+        ld bc, (cam_px)                             ; BC = player world X
+        or a                                        ; clear carry for a clean subtract
+        sbc hl, bc                                  ; HL = baddieX - playerX  (signed)
     ; add screen centre AND the 15px overhang bias in one go.
     ; CENTER_SCREEN_X + 15 = 152 + 15 = 167, which fits in 8 bits,
     ; so we can use the Z80N "add hl,a" (cheaper to set up than add hl,bc).
-        ld a,  15                               ; A = 167  (centre + bias)
-        add hl, a                      ; Z80N: HL = biased screen X
+        ld a,  15                                   ; A = 167  (centre + bias)
+        add hl, a                                   ; Z80N: HL = biased screen X
     ; HL now holds (screenX + 15). Visible-with-overhang means the
     ; UN-biased X is in -15..319, i.e. the BIASED value is in 0..334.
     ; Reject anything outside 0..334 with an unsigned range test.
-        ld a, h                        ; look at high byte of biased X
-        cp 1                           ; H = 0 ?  (biased X = 0..255)
-        jr c, .xInRange                ; H = 0 -> definitely <= 334, in range
-        jr nz, .hideBaddie             ; H >= 2 -> biased X >= 512 -> off right
+        ld a, h                                     ; look at high byte of biased X
+        cp 1                                        ; H = 0 ?  (biased X = 0..255)
+        jr c, .xInRange                             ; H = 0 -> definitely <= 334, in range
+        jr nz, .hideBaddie                          ; H >= 2 -> biased X >= 512 -> off right
     ; H = 1 here, so biased X = 256..511; allowed only up to 334 ($014E),
     ; meaning the low byte must be < 79 (334 - 256 = 78).
         ld a, l
         cp 79
-        jr nc, .hideBaddie             ; low byte >= 79 -> off right edge
+        jr nc, .hideBaddie                          ; low byte >= 79 -> off right edge
 .xInRange:
-        push hl                        ; save biased X (we still need it later)
+        push hl                                     ; save biased X (we still need it later)
 
     ; ---------- SCREEN Y ----------
     ; HL = baddie world Y
