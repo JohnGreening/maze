@@ -14,7 +14,8 @@ lives_text      defb 22, 0, 24, "Lives: ", $ff
 keys_text       defb 22, 0, 13, "Keys:  / ", $ff
 health_bar      defb 22, 2, 7, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, $ff
 healthattr      equ $5847
-
+initHealthBlock equ 23
+initHealth      equ 8
 
 addScore:
         ld hl, score0
@@ -43,10 +44,10 @@ newGame:
         ld (score1), a
         ld (score0), a
 
-        ld a, 8
+        ld a, initHealth
         ld (playerHealth), a
         
-        ld a, 23
+        ld a, initHealthBlock
         ld (healthBlock), a
         
         ld iy, health_bar
@@ -61,26 +62,44 @@ takeDamage:
         ld a, (playerHealth)                        ; get current health value
         dec a                                       ; take damage !
         ld (playerHealth), a                        ; set it back
-        ld h,  a                                    ; preserve in H
+        ld e,  a                                    ; preserve in E
         
         ld b, 2                                     ; set row 2
         ld a, (healthBlock)                         ; get current health block
         add a, 7                                    ; add starting column
         ld c, a                                     ; set column for display
         ld a, 136                                   ; udg graphic to use, 136 is 0 length, 128 is full block strength
-        sub h                                       ; deduct current health block value
+        sub e                                       ; deduct current health block value
         call displayChar                            ; display the char
-        ld a, (playerHealth)                        ; get the health block value again, prev H is no longer usable                    
-        and a                                       ; was it 0
-        ret nz                                      ; done if not
+        ld a, e                                     ; get health value back
+        and a                                       ; was it 0?
+        ret nz                                      ; return if not
 
 ; block now empty -> redraw it as fully empty (136), then move left
-        ld a, 8                                     ; full health value
+        ld a, 8                                     ; full health block value
         ld (playerHealth), a                        ; set it
         ld a, (healthBlock)                         ; but health block value needs to reduce
         dec a                                       ; deduct 1
         ld (healthBlock), a                         ; save health block value
-        ret                                         ; and return, A=0 means dead
+        ret nz                                      ; return if still alive
+
+lostLife:
+        ld a, initHealth                            ; reset health of current block
+        ld (playerHealth), a
+        
+        ld a, initHealthBlock                       ; reset count of health blocks
+        ld (healthBlock), a
+        
+        ld iy, health_bar                           ; show the full strength health bar
+        call displayText
+
+        ld a, (playerLives)                         ; get player lives
+        dec a                                       ; - 1
+        and 3                                       ; don't overflow
+        ld (playerLives), a                         ; save it
+        call showLives                              ; show it
+
+        ret                                         ; return
 
 
 showScore:
@@ -180,8 +199,30 @@ floodFill:
         ld (qTailIdx), a                            ; set q tail to 0
         ld (qCount), a                              ; set q depth to 0
 
-        call clearDistanceField                     ; call all 48k of distance map to all 255
-        
+; ============================================================
+; clearDistanceField - set all 49152 field bytes to 255
+; (255 = unvisited/wall). Pages each of the 6 field pages into
+; slot 6 and floods it.
+; ============================================================
+.clearDistanceField:
+        ld a, DFIELD_PAGE           ; first field page
+        ld b, 6                     ; six pages to clear
+.clrPage:
+        push bc
+        nextreg $56, a              ; page this 8K bank into slot 6 ($C000)
+        push af
+        ; smear 255 across $C000..$DFFF (8192 bytes)
+        ld hl, $C000
+        ld (hl), 255
+        ld de, $C001
+        ld bc, 8192 - 1
+        ldir
+        pop af
+        inc a                       ; next page
+        pop bc
+        djnz .clrPage
+
+
         ld a, (floodTargetY)                        ; get our target cell Y
         ld d, a                                     ; put in D
         ld a, (floodTargetX)                        ; get out target cell X
@@ -201,13 +242,9 @@ floodFill:
         ; qPopDE is only called from here
         ; it's effectively the driver for the processing for this tile
         call qPopDE                                 ; DE = current cell (D=y, E=x)
-        ld h, d                                     ; copy  H = y
-        ld l, e                                     ;       L = x
-
-
-        ; H = y L = x
-        ; get for the tile taken off the queue, it's distance that was previously set
-        call getFieldByte                           ; A = current distance
+        ld b, e                                     ; b = X    ** note opposite of DE
+        ld c, d                                     ; c = Y
+        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
         ld (dist), a                                ; save distance
         cp FLOOD_LIMIT
         jr nc, .mainLoop
@@ -263,6 +300,8 @@ floodFill:
 
         ld b, h
         ld c, l
+;        LD h, b
+;        ld l, c
 
         ; H = y, L = x (of tile being tested, NOT the tile popped of the queue (this is held in DE))
         ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
@@ -322,50 +361,6 @@ floodFill:
         pop de
         ret
 
-; ============================================================
-; clearDistanceField - set all 49152 field bytes to 255
-; (255 = unvisited/wall). Pages each of the 6 field pages into
-; slot 6 and floods it.
-; ============================================================
-clearDistanceField:
-        ld a, DFIELD_PAGE           ; first field page
-        ld b, 6                     ; six pages to clear
-.clrPage:
-        push bc
-        nextreg $56, a              ; page this 8K bank into slot 6 ($C000)
-        push af
-        ; smear 255 across $C000..$DFFF (8192 bytes)
-        ld hl, $C000
-        ld (hl), 255
-        ld de, $C001
-        ld bc, 8192 - 1
-        ldir
-        pop af
-        inc a                       ; next page
-        pop bc
-        djnz .clrPage
-        ret
-
-getFieldByte:
-; HL = YX tile into our distance map
-; we get A = distanceMap(x,y)
-;        push hl
-        ld a, h
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a                           ; A = y/32 (page within field block)
-        add a, DFIELD_PAGE
-        nextreg $56, a
-        ld a, h
-        and $1F
-        ld h, a
-        add hl, $C000
-        ld a, (hl)
-;        pop hl
-        ret
-
 putFieldByte:
 ; HL = YX tile into our distance map
 ; we set distanceMap(x,y) = A
@@ -388,25 +383,6 @@ putFieldByte:
 ;        pop hl
         ret
 
-;getMapByte:
-; HL = YX tile into our regular map
-; we get A = Map(x,y); i.e. either 0=path or 1=wall
-        push hl
-        ld a, h
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a
-        add a, TILEMAP_PAGE
-        nextreg $56, a
-        ld a, h
-        and $1F
-        ld h, a
-        add hl, $C000
-        ld a, (hl)
-        pop hl
-        ret
 
 ; ---- push cell offset in DE onto queue ----
 ; DE = YX
@@ -417,7 +393,6 @@ qPushDE:
         ld l, a
         ld h, 0
         add hl, hl                  ; *2 (word entries)
-        ;ld bc, floodQueue
         add hl, floodQueue                  ; HL -> slot
         ld (hl), e
         inc hl
@@ -436,7 +411,6 @@ qPopDE:
         ld l, a
         ld h, 0
         add hl, hl                  ; *2
-;        ld bc, floodQueue
         add hl, floodQueue                  ; HL -> slot
         ld e, (hl)
         inc hl
@@ -519,7 +493,7 @@ initBaddies:
 ; Sets world pixel position, tile position, a random direction,
 ; sprite index (1..N, player is sprite 0), and pattern 0.
 ; Setup-time only: uses rejection loops freely (timing irrelevant).
-; Assumes: rnd8 returns raw 0-255 in A; GET_WORLD_TILE takes
+; Assumes: rnd8 returns raw 0-255 in A; GET_WORLD_VALUE takes
 ;          B=tileX, C=tileY, returns tile byte in A (0 = open).
 ; ============================================================
         ld ix, baddieData
@@ -547,21 +521,21 @@ initBaddies:
         ; --- test all four tiles of the 2x2 footprint are open ---
         ld b, d
         ld c, e
-        GET_WORLD_TILE              ; (tx, ty)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty)
         and a
         jr nz, .tryPos              ; wall -> reject, draw again
 
         ld b, d
         ld c, e
         inc b
-        GET_WORLD_TILE              ; (tx+1, ty)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty)
         and a
         jr nz, .tryPos
 
         ld b, d
         ld c, e        
         inc c
-        GET_WORLD_TILE              ; (tx, ty+1)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty+1)
         and a
         jr nz, .tryPos
 
@@ -569,7 +543,7 @@ initBaddies:
         inc b
         ld c, e
         inc c
-        GET_WORLD_TILE              ; (tx+1, ty+1)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty+1)
         and a
         jp nz, .tryPos
 

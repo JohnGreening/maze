@@ -1,6 +1,9 @@
 DEVICE ZXSPECTRUMNEXT
 
-DIV_HL_8 MACRO
+USE_BC              EQU 0                           ; see GET_WORLD_VALUE macro
+USE_HL              EQU 1                           ; see GET_WORLD_VALUE macro
+
+MACRO DIV_HL_8
 ; simple 16-bit divide without the CALL/RET overhead
         srl h                                       ; divide by 2
         rr l
@@ -10,13 +13,22 @@ DIV_HL_8 MACRO
         rr l
         ENDM
 
-GET_WORLD_TILE MACRO 
-; given B= tile X, C= tile Y, return tile at this position in the world map
+MACRO GET_WORLD_VALUE arg, arg1
+; given B= tile X, C= tile Y, return "world" value at this position in the world map
+;
+;       arg  is TILEMAP_PAGE
+;            or DFIELD_PAGE
+;
+;       arg1 decides if input comes from BC or directly from HL
+;            NB if directly from HL then L = tile X, H = tile Y
+;
+        if arg1 = 0
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
                                                     ; put it in H (this is the same as multiplying cam_tile_y by 256)
         ld l, b                                     ; read the X tile coordinate into L
                                                     ; Result: HL now holds  cam_tile_y * 256 + cam_tile_x
                                                     ; This is the byte offset into "world" map.
+        endif
 
     ; STEP 2: Calculate which 8K physical page the data lives in
         ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
@@ -30,7 +42,9 @@ GET_WORLD_TILE MACRO
                                                     ;   Each row is 256 bytes.
                                                     ;   8192 ÷ 256 = exactly 32 rows per page.
                                                     ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
-        add  a,TILEMAP_PAGE                         ; add the starting page number
+
+        add  a, arg                                 ; add the starting page number
+
         nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 
 

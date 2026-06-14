@@ -173,6 +173,10 @@ otherSetup:
         call newGame
 
 main:
+        ld a, (playerLives)
+        and a
+        jp z, progStart
+
         call keyProcess
 
         ld bc, 500
@@ -285,9 +289,6 @@ chkKeyRadar:
 chkKeyLeft:	
 	    LD BC, $dffe                                ; keys Y U I O P
 	    IN A, (C)                                   ; read port
-
-        bit 3, a
-        call z, takeDamage
 
 	    BIT 1, A                                    ; check for "O"
 	    JR NZ, chkKeyRight                          ; branch if not pressed
@@ -519,11 +520,11 @@ chkLeft:
 	    ld hl, (player_py)
 	    DIV_HL_8
 	    ld c, l
-	    GET_WORLD_TILE
+	    GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
 	    cp 1
 	    ret z
 	    inc c
-	    GET_WORLD_TILE
+	    GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
 	    cp 1
 	    ret z
 	
@@ -542,11 +543,11 @@ chkRight:
         ld hl, (player_py)
         DIV_HL_8
         ld c, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc c
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -565,11 +566,11 @@ chkDown:
         ld hl, (player_px)
         DIV_HL_8
         ld b, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc b
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -587,11 +588,11 @@ chkUp:
         ld hl, (player_px)
         DIV_HL_8
         ld b, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc b
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -733,18 +734,19 @@ showSprite:
 ; Trashes: AF, HL, BC
 ; ============================================================
         ld hl, (player_py)
-        DIV_HL_8                    ; L = tileY (player_py / 8)
+        DIV_HL_8                                    ; L = tileY (player_py / 8)
         ld a, l
         ld (player_tile_y), a
-        ld b, l                     ; stash tileY in B
+        ld c, l                                     ; C = tile Y
 
         ld hl, (player_px)
-        DIV_HL_8                    ; L = tileX (player_px / 8)
+        DIV_HL_8                                    ; L = tileX (player_px / 8)
         ld a, l
         ld (player_tile_x), a
-        
-        ld h, b                     ; H = tileY, L = tileX
-        call getFieldByte           ; returns field value in A
+        ld b, l                                     ; B = tile X
+
+        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
+
         cp 255
         call z, setTrail
 
@@ -811,8 +813,7 @@ processBaddies:
         ld A, soundHitskull                         ; ready the skull hit sound
         call playsound                              ; play it
         call takeDamage                             ; update health bar
-        and a
-        jp z, 0
+
 .skipCollision:
 
         pop bc                                      ; return count
@@ -996,9 +997,11 @@ moveAvailable:
         ; Read own-cell distance first (one field read) -> sets lastDist.
         ld b, (ix + baddieRecord.tileX)             ; B = tileX
         ld c, (ix + baddieRecord.tileY)             ; C = tileY
-        ld l, b
-        ld h, c
-        call getFieldByte                           ; A = own-cell distance
+;        ld l, b
+;        ld h, c
+;        call getFieldByte                           ; A = own-cell distance
+        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
+
         ld (ix + baddieRecord.lastDist), a
         ld c, a                                     ; keep own distance in C for the mode test
                                                     ; (B no longer needed; pickByField re-reads tileX/Y)
@@ -1056,11 +1059,12 @@ pickByField:
 
         bit dir_left, e
         jr z, .noL
-        ld a, b
-        dec a
-        ld l, a
-        ld h, c
-        call getFieldByte
+        ld a, b                                     ; get tile X
+        dec a                                       ; look left
+        ld l, a                                     ; save in L, L= tile X
+        ld h, c                                     ; get tile Y
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+;        call getFieldByte
         ld d, vdir_left
         call .consider
 .noL:
@@ -1070,7 +1074,8 @@ pickByField:
         inc a
         ld l, a
         ld h, c
-        call getFieldByte
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+;        call getFieldByte
         ld d, vdir_right
         call .consider
 .noR:
@@ -1080,7 +1085,8 @@ pickByField:
         ld a, c
         inc a
         ld h, a
-        call getFieldByte
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+;        call getFieldByte
         ld d, vdir_down
         call .consider
 .noD:
@@ -1090,7 +1096,8 @@ pickByField:
         ld a, c
         dec a
         ld h, a
-        call getFieldByte
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+;        call getFieldByte
         ld d, vdir_up
         call .consider
 .noU:
@@ -1128,12 +1135,12 @@ chkLeft1
         ld hl, (baddie_y)
         DIV_HL_8
         ld c, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
         inc c
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -1156,11 +1163,11 @@ chkRight1
         ld hl, (baddie_y)
         DIV_HL_8
         ld c, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc c
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -1183,11 +1190,11 @@ chkDown1
         ld hl, (baddie_x)
         DIV_HL_8
         ld b, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc b
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -1209,11 +1216,11 @@ chkUp1
         ld hl, (baddie_x)
         DIV_HL_8
         ld b, l
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
         inc b
-        GET_WORLD_TILE
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
         cp 1
         ret z
 
@@ -1515,7 +1522,7 @@ INCBIN  "testmaze.map", 32768, 16384
 ; ----------------------------------------------------------------
 ; Distance field - 48 KB, one byte per maze cell (256x192).
 ; Same layout as the map (256-byte rows) but in pages 46-51, so the
-; tile (x,y) -> address arithmetic is identical to GET_WORLD_TILE
+; tile (x,y) -> address arithmetic is identical to GET_WORLD_VALUE
 ; with base page DFIELD_PAGE instead of TILEMAP_PAGE.
 ; Filled by the flood-fill; 255 = wall/unvisited/unreachable.
 ; ----------------------------------------------------------------

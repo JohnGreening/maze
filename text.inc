@@ -139,7 +139,8 @@ debugs:
         ld e, a
 
         ex de, hl
-        call getFieldByte
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+;        call getFieldByte
         ld bc, 18
         call Bin8ToDec
         ret
