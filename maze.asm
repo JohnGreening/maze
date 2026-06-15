@@ -170,6 +170,7 @@ otherSetup:
         call setupIM2
 
         call moveSprite1
+        call addKey
         call setTrail
         call newGame
 

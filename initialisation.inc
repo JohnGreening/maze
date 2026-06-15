@@ -383,6 +383,26 @@ putFieldByte:
 ;        pop hl
         ret
 
+putMapByte:
+; HL = YX tile into our distance map
+; we set distanceMap(x,y) = A
+        push af                                     ; preserve AF, we need A to set the value
+        ld a, h
+        srl a
+        srl a
+        srl a
+        srl a
+        srl a
+        add a, TILEMAP_PAGE
+        nextreg $56, a
+        ld a, h
+        and $1F
+        ld h, a
+        add hl, $C000
+        pop af                                      ; restore A to set value
+        ld (hl), a
+        ret
+
 
 ; ---- push cell offset in DE onto queue ----
 ; DE = YX
@@ -657,6 +677,87 @@ initBaddies:
         dec b
         jp nz, .nextBaddie
         ret
+
+
+addKey:
+        ld b, KEY_COUNT
+.nextKey:
+        push bc
+.tryPos:
+        ; random tile X 0..254
+.rx:    call rnd8
+        cp 255
+        jr z, .rx                   ; reject 255 (no room for tx+1)
+        ld d, a                     ; D = candidate tileX
+
+        ; random tile Y 0..190
+.ry:    call rnd8
+        cp 8
+        jr c, .ry
+        cp 191
+        jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
+        ld e, a                     ; E = candidate tileY
+
+.loop
+        ; --- test all four tiles of the 2x2 footprint are open ---
+        ld b, d
+        ld c, e
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty)
+        and a
+        jr nz, .tryPos              ; wall -> reject, draw again
+
+        ld b, d
+        ld c, e
+        inc b
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        ld c, e        
+        inc c
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty+1)
+        and a
+        jr nz, .tryPos
+
+        ld b, d
+        inc b
+        ld c, e
+        inc c
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty+1)
+        and a
+        jp nz, .tryPos
+
+        ; --- position is valid: D=tileX, E=tileY
+        ld l, d
+        ld h, e
+        ld a, 4
+        call putMapByte                                     ; key at tile x, y
+
+        ld l, d
+        ld h, e
+        inc l
+        ld a, 5
+        call putMapByte                                     ; key at tile x+1, y
+
+        ld l, d
+        ld h, e
+        inc h
+        ld a, 6
+        call putMapByte                                     ; key at tile x, y+1
+
+        ld l, d
+        ld h, e
+        inc l
+        inc h
+        ld a, 7
+        call putMapByte                                     ; key at tile x+1, y+1
+        
+        pop bc
+        dec b
+        jp nz, .nextKey
+        ret
+
 
 setClipping:
         nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)

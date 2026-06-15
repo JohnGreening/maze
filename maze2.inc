@@ -16,6 +16,24 @@ DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ; Tile001
 DB $00,$00,$01,$00,$00,$00,$01,$00,$11,$11,$11,$11,$00,$10,$00,$00
 DB $00,$10,$00,$00,$11,$11,$11,$11,$00,$00,$01,$00,$00,$00,$01,$00
+; Tile002
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+; Tile003
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+; Tile004
+DB $FF,$FF,$FF,$FF,$F2,$22,$22,$22,$FF,$FF,$FF,$FF,$FF,$F2,$22,$FF
+DB $FF,$22,$22,$2F,$F2,$2F,$FF,$22,$F2,$2F,$FF,$22,$F2,$2F,$FF,$22
+; Tile005
+DB $FF,$FF,$FF,$FF,$22,$22,$22,$2F,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$22,$22,$22,$2F
+; Tile006
+DB $F2,$2F,$FF,$22,$F2,$2F,$FF,$22,$F2,$2F,$FF,$22,$FF,$22,$22,$2F
+DB $FF,$F2,$22,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$F2,$22,$22,$22
+; Tile007
+DB $22,$22,$22,$2F,$FF,$F2,$2F,$2F,$FF,$F2,$2F,$2F,$FF,$F2,$FF,$2F
+DB $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$22,$22,$22,$2F
 
 SpritePatterns:
 ; Sprite000
@@ -203,7 +221,7 @@ endofSprites:
 
 
 TilePalette0:
-DB $E0,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+DB $E0,$00,$00,$00,$FC,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
 DB $0B,$01,$FF,$01,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 DB $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$E3,$01
