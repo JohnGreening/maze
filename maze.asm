@@ -103,6 +103,7 @@ floodTargetX    db  0
 floodTargetY    db  0
 FLOOD_LIMIT     equ 253
 
+L2_KEY          equ %11111100                       ; yellow (R+G, no blue)
 L2_WALL         equ %11100000                       ; red
 L2_PATH         equ %00000000                       ; black
 L2_FLOOD        EQU %11111111                       ; white

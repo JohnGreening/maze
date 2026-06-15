@@ -30,8 +30,8 @@ addScore:
         ld (hl), 0
         dec hl
         ld a, l
-        cp score3 / 256
-        jr nz, .addScore1
+        cp low score3
+        jr nc, .addScore1
         ret
 
 newGame:
@@ -423,65 +423,117 @@ qPopDE:
         ld (qCount), a
         ret
 
-
-buildMapImage:
+; ============================================================
+; Reset the map data, e.g. on new game
+; e.g. any extra tiles we introduce, keys etc are removed
+; ============================================================
+resetMapData:
         ld c, 0                                     ; Y tile co-ord
 .rowLoop:
         ld b, 0                                     ; X tile co-ord
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; new row so calculate 
 .colLoop:
-        ld h, c                                     ; get Y
-        ld l, b                                     ; get X
- 
-        ; calculate map page
-        ld a, h
+        ld a, (hl)                                  ; get what tile is currently there
+        cp 4                                        ; key starts from tile 4
+        jr c, .skipReset                            ; branch if < 4
+        ld (hl), 0                                  ; reset to 0 (path)
+.skipReset:
+        inc hl                                      ; next column
+        inc b                                       ; update column count
+        jr nz, .colLoop                             ; branch if wrap around to 0 (256 columns done)
+        inc c                                       ; update row count
+        ld a, c                                     ; get row count
+        cp 192                                      ; finished?
+        jr nz, .rowLoop                             ; branch if not finished
+        ret
+
+; ============================================================
+; buildMapImage - render the whole 256x192 map into Layer 2
+;
+; Optimised: the slot-6 page offset (y/32) and the in-page
+; address high byte ((y&$1F)|$C0) are constant for a whole row,
+; so they are computed ONCE per row. Columns are walked with
+; INC L (L = x, wraps 255->0). The three per-cell bank switches
+; (map / field / radar, all at the same $C000 address) are
+; unavoidable and remain.
+;
+; Trashes: AF, BC, DE, HL
+; ============================================================
+tileColour:
+        db L2_PATH      ; 0  path  (entry unused - path goes through flood check)
+        db L2_WALL      ; 1  wall  -> red
+        db L2_WALL      ; 2  spare wall
+        db L2_WALL      ; 3  spare wall
+        db L2_KEY       ; 4  key   -> yellow
+        db L2_KEY       ; 5  key
+        db L2_KEY       ; 6  key
+        db L2_KEY       ; 7  key
+
+buildMapImage:
+        ld c, 0                                     ; C = Y tile coord (0..191)
+
+.rowLoop:
+; ---- per-ROW setup (constant for every column in this row) ----
+        ld a, c
         srl a
         srl a
         srl a
         srl a
-        srl a
-        ld e, a                                     ; keep the page offset
-        add a, MAP_PAGE                             
-        nextreg $56, a                              ; page in the map page
-        ld a, h
-        and $1F
-        ld h, a
-        add hl, $C000
-        ld a, (hl)                                  ; get map tile at this cell
-        cp 1                                        ; test for 1 (wall)
-        jr nz, .checkFlood                          ; path or something else -> check flood field
-        ld d, L2_WALL                               ; wall -> red
-        jr .haveColour                              ; walls never flooded
- 
+        srl a                                       ; A = Y / 32 = page offset within each block
+        ld e, a                                     ; E = page offset (held for the whole row)
+
+        ld a, c
+        and $1F                                     ; low 5 bits of Y = row within the 32-row page
+        or $C0                                      ; high byte of slot-6 address = (Y&$1F) | $C0
+        ld h, a                                     ; H = row-base high byte (constant this row)
+        ld l, 0                                     ; L = X = 0  -> HL now = start of this row
+
+.colLoop:
+        ; ---- read MAP tile ----
+        ld a, e
+        add a, MAP_PAGE
+        nextreg $56, a                              ; page map bank into slot 6
+        ld a, (hl)                                  ; A = map tile at (X,Y)
+        or a
+        jr z, .checkFlood                           ; tile 0 = path -> needs flood check
+
+        ; non-zero tile -> fixed colour via lookup table
+        push hl                                     ; save cell address
+        ld hl, tileColour
+        add hl, a                                   ; Z80N: HL = &tileColour[tile]
+        ld d, (hl)                                  ; D = colour for this tile
+        pop hl                                      ; restore cell address
+        jr .haveColour
+
 .checkFlood:
-        ; HL still points at the cell's slot-6 address. The field uses the
-        ; same layout, so the SAME HL is correct once we page the field bank in.
+        ; same HL is valid for the field (identical layout) once we page it in
+        ld a, e
+        add a, DFIELD_PAGE
+        nextreg $56, a
+        ld a, (hl)
+        cp 255
         ld d, L2_PATH
-        ld a, e                                     ; page offset (y/32) saved earlier
-        add a, DFIELD_PAGE                          ; field base page
-        nextreg $56, a                              ; page field bank into slot 6
-        ld a, (hl)                                  ; A = distance value at this cell
-        cp 255                             ; <= FLOOD_LIMIT ?
-        jr Z, .haveColour                          ; 255 (or > limit) -> not flooded, keep white
-        ld d, L2_FLOOD                              ; flooded -> yellow
- 
+        jr z, .haveColour
+        ld d, L2_FLOOD
+
 .haveColour:
-        ; the offsets etc into the radar map will be the same
-        ; we just need to page in the correct page and set the pixel
-        ld a, e                                     ; retrieve the page offset from earlier
-        add a, L2_PAGE                              ; add in the radar base
-        nextreg $56, a                              ; page in the radar page
- 
-        ld a, d                                     ; get pixel colour from above
-        ld (hl), a                                  ; put into radar map
-        inc b
-        jr nz, .colLoop
+        ; same HL again, now page in the radar (Layer 2) bank and write
+        ld a, e
+        add a, L2_PAGE
+        nextreg $56, a                              ; page radar bank into slot 6
+        ld a, d
+        ld (hl), a                                  ; write the pixel colour
+
+; ---- next column ----
+        inc l                                       ; X++ ; L wraps 255 -> 0 at row end
+        jr nz, .colLoop                             ; continue until L wraps back to 0
+
+; ---- next row ----
         inc c
         ld a, c
         cp 192
         jr nz, .rowLoop
         ret
-
-
 
 
 
