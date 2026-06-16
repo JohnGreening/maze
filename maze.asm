@@ -1,6 +1,7 @@
 device ZXSPECTRUMNEXT
 INCLUDE "macros.inc"
 INCLUDE "maze2.inc"
+INCLUDE "keysroutines.inc"
 INCLUDE "initialisation.inc"
 INCLUDE "text.inc"
 INCLUDE "inspectorclouseau.inc"
@@ -25,7 +26,6 @@ healthBlock         db 23
 playerLives         db 0
 playerKeys          db 0
 playerAlive         db 0
-KEY_COUNT           EQU 4
 
 score3              db 0                            ; thousands
 score2              db 0                            ; hundreds
@@ -170,8 +170,8 @@ otherSetup:
         call setupIM2
 
         call moveSprite1
-        call addKey
-        call setTrail
+;        call addKey
+;        call setTrail
         call newGame
 
 main:
@@ -188,38 +188,6 @@ main:
         or c
         jr nz, .delay
         jr main
-
-setTrail:
-        ; set player tile X/Y positions
-        LD A, 3                                     ; Load speed index (3 = 28 MHz)
-        NEXTREG $07, A
-
-        ld a, 1
-        ld (floodInProgress), a
-
-        ld hl, (player_px)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_x), a
-        ld hl, (player_py)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_y), a
-
-        ld a, (player_tile_x)       
-        ld (floodTargetX), a
-        ld a, (player_tile_y)
-        ld (floodTargetY), a
-        call floodFill
-        call buildMapImage          ; render maze into Layer 2 pages
-
-        LD A, 0                                     ; Load speed index (3 = 28 MHz)
-        ld (floodInProgress), a
-        NEXTREG $07, A
-
-        nextreg $6c, a
-
-        ret
 
 
 keyProcess:	
@@ -739,18 +707,19 @@ showSprite:
         DIV_HL_8                                    ; L = tileY (player_py / 8)
         ld a, l
         ld (player_tile_y), a
-        ld c, l                                     ; C = tile Y
 
         ld hl, (player_px)
         DIV_HL_8                                    ; L = tileX (player_px / 8)
         ld a, l
         ld (player_tile_x), a
-        ld b, l                                     ; B = tile X
 
-        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
-
-        cp 255
-        call z, setTrail
+        ; ... player_tile_x / player_tile_y just stored ...
+        call checkKeyCollect
+        jr nc, .noKey               ; carry clear -> nothing collected
+        ; A = collected key index -> handle it
+        call collectKey             ; mark collected, clear tiles, bump count, re-flood
+.noKey:
+        ; ... rest of showSprite ...
 
         ld a, (viewMode)                            ; get the view mode, normal or radar
         or a                                        ; see it it is 0 (normal)
@@ -800,6 +769,63 @@ showSprite:
         OR %10000000                                ; bit 7 = visible
         NEXTREG $38, A
         RET
+
+; ============================================================
+; checkKeyCollect
+; Tests whether the player's 2x2 footprint overlaps any
+; AVAILABLE key's 2x2 block.
+; Returns: A = key index (0..KEY_COUNT-1) and carry SET if a
+;          key was collected; carry CLEAR (A undefined) if none.
+; Uses player_tile_x / player_tile_y (must be current).
+; Trashes: AF, BC, DE, HL
+; ============================================================
+checkKeyCollect:
+        ld hl, KEY_DATA
+        ld b, 0                         ; B = key index
+.loop:
+        ld a, (hl)                      ; key tileX
+        inc hl
+        ld c, (hl)                      ; key tileY
+        inc hl
+        ld e, (hl)                      ; status
+        inc hl                          ; HL -> next key record
+
+        ; skip keys that aren't available
+        ld d, a                         ; save key tileX in D (A about to be reused)
+        ld a, e
+        cp KEY_AVAILABLE
+        jr nz, .next                    ; not available -> skip
+
+        ; --- X overlap: abs(player_tile_x - keyX) <= 1 ? ---
+        ld a, (player_tile_x)
+        sub d                           ; A = px - kx
+        jr nc, .xpos
+        neg                             ; A = |px - kx|
+.xpos:
+        cp 2
+        jr nc, .next                    ; |dx| >= 2 -> no overlap
+
+        ; --- Y overlap: abs(player_tile_y - keyY) <= 1 ? ---
+        ld a, (player_tile_y)
+        sub c                           ; A = py - ky
+        jr nc, .ypos
+        neg
+.ypos:
+        cp 2
+        jr nc, .next                    ; |dy| >= 2 -> no overlap
+
+        ; overlap on both axes -> collected this key
+        ld a, b                         ; A = key index
+        scf                             ; carry set = collected
+        ret
+
+.next:
+        inc b
+        ld a, b
+        cp KEY_COUNT
+        jr nz, .loop
+        or a                            ; clear carry = nothing collected
+        ret
 
 processBaddies:
         ld ix, baddieData                           ; point to start of baddie data

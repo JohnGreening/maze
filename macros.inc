@@ -3,6 +3,11 @@ DEVICE ZXSPECTRUMNEXT
 USE_BC              EQU 0                           ; see GET_WORLD_VALUE macro
 USE_HL              EQU 1                           ; see GET_WORLD_VALUE macro
 
+MACRO SPEED arg
+        ld a, arg
+        NEXTREG $07, A
+            ENDM
+
 MACRO DIV_HL_8
 ; simple 16-bit divide without the CALL/RET overhead
         srl h                                       ; divide by 2

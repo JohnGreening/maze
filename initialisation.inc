@@ -34,6 +34,7 @@ addScore:
         jr nc, .addScore1
         ret
 
+
 newGame:
         ld a, 3
         ld (playerLives), a
@@ -56,6 +57,19 @@ newGame:
         call showLives
         call showKeys
         call showScore        
+
+        SPEED 3
+        ld a, 1                                     ; indicator for interupt handler
+        ld (floodInProgress), a                     ; set it
+
+        call clearFloodField
+        call addKey
+        call buildMapImage
+        ld a, 0                                     ; indicator for interupt handler
+        ld (floodInProgress), a                     ; set it
+        nextreg $6c, a                              ; tilemap palette offset 0
+        SPEED 0
+
         ret
 
 takeDamage:
@@ -133,18 +147,6 @@ showLives:
         call DisplayDigit
         ret
 
-showKeys:
-        ld iy, keys_text
-        call displayText
-        ld bc, 19
-        ld a, (playerKeys)
-        call DisplayDigit
-
-        ld bc, 21
-        ld a, KEY_COUNT 
-        call DisplayDigit
-        ret
-
 
 initHUD:
     ; clear top third of display file ($4000-$47FF) so the band is clean
@@ -188,23 +190,13 @@ dist    db 0
 paletteFlip db 0
 paletteDelay db 0
 floodInProgress db 0
-; ============================================================
-; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
-; distance field: 0 at target, increasing outward, clamped at
-; 254. 255 = wall/unvisited/unreachable. INERT until called.
-; ============================================================
-floodFill:
-        ld a, 0                                     ; ready to initialise
-        ld (qHeadIdx), a                            ; set q head to 0
-        ld (qTailIdx), a                            ; set q tail to 0
-        ld (qCount), a                              ; set q depth to 0
 
 ; ============================================================
-; clearDistanceField - set all 49152 field bytes to 255
-; (255 = unvisited/wall). Pages each of the 6 field pages into
-; slot 6 and floods it.
+; Clear the flood field area completely
+; set all 49152 field bytes to 255
+; (255 = unvisited/wall).
 ; ============================================================
-.clearDistanceField:
+clearFloodField:
         ld a, DFIELD_PAGE           ; first field page
         ld b, 6                     ; six pages to clear
 .clrPage:
@@ -221,7 +213,18 @@ floodFill:
         inc a                       ; next page
         pop bc
         djnz .clrPage
+        ret
 
+; ============================================================
+; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
+; distance field: 0 at target, increasing outward, clamped at
+; 254. 255 = wall/unvisited/unreachable. INERT until called.
+; ============================================================
+floodFill:
+        ld a, 0                                     ; ready to initialise
+        ld (qHeadIdx), a                            ; set q head to 0
+        ld (qTailIdx), a                            ; set q tail to 0
+        ld (qCount), a                              ; set q depth to 0
 
         ld a, (floodTargetY)                        ; get our target cell Y
         ld d, a                                     ; put in D
@@ -678,85 +681,6 @@ initBaddies:
         jp nz, .nextBaddie
         ret
 
-
-addKey:
-        ld b, KEY_COUNT
-.nextKey:
-        push bc
-.tryPos:
-        ; random tile X 0..254
-.rx:    call rnd8
-        cp 255
-        jr z, .rx                   ; reject 255 (no room for tx+1)
-        ld d, a                     ; D = candidate tileX
-
-        ; random tile Y 0..190
-.ry:    call rnd8
-        cp 8
-        jr c, .ry
-        cp 191
-        jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
-        ld e, a                     ; E = candidate tileY
-
-.loop
-        ; --- test all four tiles of the 2x2 footprint are open ---
-        ld b, d
-        ld c, e
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty)
-        and a
-        jr nz, .tryPos              ; wall -> reject, draw again
-
-        ld b, d
-        ld c, e
-        inc b
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty)
-        and a
-        jr nz, .tryPos
-
-        ld b, d
-        ld c, e        
-        inc c
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty+1)
-        and a
-        jr nz, .tryPos
-
-        ld b, d
-        inc b
-        ld c, e
-        inc c
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty+1)
-        and a
-        jp nz, .tryPos
-
-        ; --- position is valid: D=tileX, E=tileY
-        ld l, d
-        ld h, e
-        ld a, 4
-        call putMapByte                                     ; key at tile x, y
-
-        ld l, d
-        ld h, e
-        inc l
-        ld a, 5
-        call putMapByte                                     ; key at tile x+1, y
-
-        ld l, d
-        ld h, e
-        inc h
-        ld a, 6
-        call putMapByte                                     ; key at tile x, y+1
-
-        ld l, d
-        ld h, e
-        inc l
-        inc h
-        ld a, 7
-        call putMapByte                                     ; key at tile x+1, y+1
-        
-        pop bc
-        dec b
-        jp nz, .nextKey
-        ret
 
 
 setClipping:
