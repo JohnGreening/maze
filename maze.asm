@@ -32,8 +32,8 @@ score2              db 0                            ; hundreds
 score1              db 0                            ; tens
 score0              db 0                            ; units
 
-player_px           dw 464                          ; world pixel position of sprite
-player_py           dw 344
+player_px           dw 0                            ; world pixel position of sprite
+player_py           dw 0
 player_tile_x       db 0
 player_tile_y       db 0
 lastMove            db 1
@@ -113,30 +113,12 @@ yKeyWas         db 0                                ; debounce for Y key
 
 
 progStart:
+        call setupIM2
+
         call spriteSetup                            ; load sprites, tiles, palettes etc into memory
-
-        ; set camera X/Y position based on player X/Y
-        ld hl, (player_px)                          ; get initial player pixel X
-        ld bc, CENTRE_X                             ; the camera position is roughly centered
-        or a                                        ; clear carry
-        sbc hl, bc                                  ; hence get camera "world" X position in HL
-        ld (cam_px), hl                             ; and set it.
-
-        ld hl, (player_py)                          ; do the same for camera "world" Y position
-        ld bc, CENTRE_Y
-        or a
-        sbc hl, bc
-        ld (cam_py), hl
-
-        ; camera tile X/Y is pixel X/Y divided by 8
-        ld hl, (cam_px)
-        DIV_HL_8
-        ld a, l
-        ld (cam_tx), a
-        ld hl, (cam_py)
-        DIV_HL_8
-        ld a, l
-        ld (cam_ty), a
+        call setClipping
+        call setUpCamera
+        call attractMode
 
 otherSetup:
         LD A, 0                                     ; Load speed index (3 = 28 MHz)
@@ -145,14 +127,11 @@ otherSetup:
         ld a, 0                                     ; colour black
         out (254), a                                ; set border colour
 
-        call setClipping                            ; set tile and sprite clipping
-        call copy_visible_window                    ; initialise maze drawing based on player pixel X/Y
         call initHUD                                ; clear and draw HUD
         call showSprite                             ; show player
 
         call initBaddies                            ; initialise baddies 
 
-;        call buildMapImage          ; render maze into Layer 2 pages (once)
         ; Layer 2 setup (configured now, visibility off until Y)
         nextreg $12, L2_BANK16
         nextreg $70, %00000000      ; 256x192x8bpp
@@ -167,11 +146,7 @@ otherSetup:
         xor a
         out (c), a
 
-        call setupIM2
-
         call moveSprite1
-;        call addKey
-;        call setTrail
         call newGame
 
 main:
@@ -181,12 +156,6 @@ main:
 
         call keyProcess
 
-        ld bc, 500
-.delay
-        dec bc
-        ld a, b
-        or c
-        jr nz, .delay
         jr main
 
 
@@ -291,15 +260,15 @@ chkVert:
     	ld a, (player_px)                           ; get player px (low byte   )
     	and 7                                       ; check bits 2-0, if 0 then vertical movement may be allowed
     	jr nz, chkHoriz
-    	ld e, %00001100
+    	ld e, %00001100                             ; set bits to allow vertical movement
 	
 chkHoriz:	
 	    ld a, (player_py)                           ; get player px (low byte)
     	and 7                                       ; check bits 2-0 if 0 then horizontal movement may be allowed
     	jr nz, chkEnd
-    	ld a, %00000011
-    	or e
-    	ld e, a
+    	ld a, %00000011                             ; set bits to allow horizontal movement
+    	or e                                        ; add to existing mask
+    	ld e, a                                     ; set mask
 	
 chkEnd:	
 ; d = keys pressed	
@@ -381,7 +350,6 @@ doMoveRight:
 
         ld a, vdir_right
         ld (lastMove), a
-
         jp updateCameraXY
 
 doMoveDown:
@@ -396,7 +364,6 @@ doMoveDown:
 
         ld a, vdir_down
         ld (lastMove), a
-
         jp updateCameraXY
 
 doMoveUp:
@@ -411,7 +378,6 @@ doMoveUp:
 
         ld a, vdir_up
         ld (lastMove), a
-
         jp updateCameraXY
 
 ; ============================================================
@@ -421,11 +387,7 @@ doMoveUp:
 ; High clamp: if value > CAM_MAX       -> CAM_MAX
 ; ============================================================
 updateCameraXY:
- ;       push de
         call addScore
-        call showScore
- ;       pop de        
-
 
         ; ---------- X ----------
         ld hl, (player_px)
@@ -573,7 +535,11 @@ chkUp:
 keyEnd:
 moveSprite:
 ;        call debugs
+        ;ld a, 2
+        ;out (254), a
         call processBaddies
+        ;xor a
+        ;out (254), a
 
 moveSprite1:
 ; ================================================

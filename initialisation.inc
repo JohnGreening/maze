@@ -17,6 +17,17 @@ healthattr      equ $5847
 initHealthBlock equ 23
 initHealth      equ 8
 
+; ---- attract-screen instruction text ----
+at_title defb 22,  3, 9, "MAZE OF SKULLS", $ff
+at_l1    defb 22,  6, 6, "FIND THE HIDDEN KEYS", $ff
+at_l2    defb 22,  8, 7, "ESCAPE THE SKULLS", $ff
+at_l3    defb 22, 11, 9, "Q  -  UP", $ff
+at_l4    defb 22, 12, 9, "A  -  DOWN", $ff
+at_l5    defb 22, 13, 9, "O  -  LEFT", $ff
+at_l6    defb 22, 14, 9, "P  -  RIGHT", $ff
+at_l7    defb 22, 15, 9, "Y  -  RADAR", $ff
+at_l8    defb 22, 18, 5, "PRESS ANY KEY TO PLAY", $ff
+
 addScore:
         ld hl, score0
 .addScore1:
@@ -24,7 +35,7 @@ addScore:
         cp 9
         jr z, .scoreCarry
         inc (hl)
-        ret
+        jr showScore
 
 .scoreCarry:
         ld (hl), 0
@@ -32,8 +43,27 @@ addScore:
         ld a, l
         cp low score3
         jr nc, .addScore1
-        ret
 
+showScore:
+        ld bc, 7
+        ld de, score3
+        ld a, (de)
+        add a, "0"
+        call displayChar
+        inc de
+        ld a, (de)
+        add a, "0"
+        call displayChar
+        inc de
+        ld a, (de)
+        add a, "0"
+        call displayChar
+        inc de
+        ld a, (de)
+        add a, "0"
+        call displayChar
+
+        ret
 
 newGame:
         ld a, 3
@@ -67,6 +97,7 @@ newGame:
         call buildMapImage
         ld a, 0                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
+        ld a, %00000001
         nextreg $6c, a                              ; tilemap palette offset 0
         SPEED 0
 
@@ -116,26 +147,6 @@ lostLife:
         ret                                         ; return
 
 
-showScore:
-        ld bc, 7
-        ld de, score3
-        ld a, (de)
-        add a, "0"
-        call displayChar
-        inc de
-        ld a, (de)
-        add a, "0"
-        call displayChar
-        inc de
-        ld a, (de)
-        add a, "0"
-        call displayChar
-        inc de
-        ld a, (de)
-        add a, "0"
-        call displayChar
-
-        ret
 
 
 showLives:
@@ -154,6 +165,14 @@ initHUD:
         ld (hl), 0
         ld de, $4001
         ld bc, 2048 - 1
+        ldir
+
+; set the ENTIRE attribute area ($5800-$5AFF = 768 bytes)
+        ; black paper (=transparent with $14=0), white ink (visible text)
+        ld hl, $5800
+        ld (hl), %01000111          ; paper 0 (transparent), ink 7 (white)
+        ld de, $5801
+        ld bc, 768 - 1
         ldir
 
     ; flood top 3 char rows of attributes ($5800-$587F) with yellow
@@ -681,7 +700,132 @@ initBaddies:
         jp nz, .nextBaddie
         ret
 
+setUpCamera:
+        ; set camera X/Y position based on player X/Y
+        ld hl, 464
+        ld (player_px), hl
+        ld hl, 344
+        ld (player_py), hl
 
+        ld hl, (player_px)                          ; get initial player pixel X
+        ld bc, CENTRE_X                             ; the camera position is roughly centered
+        or a                                        ; clear carry
+        sbc hl, bc                                  ; hence get camera "world" X position in HL
+        ld (cam_px), hl                             ; and set it.
+
+        ld hl, (player_py)                          ; do the same for camera "world" Y position
+        ld bc, CENTRE_Y
+        or a
+        sbc hl, bc
+        ld (cam_py), hl
+
+        ; camera tile X/Y is pixel X/Y divided by 8
+        ld hl, (cam_px)
+        DIV_HL_8
+        ld a, l
+        ld (cam_tx), a
+        ld hl, (cam_py)
+        DIV_HL_8
+        ld a, l
+        ld (cam_ty), a
+        ret
+
+attractMode:
+        ; setup: layers, transparency, draw panel, place wandering baddies
+        call setupAttract
+            NEXTREG $6b, %10100000
+
+        call drawAttractText
+
+        ; drain: wait for all keys released before watching for a press
+.waitRelease:
+        call checkAnyKey
+        jr c, .waitRelease          ; still something held -> wait        
+.loop:
+        call processBaddies         ; wandering baddies move + draw
+        ; (optional) drift the camera for a slow pan
+        ; (optional) animate the panel "press any key" flash
+        call wait_vblank
+        call checkAnyKey            ; pressed?
+        jr nc, .loop                ; no key -> keep looping
+        ; key pressed -> tear down and start
+        ;call teardownAttract        ; clear panel, restore layers, HUD
+        ret
+
+; ============================================================
+; drawAttractText - print the instruction panel to the ULA.
+; Call once in setupAttract (after the panel attributes are set).
+; Trashes: IY, AF, BC (per displayText)
+; ============================================================
+drawAttractText:
+        ld iy, at_title
+        call displayText
+        ld iy, at_l1
+        call displayText
+        ld iy, at_l2
+        call displayText
+        ld iy, at_l3
+        call displayText
+        ld iy, at_l4
+        call displayText
+        ld iy, at_l5
+        call displayText
+        ld iy, at_l6
+        call displayText
+        ld iy, at_l7
+        call displayText
+        ld iy, at_l8
+        call displayText
+        ret
+
+; ============================================================
+checkAnyKey:
+        ld c, $FE                   ; keyboard port low byte (constant)
+        ld e, $FE                   ; row-select pattern: one bit low, rotates
+        ld d, 8                     ; 8 rows to check
+.scanRow:
+        ld b, e                     ; B = current row-select (high address byte)
+        in a, (c)                   ; read this half-row
+        and $1F                     ; keep only the 5 key bits
+        cp $1F                      ; all 1s = no key in this row
+        jr nz, .pressed             ; a 0 bit = a key down -> pressed
+        rlc e                       ; rotate the zero bit to the next row
+        dec d
+        jr nz, .scanRow
+        or a                        ; checked all rows, none pressed -> clear carry
+        ret
+.pressed:
+        scf                         ; key down -> set carry
+        ret
+
+setupAttract:
+        call setClipping
+        NEXTREG $6b, %10100000
+
+        call initHUD
+        call newGame
+
+        ; derive camera TILE (B = cam_px>>3, C = cam_py>>3) - required by copy_visible_window        
+        ld hl, (cam_px)
+        DIV_HL_8
+        ld b, l                     ; B = camera tile X
+        ld hl, (cam_py)
+        DIV_HL_8
+        ld c, l                     ; C = camera tile Y
+
+        call copy_visible_window    ; now draws maze from correct camera origin
+
+        ; fine scroll to match
+        ld a, (cam_px)
+        and 7
+        nextreg $30, a
+        ld a, (cam_py)
+        and 7
+        nextreg $31, a
+
+        call showSprite
+        call initBaddies
+        ret
 
 setClipping:
         nextreg $1C, %00001000                      ; Reset tilemap clip window index (bit 3 = 1)
