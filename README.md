@@ -83,8 +83,8 @@ im2Routine.inc         # IM2 interrupt handler (included from maze.asm)
 
 | File                    | Purpose                                      |
 |-------------------------|----------------------------------------------|
-| `macros.inc`            | Useful macros (`DIV_HL_8`, `GET_WORLD_TILE`, etc.) |
-| `maze2.inc`             | Graphics setup (Sprites, Tiles, Palettes, Tilemap) |
+| `macros.inc`            | Useful macros                                |
+| `maze2.inc`             | Graphics setup (Sprites, Tiles, Palettes etc) |
 | `initialisation.inc`    | Floodfill, Layer 2 radar view, HUD and associated routines |
 | `text.inc`              | Text rendering routines                      |
 | `inspectorclouseau.inc` | Music / melody data (Inspector Clouseau theme) |
