@@ -309,7 +309,7 @@ spriteSetup:
 ; Default tilemap attribute for 8bit maps
 ; i.e. when using 1 byte tilemap mode
 ; NB limits colours to 0-15
-    NEXTREG $6c, $0
+    NEXTREG $6c, %00000001
 ; bit 7-4 Palette offset
 ; bit 3 1=mirror in X direction
 ; bit 2 1=mirror in Y direction

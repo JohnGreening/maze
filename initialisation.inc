@@ -19,13 +19,13 @@ initHealth      equ 8
 
 ; ---- attract-screen instruction text ----
 at_title defb 22,  3, 9, "MAZE OF SKULLS", $ff
-at_l1    defb 22,  6, 6, "FIND THE HIDDEN KEYS", $ff
-at_l2    defb 22,  8, 7, "ESCAPE THE SKULLS", $ff
+at_l1    defb 22,  6, 4, "FIND THE SCATTERED KEYS", $ff
+at_l2    defb 22,  8, 8, "AVOID THE SKULLS", $ff
 at_l3    defb 22, 11, 9, "Q  -  UP", $ff
 at_l4    defb 22, 12, 9, "A  -  DOWN", $ff
 at_l5    defb 22, 13, 9, "O  -  LEFT", $ff
 at_l6    defb 22, 14, 9, "P  -  RIGHT", $ff
-at_l7    defb 22, 15, 9, "Y  -  RADAR", $ff
+at_l7    defb 22, 15, 9, "Y  -  BRIEF RADAR VIEW", $ff
 at_l8    defb 22, 18, 5, "PRESS ANY KEY TO PLAY", $ff
 
 addScore:
@@ -80,13 +80,8 @@ newGame:
         
         ld a, initHealthBlock
         ld (healthBlock), a
-        
-        ld iy, health_bar
-        call displayText
 
-        call showLives
-        call showKeys
-        call showScore        
+        call initHUD       
 
         SPEED 3
         ld a, 1                                     ; indicator for interupt handler
@@ -97,8 +92,6 @@ newGame:
         call buildMapImage
         ld a, 0                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
-        ld a, %00000001
-        nextreg $6c, a                              ; tilemap palette offset 0
         SPEED 0
 
         ret
@@ -160,26 +153,33 @@ showLives:
 
 
 initHUD:
-    ; clear top third of display file ($4000-$47FF) so the band is clean
+; clear complete ULA display, see pixel data to 0
         ld hl, $4000
         ld (hl), 0
         ld de, $4001
-        ld bc, 2048 - 1
-        ldir
+        ld bc, 6144 - 1
+        ldir  
 
-; set the ENTIRE attribute area ($5800-$5AFF = 768 bytes)
+; set the INSTRUCTIONS attribute area
         ; black paper (=transparent with $14=0), white ink (visible text)
-        ld hl, $5800
-        ld (hl), %01000111          ; paper 0 (transparent), ink 7 (white)
-        ld de, $5801
-        ld bc, 768 - 1
+        ld hl, $5880
+        ld (hl), %01000111          ; bright on, paper 0 (transparent), ink 7 (white)
+        ld de, $5881
+        ld bc, 658 - 1
         ldir
 
-    ; flood top 3 char rows of attributes ($5800-$587F) with yellow
+; set HUD attribute area with yellow
         ld hl, $5800
         ld (hl), HUD_ATTR
         ld de, $5801
         ld bc, 96 - 1
+        ldir
+
+; set the health attribute area
+        ld hl, $5847
+        ld (hl), HEALTH_ATTR
+        ld de, $5848
+        ld bc, 24
         ldir
 
         ld iy, score_text
@@ -191,17 +191,13 @@ initHUD:
         ld iy, health_text
         call displayText
 
-;        ld iy, health_bar
-;        call displayText
+        call showLives
+        call showKeys
+        call showScore        
 
-        ld hl, $5847
-        ld (hl), HEALTH_ATTR
-        ld de, $5848
-        ld bc, 24
-        ldir
+        ld iy, health_bar                           ; show the full strength health bar
+        call displayText
 
-;        call showLives
-;        call showKeys
         ret
 
 
@@ -733,8 +729,6 @@ setUpCamera:
 attractMode:
         ; setup: layers, transparency, draw panel, place wandering baddies
         call setupAttract
-            NEXTREG $6b, %10100000
-
         call drawAttractText
 
         ; drain: wait for all keys released before watching for a press
@@ -748,8 +742,8 @@ attractMode:
         call wait_vblank
         call checkAnyKey            ; pressed?
         jr nc, .loop                ; no key -> keep looping
-        ; key pressed -> tear down and start
-        ;call teardownAttract        ; clear panel, restore layers, HUD
+
+        call initHUD
         ret
 
 ; ============================================================
@@ -799,10 +793,6 @@ checkAnyKey:
         ret
 
 setupAttract:
-        call setClipping
-        NEXTREG $6b, %10100000
-
-        call initHUD
         call newGame
 
         ; derive camera TILE (B = cam_px>>3, C = cam_py>>3) - required by copy_visible_window        
@@ -823,7 +813,6 @@ setupAttract:
         and 7
         nextreg $31, a
 
-        call showSprite
         call initBaddies
         ret
 

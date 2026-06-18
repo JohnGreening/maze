@@ -127,10 +127,7 @@ otherSetup:
         ld a, 0                                     ; colour black
         out (254), a                                ; set border colour
 
-        call initHUD                                ; clear and draw HUD
         call showSprite                             ; show player
-
-        call initBaddies                            ; initialise baddies 
 
         ; Layer 2 setup (configured now, visibility off until Y)
         nextreg $12, L2_BANK16
@@ -147,7 +144,6 @@ otherSetup:
         out (c), a
 
         call moveSprite1
-        call newGame
 
 main:
         ld a, (playerLives)
