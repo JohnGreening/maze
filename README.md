@@ -85,8 +85,8 @@ im2Routine.inc         # IM2 interrupt handler (included from maze.asm)
 |-------------------------|----------------------------------------------|
 | `macros.inc`            | Useful macros                                |
 | `maze2.inc`             | Graphics setup (Sprites, Tiles, Palettes etc) |
-| `keysroutines.inc`      | Key placement (`addKey`), collection (`collectKey`), HUD display and map/flood rebuild |
-| `initialisation.inc`    | Floodfill, Layer 2 radar view, HUD and associated routines |
+| `keysroutines.inc`      | Key specific routines                         |
+| `initialisation.inc`    | Floodfill, Layer 2 radar view, HUD and other routines |
 | `text.inc`              | Text rendering routines                      |
 | `inspectorclouseau.inc` | Music / melody data (Inspector Clouseau theme) |
 | `soundEffects.inc`      | Sound effect definitions + `playsound` routine |
