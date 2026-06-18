@@ -4,7 +4,7 @@ A top-down maze exploration game for the **ZX Spectrum Next**, written in Z80N a
 
 ## Description
 
-Explore a vast 256×192 tile maze populated with 20 intelligent enemies ("baddies"). Use smooth pixel-precise movement, avoid or confront the enemies, toggle a radar view that visualizes the enemy pathfinding data, and survive as long as your health allows.
+Explore a vast 256×192 tile maze populated with 20 semi-intelligent skull badfies.  Avoid the skulls, toggle a radar view that visualizes the enemy pathfinding data, and survive as long as your health allows.
 
 The game showcases advanced ZX Spectrum Next techniques:
 - Hardware tilemap scrolling with fine pixel offset
@@ -34,7 +34,7 @@ The game showcases advanced ZX Spectrum Next techniques:
 | A   | Move down       |
 | O   | Move left       |
 | P   | Move right      |
-| Y   | Toggle radar view (Layer 2 flood map) |
+| Y   | Toggle radar view |
 
 Movement is pixel-smooth (delta = 2 pixels). Collision is checked when aligned to tile boundaries.
 
@@ -116,4 +116,4 @@ Interests: ZX Spectrum, ZX Spectrum Next, Z80 development
 
 *Built with enthusiasm for the ZX Spectrum Next community.*
 
-If you have feedback, suggestions, or want to collaborate, feel free to open an issue or pull request!
+If you have feedback, suggestions, feel free to open an issue or pull request!
