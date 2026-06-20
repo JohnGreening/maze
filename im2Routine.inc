@@ -11,11 +11,11 @@
         and 7
         ld (paletteDelay), a
         jr nz, noFlood
-;        ld a, (paletteFlip)
-;        xor 1
-;        ld (paletteFlip), a
-;        swapnib
-;        nextreg $6c, a
+        ld a, (paletteFlip)
+        xor 1
+        ld (paletteFlip), a
+        swapnib
+        nextreg $6c, a
 
 noFlood:
         LD C, AYPortC              ; shared port for AY chip access

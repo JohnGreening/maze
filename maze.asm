@@ -27,6 +27,7 @@ playerLives         db 0
 playerKeys          db 0
 playerAlive         db 0
 
+score4              db 0
 score3              db 0                            ; thousands
 score2              db 0                            ; hundreds
 score1              db 0                            ; tens
@@ -84,7 +85,7 @@ mode                byte
 lastDist            byte
     ENDS
 
-baddieCount         equ 20
+baddieCount         equ 60
 baddieData          defs baddieRecord * baddieCount
 
 ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
@@ -449,11 +450,11 @@ chkLeft:
 	    DIV_HL_8
 	    ld c, l
 	    GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-	    cp 1
+	    cp MAP_WALL
 	    ret z
 	    inc c
 	    GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-	    cp 1
+	    cp MAP_WALL
 	    ret z
 	
 	    set dir_left, e                             ; set ok
@@ -472,11 +473,11 @@ chkRight:
         DIV_HL_8
         ld c, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc c
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_right, e
@@ -495,11 +496,11 @@ chkDown:
         DIV_HL_8
         ld b, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc b
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_down, e
@@ -517,11 +518,11 @@ chkUp:
         DIV_HL_8
         ld b, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc b
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_up, e
@@ -1122,12 +1123,12 @@ chkLeft1
         DIV_HL_8                                    ; divide by 8 to get tile Y
         ld c, l                                     ; C = tile Y
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
-        cp 1                                        ; is it a wall?
+        cp MAP_WALL                                 ; is it a wall?
         ret z                                       ; return if so, do nothing
 
         inc c                                       ; sprites are 2 tiles tall, so we will check tile Y+1
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
-        cp 1                                        ; is it a wall?
+        cp MAP_WALL                                 ; is it a wall?
         ret z                                       ; return if so, do nothing
 
         set dir_left, e                             ; set bit in E indicating move is allowed
@@ -1150,11 +1151,11 @@ chkRight1
         DIV_HL_8
         ld c, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc c
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_right, e
@@ -1177,11 +1178,11 @@ chkDown1
         DIV_HL_8
         ld b, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc b
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_down, e
@@ -1203,11 +1204,11 @@ chkUp1
         DIV_HL_8
         ld b, l
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
         inc b
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC
-        cp 1
+        cp MAP_WALL
         ret z
 
         set dir_up, e

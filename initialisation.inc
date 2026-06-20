@@ -28,40 +28,49 @@ at_l6    defb 22, 14, 9, "P  -  RIGHT", $ff
 at_l7    defb 22, 15, 9, "Y  -  BRIEF RADAR VIEW", $ff
 at_l8    defb 22, 18, 5, "PRESS ANY KEY TO PLAY", $ff
 
+
+;===========================================================
+; add 1 to the current score and display it
+;===========================================================
 addScore:
-        ld hl, score0
+        ld hl, score0                               ; point to the units value
 .addScore1:
-        ld a, (hl)
-        cp 9
-        jr z, .scoreCarry
-        inc (hl)
-        jr showScore
+        ld a, (hl)                                  ; get digit here
+        cp 9                                        ; is it 9, +1 needs to set to 0 and carry 1 to next value
+        jr z, .scoreCarry                           ; branch if so to carry
+        inc (hl)                                    ; otherwise just increment this one
+        jr showScore                                ; and show the result
 
 .scoreCarry:
-        ld (hl), 0
-        dec hl
-        ld a, l
-        cp low score3
-        jr nc, .addScore1
+        ld (hl), 0                                  ; carry occured, so set this one to 0
+        dec hl                                      ; point to next value
+        ld a, l                                     ; get low byte of this entry
+        cp low score4                               ; check to see if will are going to overflow
+        jr nc, .addScore1                           ; branch if not so do the +1
 
+; routine as part of addScore but can be called independently
 showScore:
         ld bc, 7
-        ld de, score3
+        ld de, score4
         ld a, (de)
         add a, "0"
-        call displayChar
+        call displayChar                            ; ten thousands
         inc de
         ld a, (de)
         add a, "0"
-        call displayChar
+        call displayChar                            ; thousands
         inc de
         ld a, (de)
         add a, "0"
-        call displayChar
+        call displayChar                            ; hundreds
         inc de
         ld a, (de)
         add a, "0"
-        call displayChar
+        call displayChar                            ; tens
+        inc de
+        ld a, (de)
+        add a, "0"
+        call displayChar                            ; units
 
         ret
 
@@ -70,6 +79,7 @@ newGame:
         ld (playerLives), a
         ld a, 0
         ld (playerKeys), a
+        ld (score4), a
         ld (score3), a
         ld (score2), a
         ld (score1), a
@@ -87,15 +97,23 @@ newGame:
         ld a, 1                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
 
+        call resetMapData
         call clearFloodField
         call addKey
         call buildMapImage
+
         ld a, 0                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
         SPEED 0
 
         ret
 
+;===========================================================
+; routine called when player collides with a skull
+; it
+;   reduces health value and shows result
+;   on zero health, falls into lost life and shows result
+;===========================================================
 takeDamage:
         ld a, (playerHealth)                        ; get current health value
         dec a                                       ; take damage !
@@ -135,12 +153,6 @@ lostLife:
         dec a                                       ; - 1
         and 3                                       ; don't overflow
         ld (playerLives), a                         ; save it
-        call showLives                              ; show it
-
-        ret                                         ; return
-
-
-
 
 showLives:
         ld iy, lives_text
@@ -162,9 +174,9 @@ initHUD:
 
 ; set the INSTRUCTIONS attribute area
         ; black paper (=transparent with $14=0), white ink (visible text)
-        ld hl, $5880
+        ld hl, $5860
         ld (hl), %01000111          ; bright on, paper 0 (transparent), ink 7 (white)
-        ld de, $5881
+        ld de, $5861
         ld bc, 658 - 1
         ldir
 
@@ -744,6 +756,7 @@ attractMode:
         jr nc, .loop                ; no key -> keep looping
 
         call initHUD
+        nextreg $6c, 0
         ret
 
 ; ============================================================
@@ -793,8 +806,6 @@ checkAnyKey:
         ret
 
 setupAttract:
-        call newGame
-
         ; derive camera TILE (B = cam_px>>3, C = cam_py>>3) - required by copy_visible_window        
         ld hl, (cam_px)
         DIV_HL_8
@@ -813,6 +824,8 @@ setupAttract:
         and 7
         nextreg $31, a
 
+        call newGame
+        nextreg $6c, 1
         call initBaddies
         ret
 
