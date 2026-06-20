@@ -1,39 +1,38 @@
 # Maze Game
 
-A top-down maze exploration game for the **ZX Spectrum Next**, written in Z80N assembly.
+A top-down maze exploration game for the **ZX Spectrum Next**, written in Z80(N) assembly.
 
 ## Description
 
-Explore a vast 256×192 tile maze populated with 20 semi-intelligent skull badfies.  Avoid the skulls, toggle a radar view that visualizes the enemy pathfinding data, and survive as long as your health allows.
+Explore a vast 256×192 tile maze populated with semi-intelligent skull baddies.  
+Collect the keys, whilst avoiding the skulls and survive as long as your health allows.
 
 The game showcases advanced ZX Spectrum Next techniques:
 - Hardware tilemap scrolling with fine pixel offset
-- Layer 2 graphics for radar/minimap mode
+- Layer 2 graphics for radar view mode
 - Sprite handling with animation
 - Memory paging for large worlds
 - IM2 interrupts for timing and sound
-- Flood-fill distance field powering both AI and visualization
 
 ## Features
 
 - Large pre-generated maze (256×192 tiles)
 - Smooth pixel scrolling and camera following
 - Animated 4-direction player sprite
-- 20 AI enemies with hunt/wander behavior using distance field "scent"
+- AI enemies with hunt/wander behavior using distance field "scent"
 - Tile-based wall collision + pixel overlap enemy collision
 - Toggleable radar view (Y key) showing walls/paths/flood distances on Layer 2
 - Sound effects via AY chip + included melody data
-- Health bar in HUD (top of screen)
 - Active development with frequent improvements
 
 ## Controls (Keyboard)
 
-| Key | Action          |
-|-----|-----------------|
-| Q   | Move up         |
-| A   | Move down       |
-| O   | Move left       |
-| P   | Move right      |
+| Key | Action            |
+|-----|-------------------|
+| Q   | Move up           |
+| A   | Move down         |
+| O   | Move left         |
+| P   | Move right        |
 | Y   | Toggle radar view |
 
 Movement is pixel-smooth (delta = 2 pixels). Collision is checked when aligned to tile boundaries.
@@ -64,7 +63,8 @@ The maze was created using the included `MAZE1.bas` (QB64PE):
 - Paths are exactly 2 tiles wide; walls are 1 tile thick
 - Safe perimeter walls on left, right, and bottom
 
-You can modify parameters in `MAZE1.bas` (e.g. `topOpenRows`) and re-run it to generate new `testmaze.map` files. Update the `INCBIN` statements in the assembly source if you want to use a different map.
+You can modify parameters in `MAZE1.bas` (e.g. `topOpenRows`) and re-run it to generate new `testmaze.map` files. 
+Update the `INCBIN` statements in the assembly source if you want to use a different map.
 
 ## Project Structure
 
@@ -81,17 +81,17 @@ im2Routine.inc         # IM2 interrupt handler (included from maze.asm)
 
 `maze.asm` uses the following `INCLUDE` directives:
 
-| File                    | Purpose                                      |
-|-------------------------|----------------------------------------------|
-| `macros.inc`            | Useful macros                                |
-| `maze2.inc`             | Graphics setup (Sprites, Tiles, Palettes etc) |
-| `keysroutines.inc`      | Key specific routines                         |
-| `initialisation.inc`    | Floodfill, Layer 2 radar view, HUD and other routines |
-| `text.inc`              | Text rendering routines                      |
-| `inspectorclouseau.inc` | Music / melody data (Inspector Clouseau theme) |
-| `soundEffects.inc`      | Sound effect definitions + `playsound` routine |
+| File                    | Purpose                                                        |
+|-------------------------|----------------------------------------------------------------|
+| `macros.inc`            | Useful macros                                                  |
+| `maze2.inc`             | Graphics setup (Sprites, Tiles, Palettes etc)                  |
+| `keysroutines.inc`      | Key specific routines                                          |
+| `initialisation.inc`    | Floodfill, Layer 2 radar view, HUD and other routines          |
+| `text.inc`              | Text rendering routines                                        |
+| `inspectorclouseau.inc` | Music / melody data                                            |
+| `soundEffects.inc`      | Sound effect definitions + `playsound` routine                 |
+| `im2Routine.inc`        | Plays melody and sound effects in background                   |
 
-> **Note:** `im2Routine.inc` is included inside the interrupt setup section of `maze.asm`.
 
 ## Development Status
 
