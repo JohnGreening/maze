@@ -4,7 +4,7 @@ INCLUDE "maze2.inc"
 INCLUDE "keysroutines.inc"
 INCLUDE "initialisation.inc"
 INCLUDE "text.inc"
-INCLUDE "inspectorclouseau.inc"
+INCLUDE "melody.inc"
 INCLUDE "soundEffects.inc"
 cam_px              dw  0
 cam_py              dw  0
