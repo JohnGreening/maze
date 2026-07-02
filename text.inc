@@ -1,4 +1,11 @@
 DEVICE ZXSPECTRUMNEXT
+/*
+This include file contains text display routines
+- displayText
+- displayChar
+- Bin8ToDec
+- DisplayDigit
+*/
 
 charset equ 15616
 udgBase:    defb 0, 0, 0, 0, 255, 255, 0, 0

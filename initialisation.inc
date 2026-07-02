@@ -75,6 +75,24 @@ showScore:
         ret
 
 newGame:
+        call resetPlayerVals
+
+        SPEED 3
+        ld a, 1                                     ; indicator for interupt handler
+        ld (floodInProgress), a                     ; set it
+
+        call resetMapData
+        call clearFloodField
+        call addKey
+        call buildMapImage
+
+        ld a, 0                                     ; indicator for interupt handler
+        ld (floodInProgress), a                     ; set it
+        SPEED 0
+
+        ret
+
+resetPlayerVals:
         ld a, 3
         ld (playerLives), a
         ld a, 0
@@ -92,20 +110,6 @@ newGame:
         ld (healthBlock), a
 
         call initHUD       
-
-        SPEED 3
-        ld a, 1                                     ; indicator for interupt handler
-        ld (floodInProgress), a                     ; set it
-
-        call resetMapData
-        call clearFloodField
-        call addKey
-        call buildMapImage
-
-        ld a, 0                                     ; indicator for interupt handler
-        ld (floodInProgress), a                     ; set it
-        SPEED 0
-
         ret
 
 ;===========================================================
@@ -132,7 +136,7 @@ takeDamage:
         ret nz                                      ; return if not
 
 ; block now empty -> redraw it as fully empty (136), then move left
-        ld a, 8                                     ; full health block value
+        ld a, initHealth                            ; full health block value
         ld (playerHealth), a                        ; set it
         ld a, (healthBlock)                         ; but health block value needs to reduce
         dec a                                       ; deduct 1
@@ -755,7 +759,9 @@ attractMode:
         call checkAnyKey            ; pressed?
         jr nc, .loop                ; no key -> keep looping
 
-        call initHUD
+        call resetPlayerVals
+        NEXTREG $6b, %10100000
+
         nextreg $6c, 0
         ret
 
@@ -825,6 +831,7 @@ setupAttract:
         nextreg $31, a
 
         call newGame
+        NEXTREG $6b, %10100000
         nextreg $6c, 1
         call initBaddies
         ret

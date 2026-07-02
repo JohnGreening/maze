@@ -5,7 +5,9 @@ KEY_COLLECTED       EQU 0
 KEY_COUNT           EQU 4
 KEY_DATA            defs 3 * KEY_COUNT              ; [tile X, tile Y, status ] * KEY_COUNT
 
-
+;===========================================================
+; display "Keys: n/x"
+;===========================================================
 showKeys:
         ld iy, keys_text
         call displayText
@@ -18,6 +20,12 @@ showKeys:
         call DisplayDigit
         ret
 
+;===========================================================
+; this routine called when a key is collected
+; it removes the key from the maze map
+; clears and repopulates the distance map
+; updates the playerKeys and shows current status
+;===========================================================
 collectKey:
         ld hl, KEY_DATA                             ; point to the key data
         ld b, a                                     ; save key index, 0, 1, 2 or 3
@@ -32,26 +40,26 @@ collectKey:
         ld l, d
         ld h, e
         ld a, MAP_PATH
-        call putMapByte                                     ; key at tile x, y
+        call putMapByte                             ; key at tile x, y
 
         ld l, d
         ld h, e
         inc l
         ld a, MAP_PATH
-        call putMapByte                                     ; key at tile x+1, y
+        call putMapByte                             ; key at tile x+1, y
 
         ld l, d
         ld h, e
         inc h
         ld a, MAP_PATH
-        call putMapByte                                     ; key at tile x, y+1
+        call putMapByte                             ; key at tile x, y+1
 
         ld l, d
         ld h, e
         inc l
         inc h
         ld a, MAP_PATH
-        call putMapByte                                     ; key at tile x+1, y+1
+        call putMapByte                             ; key at tile x+1, y+1
 
         ld a, soundCollect
         call playsound
@@ -63,6 +71,12 @@ collectKey:
         call showKeys
         ret
 
+;===========================================================
+; this routine callled when a key is collected
+; for each key still in play it
+;     calculates the distance field
+;     rebuilds the radar layer 2 map
+;===========================================================
 rebuildMaps:
         ;=======================================================
         ; build the maps for a new game or when key is collected
@@ -110,6 +124,10 @@ rebuildMaps:
         SPEED 0
         ret
 
+;===========================================================
+; this routine called as part of a new game
+; it randomly adds each key into the maze map
+;===========================================================
 addKey:
         ld b, 0
 .nextKey:
@@ -118,36 +136,36 @@ addKey:
         ; random tile X 0..254
 .rx:    call rnd8
         cp 255
-        jr z, .rx                   ; reject 255 (no room for tx+1)
-        ld d, a                     ; D = candidate tileX
+        jr z, .rx                                   ; reject 255 (no room for tx+1)
+        ld d, a                                     ; D = candidate tileX
 
         ; random tile Y 0..190
 .ry:    call rnd8
         cp 8
         jr c, .ry
         cp 191
-        jr nc, .ry                  ; reject 191..255 (need ty in 0..190)
-        ld e, a                     ; E = candidate tileY
+        jr nc, .ry                                  ; reject 191..255 (need ty in 0..190)
+        ld e, a                                     ; E = candidate tileY
 
 .loop
         ; --- test all four tiles of the 2x2 footprint are open ---
         ld b, d
         ld c, e
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; (tx, ty)
         and a
-        jr nz, .tryPos              ; wall -> reject, draw again
+        jr nz, .tryPos                              ; wall -> reject, draw again
 
         ld b, d
         ld c, e
         inc b
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; (tx+1, ty)
         and a
         jr nz, .tryPos
 
         ld b, d
         ld c, e        
         inc c
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx, ty+1)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; (tx, ty+1)
         and a
         jr nz, .tryPos
 
@@ -155,7 +173,7 @@ addKey:
         inc b
         ld c, e
         inc c
-        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC              ; (tx+1, ty+1)
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; (tx+1, ty+1)
         and a
         jp nz, .tryPos
 
@@ -164,33 +182,33 @@ addKey:
         ; --- after the 4 wall-checks pass, before placing the key ensure no flood fill here.
         ld b, d
         ld c, e
-        GET_WORLD_VALUE DFIELD_PAGE, USE_BC     ; A = field distance at candidate
-        cp 255                                  ; 255 = unflooded
-        jp nz, .tryPos                          ; already flooded -> too close -> re-pick
+        GET_WORLD_VALUE DFIELD_PAGE, USE_BC         ; A = field distance at candidate
+        cp 255                                      ; 255 = unflooded
+        jp nz, .tryPos                              ; already flooded -> re-pick
 
         ld l, d
         ld h, e
         ld a, MAP_KEYTL
-        call putMapByte                                     ; key at tile x, y
+        call putMapByte                             ; key at tile x, y
 
         ld l, d
         ld h, e
         inc l
         ld a, MAP_KEYTR
-        call putMapByte                                     ; key at tile x+1, y
+        call putMapByte                             ; key at tile x+1, y
 
         ld l, d
         ld h, e
         inc h
         ld a, MAP_KEYBL
-        call putMapByte                                     ; key at tile x, y+1
+        call putMapByte                             ; key at tile x, y+1
 
         ld l, d
         ld h, e
         inc l
         inc h
         ld a, MAP_KEYBR
-        call putMapByte                                     ; key at tile x+1, y+1
+        call putMapByte                             ; key at tile x+1, y+1
         
         push de
         ld a, d

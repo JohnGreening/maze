@@ -35,9 +35,9 @@ score0              db 0                            ; units
 
 player_px           dw 0                            ; world pixel position of sprite
 player_py           dw 0
-player_tile_x       db 0
+player_tile_x       db 0                            ; world tile position of sprite, basically px / 256
 player_tile_y       db 0
-lastMove            db 1
+lastMove            db 1                            ; 
 playerAnimFrame     db 0                            ; current animation frame 0-3
 playerAnimTick      db 0                            ; counts frames to slow the animation
 
@@ -48,15 +48,16 @@ PAT_UP              equ 16                          ; facing away
 ANIM_SPEED          equ 4                           ; advance frame every N moves (higher = slower)
 
 
-MAP_PATH            EQU 0
-MAP_WALL            EQU 1
-MAP_KEYTL           EQU 4
-MAP_KEYTR           EQU 5
-MAP_KEYBL           EQU 6
-MAP_KEYBR           EQU 7
+; tiles used in map
+MAP_PATH            EQU 0                           ; path, basically an empty tile
+MAP_WALL            EQU 1                           ; wall, simple brick graphic
+MAP_KEYTL           EQU 4                           ; key, top left
+MAP_KEYTR           EQU 5                           ; key, top right
+MAP_KEYBL           EQU 6                           ; key, bottom left
+MAP_KEYBR           EQU 7                           ; key, bottom right
 
-move_delta          equ 2
-move_delta_baddie   equ 1
+move_delta          equ 2                           ; player move pixel increment
+move_delta_baddie   equ 1                           ; baddie move pixel increment
 
 dir_left            equ 0
 dir_right           equ 1
@@ -221,6 +222,25 @@ chkKeyRadar:
 
 
 ; regular left/right/up/down kwyboard processing follows
+.chkExit:
+        ld bc, $fefe
+        in a, (c)
+        bit 2, a
+        
+        jr nz, .yEnd1
+
+.RESET_NEXT:
+        DI                  ; Disable interrupts to prevent glitching
+        LD BC, $243B        ; TBBlue/Next Register Select Port
+        LD A, $02           ; Select NextReg $02 (Reset Control Register)
+        OUT (C), A
+    
+        INC B               ; Move to Port $253B (Next Register Access Port)
+        LD A, 1             ; Value 1 = Trigger immediate soft/hard reset
+        OUT (C), A          ; The machine resets instantly right here
+
+
+.yEnd1:
 	    ld d, 0                                     ; initialise D as bitmask showing what keys were pressed
 chkKeyLeft:	
 	    LD BC, $dffe                                ; keys Y U I O P

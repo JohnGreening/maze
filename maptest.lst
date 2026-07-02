@@ -1,0 +1,175 @@
+# file opened: maptest.asm
+  1   0000              ; ============================================================
+  2   0000              ; maptest.asm - standalone test
+  3   0000              ; Load testmaze.map, render it to Layer 2 (256x192x8bpp),
+  4   0000              ; red walls / white paths, show it, wait for a key, exit.
+  5   0000              ; ============================================================
+  6   0000                      device ZXSPECTRUMNEXT
+  7   0000
+  8   0000              ; --- page layout ---
+  9   0000              MAP_PAGE        equ 40              ; map data: 8K pages 40-45 (48K)
+ 10   0000              L2_PAGE         equ 52              ; Layer 2 image: 8K pages 52-57 (48K)
+ 11   0000              L2_BANK16       equ L2_PAGE / 2     ; = 26, the 16K bank number for reg $12
+ 12   0000
+ 13   0000              ; --- Layer 2 8bpp colours (default palette = RRRGGGBB) ---
+ 14   0000              L2_WALL         equ %11100000       ; red
+ 15   0000              L2_PATH         equ %11111111       ; white
+ 16   0000
+ 17   0000                      org $8000
+ 18   8000              progStart:
+ 19   8000 F3                   di
+ 20   8001
+ 21   8001                      ; ----- build the Layer 2 image from the map -----
+ 22   8001 CD 36 80             call buildMapImage
+ 23   8004
+ 24   8004                      ; ----- set up and show Layer 2 -----
+ 25   8004 ED 91 12 1A          nextreg $12, L2_BANK16      ; Layer 2 main screen base bank
+ 26   8008 ED 91 70 00          nextreg $70, %00000000      ; 256x192x8bpp, palette offset 0
+ 27   800C ED 91 16 00          nextreg $16, 0              ; L2 X scroll = 0
+ 28   8010 ED 91 17 00          nextreg $17, 0              ; L2 Y scroll = 0
+ 29   8014 ED 91 18 00          nextreg $18, 0              ; clip X1
+ 30   8018 ED 91 18 FF          nextreg $18, 255            ; clip X2
+ 31   801C ED 91 18 00          nextreg $18, 0              ; clip Y1
+ 32   8020 ED 91 18 BF          nextreg $18, 191            ; clip Y2
+ 33   8024
+ 34   8024 01 3B 12             ld bc, $123b                ; Layer 2 control port
+ 35   8027 3E 02                ld a, 2                     ; bit 1 = enable/visible
+ 36   8029 ED 79                out (c), a
+ 37   802B
+ 38   802B                      ; ----- wait for any key, then exit -----
+ 39   802B CD 82 80             call waitKey
+ 40   802E
+ 41   802E                      ; hide Layer 2 and return to BASIC/loader
+ 42   802E 01 3B 12             ld bc, $123b
+ 43   8031 AF                   xor a
+ 44   8032 ED 79                out (c), a
+ 45   8034 FB                   ei
+ 46   8035 C9                   ret
+ 47   8036
+ 48   8036              ; ============================================================
+ 49   8036              ; buildMapImage - for every tile (x,y) read the map (0=path,
+ 50   8036              ; nonzero=wall) and write a colour byte to the matching Layer 2
+ 51   8036              ; pixel. Both map and L2 use the same layout (256-byte rows,
+ 52   8036              ; 32 rows per 8K page), differing only by base page.
+ 53   8036              ; ============================================================
+ 54   8036              buildMapImage:
+ 55   8036 0E 00                ld c, 0                     ; C = y
+ 56   8038              .rowLoop:
+ 57   8038 06 00                ld b, 0                     ; B = x
+ 58   803A              .colLoop:
+ 59   803A                      ; --- read map tile (B=x, C=y) ---
+ 60   803A 61                   ld h, c
+ 61   803B 68                   ld l, b
+ 62   803C 7C                   ld a, h
+ 63   803D CB 3F                srl a
+ 64   803F CB 3F                srl a
+ 65   8041 CB 3F                srl a
+ 66   8043 CB 3F                srl a
+ 67   8045 CB 3F                srl a                       ; A = y / 32  (page within block)
+ 68   8047 C6 28                add a, MAP_PAGE
+ 69   8049 ED 92 56             nextreg $56, a              ; page map bank into slot 6
+ 70   804C 7C                   ld a, h
+ 71   804D E6 1F                and $1F
+ 72   804F 67                   ld h, a
+ 73   8050 ED 34 00 C0          add hl, $C000               ; HL -> map byte
+ 74   8054 7E                   ld a, (hl)
+ 75   8055 B7                   or a                        ; 0 = path?
+ 76   8056 16 FF                ld d, L2_PATH
+ 77   8058 28 02                jr z, .haveCol
+ 78   805A 16 E0                ld d, L2_WALL
+ 79   805C              .haveCol:
+ 80   805C                      ; D = colour to write
+ 81   805C
+ 82   805C                      ; --- write to Layer 2 byte for (B=x, C=y) ---
+ 83   805C 61                   ld h, c
+ 84   805D 68                   ld l, b
+ 85   805E 7C                   ld a, h
+ 86   805F CB 3F                srl a
+ 87   8061 CB 3F                srl a
+ 88   8063 CB 3F                srl a
+ 89   8065 CB 3F                srl a
+ 90   8067 CB 3F                srl a
+ 91   8069 C6 34                add a, L2_PAGE
+ 92   806B ED 92 56             nextreg $56, a              ; page L2 bank into slot 6
+ 93   806E 7C                   ld a, h
+ 94   806F E6 1F                and $1F
+ 95   8071 67                   ld h, a
+ 96   8072 ED 34 00 C0          add hl, $C000               ; HL -> L2 byte
+ 97   8076 7A                   ld a, d
+ 98   8077 77                   ld (hl), a                  ; write colour
+ 99   8078
+100   8078 04                   inc b
+101   8079 20 BF                jr nz, .colLoop             ; B wraps 255->0 after 256 columns
+102   807B 0C                   inc c
+103   807C 79                   ld a, c
+104   807D FE C0                cp 192
+105   807F 20 B7                jr nz, .rowLoop
+106   8081 C9                   ret
+107   8082
+108   8082              ; ============================================================
+109   8082              ; waitKey - wait until any key on the keyboard is pressed.
+110   8082              ; Reads all 8 half-rows; a 0 in bits 0-4 means a key is down.
+111   8082              ; ============================================================
+112   8082              waitKey:
+113   8082              .wait:
+114   8082 3E FE                ld a, $fe                   ; scan all rows: address line low byte
+115   8084 06 00                ld b, $00                   ; B=0 -> all 8 address lines active
+116   8086 DB FE                in a, ($fe)                 ; read keyboard
+117   8088 E6 1F                and %00011111               ; keys are bits 0-4 (active low)
+118   808A FE 1F                cp %00011111                ; all 1 = nothing pressed
+119   808C 28 F4                jr z, .wait                 ; loop while no key
+120   808E C9                   ret
+121   808F
+122   808F              ; ============================================================
+123   808F              ; Map data - load testmaze.map into pages 40-45
+124   808F              ; ============================================================
+125   808F                      MMU 6, MAP_PAGE
+126   808F                      MMU 7, MAP_PAGE + 1
+127   808F                      org $C000
+128   C000                      INCBIN "testmaze.map", 0, 16384
+129   0000
+130   0000                      MMU 6, MAP_PAGE + 2
+131   0000                      MMU 7, MAP_PAGE + 3
+132   0000                      org $C000
+133   C000                      INCBIN "testmaze.map", 16384, 16384
+134   0000
+135   0000                      MMU 6, MAP_PAGE + 4
+136   0000                      MMU 7, MAP_PAGE + 5
+137   0000                      org $C000
+138   C000                      INCBIN "testmaze.map", 32768, 16384
+139   0000
+140   0000              ; ============================================================
+141   0000              ; Reserve the three Layer 2 banks (pages 52-57) so they exist
+142   0000              ; ============================================================
+143   0000                      MMU 6, L2_PAGE
+144   0000                      MMU 7, L2_PAGE + 1
+145   0000                      org $C000
+146   C000 00 00 00...          DEFS 16384
+147   0000                      MMU 6, L2_PAGE + 2
+148   0000                      MMU 7, L2_PAGE + 3
+149   0000                      org $C000
+150   C000 00 00 00...          DEFS 16384
+151   0000                      MMU 6, L2_PAGE + 4
+152   0000                      MMU 7, L2_PAGE + 5
+153   0000                      org $C000
+154   C000 00 00 00...          DEFS 16384
+155   0000
+156   0000                      SAVENEX OPEN "maptest.nex", progStart, $FF40
+157   0000                      SAVENEX AUTO
+158   0000                      SAVENEX CLOSE
+# file closed: maptest.asm
+
+Value    Label
+------ - -----------------------------------------------------------
+0x001A   L2_BANK16
+0x0034   L2_PAGE
+0x00FF   L2_PATH
+0x00E0   L2_WALL
+0x0028   MAP_PAGE
+0x8036   buildMapImage
+0x803A   buildMapImage.colLoop
+0x805C   buildMapImage.haveCol
+0x8038   buildMapImage.rowLoop
+0x8000 X progStart
+0x8082   waitKey
+0x8082   waitKey.wait
