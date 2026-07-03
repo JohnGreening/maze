@@ -669,11 +669,11 @@ ENDR
         ret
 
 wait_vblank:
-.loop        
         ld bc, $243B                                ; register select port
         ld a, $1E
         out (c), a                                  ; select ULA status register
         inc b                                       ; now point to data port $253B
+.loop
         in a, (c)                                   ; read status
         bit 0, a
         jr z, .loop

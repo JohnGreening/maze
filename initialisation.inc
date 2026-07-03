@@ -334,17 +334,15 @@ floodFill:
 
         ld b, h
         ld c, l
-;        LD h, b
-;        ld l, c
 
         ; H = y, L = x (of tile being tested, NOT the tile popped of the queue (this is held in DE))
         ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
         ld a, h
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a
+        rlca
+        rlca
+        rlca
+        and 7
+
         ld e, a
         add a, TILEMAP_PAGE
         nextreg $56, a
@@ -388,7 +386,6 @@ floodFill:
         call putFieldByte                           ; put this tested tile into the distance map
         ld d, b
         ld e, c
-        ;ex de, hl                                   ; we want to push this tested tile onto the queue, but need it in DE
         call qPushDE
 .tcDone:
 
@@ -401,11 +398,11 @@ putFieldByte:
 ;        push hl                                     ; preserve HL
         push af                                     ; preserve AF, we need A to set the value
         ld a, h
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a
+        rlca
+        rlca
+        rlca
+        and 7
+
         add a, DFIELD_PAGE
         nextreg $56, a
         ld a, h
@@ -422,11 +419,11 @@ putMapByte:
 ; we set distanceMap(x,y) = A
         push af                                     ; preserve AF, we need A to set the value
         ld a, h
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a
+        rlca
+        rlca
+        rlca
+        and 7
+
         add a, TILEMAP_PAGE
         nextreg $56, a
         ld a, h
@@ -529,11 +526,11 @@ buildMapImage:
 .rowLoop:
 ; ---- per-ROW setup (constant for every column in this row) ----
         ld a, c
-        srl a
-        srl a
-        srl a
-        srl a
-        srl a                                       ; A = Y / 32 = page offset within each block
+        rlca
+        rlca
+        rlca
+        and 7
+
         ld e, a                                     ; E = page offset (held for the whole row)
 
         ld a, c

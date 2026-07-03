@@ -37,11 +37,20 @@ MACRO GET_WORLD_VALUE arg, arg1
 
     ; STEP 2: Calculate which 8K physical page the data lives in
         ld   a,h                                    ; take the high byte of the offset (which is tile_y)
-        srl  a                                      ; divide by 2
-        srl  a                                      ; divide by 2 again  → now /4
-        srl  a                                      ; /8
-        srl  a                                      ; /16
-        srl  a                                      ; /32   ← this is the same as tile_y ÷ 32
+;        srl  a                                      ; divide by 2
+;        srl  a                                      ; divide by 2 again  → now /4
+;        srl  a                                      ; /8
+;        srl  a                                      ; /16
+;        srl  a                                      ; /32   ← this is the same as tile_y ÷ 32
+
+; ------------------------------------------------------------------------
+; performance fix, 5 shifts is equiv to 3 in opposite direction (with and)
+; saves 21 t-state
+; ------------------------------------------------------------------------
+        rlca
+        rlca
+        rlca
+        and 7
                                                     ; Why divide by 32?
                                                     ;   Each page is 8192 bytes.
                                                     ;   Each row is 256 bytes.
