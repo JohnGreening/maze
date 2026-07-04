@@ -133,7 +133,7 @@ otherSetup:
 
         ; Layer 2 setup (configured now, visibility off until Y)
         nextreg $12, L2_BANK16
-        nextreg $70, %00000000      ; 256x192x8bpp
+        nextreg $70, %00000000                      ; 256x192x8bpp
         nextreg $16, 0
         nextreg $17, 0
         nextreg $18, 0
@@ -166,7 +166,7 @@ chkKeyRadar:
 
         ld a, (yKeyWas)                             ; 
         or a
-        jr nz, .yEnd                ; already handled (held) -> ignore
+        jr nz, .yEnd                                ; already handled (held) -> ignore
         ld a, 1
         ld (yKeyWas), a
 
@@ -230,14 +230,14 @@ chkKeyRadar:
         jr nz, .yEnd1
 
 .RESET_NEXT:
-        DI                  ; Disable interrupts to prevent glitching
-        LD BC, $243B        ; TBBlue/Next Register Select Port
-        LD A, $02           ; Select NextReg $02 (Reset Control Register)
+        DI                                          ; Disable interrupts to prevent glitching
+        LD BC, $243B                                ; TBBlue/Next Register Select Port
+        LD A, $02                                   ; Select NextReg $02 (Reset Control Register)
         OUT (C), A
     
-        INC B               ; Move to Port $253B (Next Register Access Port)
-        LD A, 1             ; Value 1 = Trigger immediate soft/hard reset
-        OUT (C), A          ; The machine resets instantly right here
+        INC B                                       ; Move to Port $253B (Next Register Access Port)
+        LD A, 1                                     ; Value 1 = Trigger immediate soft/hard reset
+        OUT (C), A                                  ; The machine resets instantly right here
 
 
 .yEnd1:
@@ -410,24 +410,24 @@ updateCameraXY:
         ld hl, (player_px)
         ld bc, CENTRE_X
         or a
-        sbc hl, bc                      ; hl = player_px - CENTRE_X
-        jp p, .camXLowOK                ; >= 0 -> keep
-        ld hl, 0                        ; negative -> clamp to 0
+        sbc hl, bc                                  ; hl = player_px - CENTRE_X
+        jp p, .camXLowOK                            ; >= 0 -> keep
+        ld hl, 0                                    ; negative -> clamp to 0
 .camXLowOK:
         ld bc, CAM_MAX_X
         or a
-        sbc hl, bc                      ; hl = value - CAM_MAX_X
-        jr c, .camXHighOK               ; carry set => value < max -> keep (after add back)
-        ld hl, 0                        ; value >= max -> result = max (after add back)
+        sbc hl, bc                                  ; hl = value - CAM_MAX_X
+        jr c, .camXHighOK                           ; carry set => value < max -> keep (after add back)
+        ld hl, 0                                    ; value >= max -> result = max (after add back)
 .camXHighOK:
-        add hl, bc                      ; add CAM_MAX_X back
+        add hl, bc                                  ; add CAM_MAX_X back
         ld (cam_px), hl
 
         ; ---------- Y ----------
         ld hl, (player_py)
         ld bc, CENTRE_Y
         or a
-        sbc hl, bc                      ; hl = player_py - CENTRE_Y
+        sbc hl, bc                                  ; hl = player_py - CENTRE_Y
         jp p, .camYLowOK
         ld hl, 0
 .camYLowOK:
@@ -583,11 +583,11 @@ moveSprite1:
         DIV_HL_8
         ld c, l
         
-        ld a, (cam_tx)                       ; get last player tile X
+        ld a, (cam_tx)                              ; get last player tile X
         cp b                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
-        ld a, (cam_ty)                       ; get last player tile Y
+        ld a, (cam_ty)                              ; get last player tile Y
         cp c                                        ; compare with current
         jr nz, copy_visible_window                  ; branch if different
 
@@ -595,9 +595,9 @@ moveSprite1:
 
 copy_visible_window:
         ld a, b                                     ; get current player tile X
-        ld (cam_tx), a                       ; save it away
+        ld (cam_tx), a                              ; save it away
         ld a, c                                     ; get current player tile Y
-        ld (cam_ty), a                       ; save it away
+        ld (cam_ty), a                              ; save it away
 
     ; STEP 1: Build the starting linear offset in the world map
         ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
@@ -607,12 +607,20 @@ copy_visible_window:
                                                     ; This is the byte offset into "world" map.
 
     ; STEP 2: Calculate which 8K physical page the data lives in
-        ld   a,h                                    ; take the high byte of the offset (which is cam_tile_y)
-        srl  a                                      ; divide by 2
-        srl  a                                      ; divide by 2 again  → now /4
-        srl  a                                      ; /8
-        srl  a                                      ; /16
-        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
+        ld   a, h                                   ; take the high byte of the offset (which is cam_tile_y)
+;        srl  a                                      ; divide by 2
+;        srl  a                                      ; divide by 2 again  → now /4
+;        srl  a                                      ; /8
+;        srl  a                                      ; /16
+;        srl  a                                      ; /32   ← this is the same as cam_tile_y ÷ 32
+; ------------------------------------------------------------------------
+; performance fix, 5 shifts is equiv to 3 in opposite direction (with and)
+; saves 21 t-state
+; ------------------------------------------------------------------------
+        rlca
+        rlca
+        rlca
+        and 7
                                                     ; Why divide by 32?
                                                     ;   Each page is 8192 bytes.
                                                     ;   Each row is 256 bytes.
@@ -636,17 +644,17 @@ copy_visible_window:
                                                     ; HL now points directly at the first byte we want to copy
 
     ; STEP 5: Point DE at the hardware tilemap buffer (fixed location)
-        ld   de, tileMap                                ; destination is the hardware tilemap location
+        ld   de, tileMap                            ; destination is the hardware tilemap location
 
     ; STEP 6: Copy all 32 visible rows
-        ld   bc,40*32                                   ; we need to copy 32 rows x 40 columns
+        ld   bc,40*32                               ; we need to copy 32 rows x 40 columns
 .row_loop:
 REPT 40
         LDI
 ENDR
     ; STEP 7: Move the source pointer forward by exactly one full world-map row
-        ld   a,216                                      ; 256 (full row) minus 40 (what we already copied) = 216
-        add  hl,a                                       ; Z80N instruction — adds 8-bit number to HL very quickly
+        ld   a,216                                  ; 256 (full row) minus 40 (what we already copied) = 216
+        add  hl,a                                   ; Z80N instruction — adds 8-bit number to HL very quickly
 
         LD A, H
         CP $E0
@@ -659,13 +667,13 @@ ENDR
 
 .cross_boundary
     ; STEP 8: Did we cross into the next 8K physical page?
-        ld   a,h                                        ; look at the high byte of the source pointer
-        sub  $20                                        ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
+        ld   a,h                                    ; look at the high byte of the source pointer
+        sub  $20                                    ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
         ld   h,a
         ld a, (tilemapPage)
         inc a
         ld (tilemapPage), a
-        nextreg $56, a                                  ; set MMU slot 6 ($C000-$DFFF) to that page
+        nextreg $56, a                              ; set MMU slot 6 ($C000-$DFFF) to that page
         ret
 
 wait_vblank:
@@ -709,7 +717,7 @@ showSprite:
         ret nz                                      ; return if Radar (player sprite rendered in process baddie routine)
 
 
-        LD A, 0                                     ; sprite index
+        xor a                                       ; sprite index = 0
         NEXTREG $34, A
         ld hl, (player_px)
         ld bc, (cam_px)
@@ -764,42 +772,42 @@ showSprite:
 ; ============================================================
 checkKeyCollect:
         ld hl, KEY_DATA
-        ld b, 0                         ; B = key index
+        ld b, 0                                     ; B = key index
 .loop:
-        ld a, (hl)                      ; key tileX
+        ld a, (hl)                                  ; key tileX
         inc hl
-        ld c, (hl)                      ; key tileY
+        ld c, (hl)                                  ; key tileY
         inc hl
-        ld e, (hl)                      ; status
-        inc hl                          ; HL -> next key record
+        ld e, (hl)                                  ; status
+        inc hl                                      ; HL -> next key record
 
         ; skip keys that aren't available
-        ld d, a                         ; save key tileX in D (A about to be reused)
+        ld d, a                                     ; save key tileX in D (A about to be reused)
         ld a, e
         cp KEY_AVAILABLE
-        jr nz, .next                    ; not available -> skip
+        jr nz, .next                                ; not available -> skip
 
         ; --- X overlap: abs(player_tile_x - keyX) <= 1 ? ---
         ld a, (player_tile_x)
-        sub d                           ; A = px - kx
+        sub d                                       ; A = px - kx
         jr nc, .xpos
-        neg                             ; A = |px - kx|
+        neg                                         ; A = |px - kx|
 .xpos:
         cp 2
-        jr nc, .next                    ; |dx| >= 2 -> no overlap
+        jr nc, .next                                ; |dx| >= 2 -> no overlap
 
         ; --- Y overlap: abs(player_tile_y - keyY) <= 1 ? ---
         ld a, (player_tile_y)
-        sub c                           ; A = py - ky
+        sub c                                       ; A = py - ky
         jr nc, .ypos
         neg
 .ypos:
         cp 2
-        jr nc, .next                    ; |dy| >= 2 -> no overlap
+        jr nc, .next                                ; |dy| >= 2 -> no overlap
 
         ; overlap on both axes -> collected this key
-        ld a, b                         ; A = key index
-        scf                             ; carry set = collected
+        ld a, b                                     ; A = key index
+        scf                                         ; carry set = collected
         ret
 
 .next:
@@ -840,16 +848,7 @@ processBaddies:
         ; here we just display the player if we are in Radar mode
         ; -------------------------------------------------------
 
-        ; first calculate the player tile X/Y 
-        ld hl, (player_px)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_x), a
-        ld hl, (player_py)
-        DIV_HL_8
-        ld a, l
-        ld (player_tile_y), a
-
+        ; tile x/y already calculated, just use them
         ld a, (player_tile_x)                       
         ld l, a
         ld h, 0
@@ -859,18 +858,18 @@ processBaddies:
         add 32
         ld e, a
 
-        ld a, 0
-        NEXTREG $34, a                 ; select sprite slot 0 (player)
+        xor a
+        NEXTREG $34, a                              ; select sprite slot 0 (player)
         ld a, l
-        NEXTREG $35, a                 ; attr 0: X low 8 bits
+        NEXTREG $35, a                              ; attr 0: X low 8 bits
         ld a, e
-        NEXTREG $36, a                 ; attr 1: Y (8-bit)
+        NEXTREG $36, a                              ; attr 1: Y (8-bit)
         ld a, h
-        and 1                          ; X is 9-bit; keep only bit 8
-        NEXTREG $37, a                 ; attr 2: X MSB in bit 0
+        and 1                                       ; X is 9-bit; keep only bit 8
+        NEXTREG $37, a                              ; attr 2: X MSB in bit 0
         ld a, 2
-        or %10000000                   ; bit 7 = visible
-        NEXTREG $38, a                 ; attr 3: pattern + visible flag
+        or %10000000                                ; bit 7 = visible
+        NEXTREG $38, a                              ; attr 3: pattern + visible flag
 
         ret
 
@@ -890,18 +889,18 @@ checkBaddieCollision:
         ld e, (ix + baddieRecord.lowX)
         ld d, (ix + baddieRecord.highX)
         or a
-        sbc hl, de                  ; HL = player_px - baddie_x
-        bit 7, h                    ; negative?
+        sbc hl, de                                  ; HL = player_px - baddie_x
+        bit 7, h                                    ; negative?
         jr z, .xAbs
         ex de, hl
         ld hl, 0
         or a
-        sbc hl, de                  ; HL = |dx|
+        sbc hl, de                                  ; HL = |dx|
 .xAbs:
         ld de, COLLIDE_DX
         or a
         sbc hl, de
-        ret nc                      ; |dx| >= threshold -> no hit (carry clear)
+        ret nc                                      ; |dx| >= threshold -> no hit (carry clear)
 
         ; --- Y: |player_py - baddie_y| < COLLIDE_DY ? ---
         ld hl, (player_py)
@@ -919,7 +918,7 @@ checkBaddieCollision:
         ld de, COLLIDE_DY
         or a
         sbc hl, de
-        ret                         ; carry set if |dy| < threshold -> HIT
+        ret                                         ; carry set if |dy| < threshold -> HIT
 
 
 
@@ -1013,9 +1012,6 @@ moveAvailable:
         ; Read own-cell distance first (one field read) -> sets lastDist.
         ld b, (ix + baddieRecord.tileX)             ; B = tileX
         ld c, (ix + baddieRecord.tileY)             ; C = tileY
-;        ld l, b
-;        ld h, c
-;        call getFieldByte                           ; A = own-cell distance
         GET_WORLD_VALUE DFIELD_PAGE, USE_BC
 
         ld (ix + baddieRecord.lastDist), a
@@ -1447,7 +1443,7 @@ rnd8:
         RET
 
 rseed:
-    db 1                 ; Initial 16-bit seed (Must not be zero!)        ld a, (hl)
+    db 1                 ; Initial 16-bit seed (Must not be zero!)
 
 lut_base:
         db 0, 0, 0, 0                               ;  0  0000 no bits set

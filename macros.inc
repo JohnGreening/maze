@@ -6,7 +6,7 @@ USE_HL              EQU 1                           ; see GET_WORLD_VALUE macro
 MACRO SPEED arg
         ld a, arg
         NEXTREG $07, A
-            ENDM
+        ENDM
 
 MACRO DIV_HL_8
 ; simple 16-bit divide without the CALL/RET overhead
@@ -42,7 +42,6 @@ MACRO GET_WORLD_VALUE arg, arg1
 ;        srl  a                                      ; /8
 ;        srl  a                                      ; /16
 ;        srl  a                                      ; /32   ← this is the same as tile_y ÷ 32
-
 ; ------------------------------------------------------------------------
 ; performance fix, 5 shifts is equiv to 3 in opposite direction (with and)
 ; saves 21 t-state
