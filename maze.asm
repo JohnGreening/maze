@@ -810,33 +810,31 @@ checkKeyCollect:
         or a                            ; clear carry = nothing collected
         ret
 
+
+; point to end of skull data. We will use this to test if finished processing all the skulls
+; saves having a register holding the processed count
+baddieEnd equ baddieData + (baddieRecord * baddieCount)
+
 processBaddies:
         ld ix, baddieData                           ; point to start of baddie data
-        ld b, baddieCount                           ; count of baddies to process
-
+ 
 .loop:
-        push bc                                     ; save count
         call processBaddie                          ; process each baddie in turn
         call checkBaddieCollision                   ; check collision
-        jr nc, .skipCollision                       ; branch if no collision
-
-        ; collision routine
-        ld A, soundHitskull                         ; ready the skull hit sound
-        call playsound                              ; play it
-        call takeDamage                             ; update health bar
-
-.skipCollision:
-
-        pop bc                                      ; return count
+        call c, .hit
 
         ld de, baddieRecord                         ; get baddie record length
         add ix, de                                  ; point ix to next baddie
-        djnz .loop                                  ; loop if more to process
+        ld a, ixl
+        cp low baddieEnd
+        jr nz, .loop
+        ld a, ixh
+        cp high baddieEnd
+        jr nz, .loop
 
         ld a, (viewMode)                            ; get view mode
         or a                                        ; is it 0 (normal map view)
         ret z                                       ; return if normal
-
 
         ; -------------------------------------------------------
         ; here we just display the player if we are in Radar mode
@@ -874,8 +872,15 @@ processBaddies:
         or %10000000                   ; bit 7 = visible
         NEXTREG $38, a                 ; attr 3: pattern + visible flag
 
-
         ret
+
+.hit:
+       ; collision routine
+        ld A, soundHitskull                         ; ready the skull hit sound
+        call playsound                              ; play it
+        jp takeDamage                               ; update health bar.
+                                                    ; the RET in takeDamage will return us to processBaddies 
+
 
 ; IX -> baddie record. Returns carry SET if player overlaps this baddie.
 ; Trashes AF, DE, HL
