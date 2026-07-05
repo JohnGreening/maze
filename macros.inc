@@ -57,7 +57,7 @@ MACRO GET_WORLD_VALUE arg, arg1
                                                     ;   Therefore page number = 40 + (tile_y ÷ 32)
 
         add  a, arg                                 ; add the starting page number
-
+        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
         nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 
 
@@ -73,3 +73,147 @@ MACRO GET_WORLD_VALUE arg, arg1
                                                     ; HL now points directly at the first byte we want to copy
         ld a, (hl)                                  ; so get the byte
         ENDM
+
+MACRO checkLeftM argX, argY, argMoveDelta
+        ld hl, (argX)                               ; get X pixel
+        ld bc, argMoveDelta                         ; move pixel delta
+        or a                                        ; clear carry
+        sbc hl, bc                                  ; simulate move left
+        DIV_HL_8                                    ; divide by 8 to get tile X
+        ld b, l                                     ; B = tile X
+
+        ld hl, (argY)                               ; get Y pixel
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; C = tile Y
+
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+; ----------------------------------------------------------------
+; worldBelow - read the map/field byte one tile-row below the byte
+; GET_WORLD_VALUE just fetched. HL still points at that byte.
+; Handles the (rare) 8K page cross. Returns tile in A.
+; ----------------------------------------------------------------
+.worldBelow:
+        inc  h                                      ; +256 bytes = one map row down
+        ld   a, h                                   ; put in a for compare
+        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
+        jr   nz, .same                              ; branch if not
+        ld   h, $C0                                 ; wrap back to slot-6 base
+        ld   a, (curWorldPage)                      ; get last saved page
+        inc  a                                      ; advance it
+        ld   (curWorldPage), a                      ; save it back
+        nextreg $56, a                              ; page in new block
+.same:
+        ld   a, (hl)                                ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+        set dir_left, e                             ; set bit in E indicating move is allowed
+        ret
+        ENDM
+
+MACRO checkRightM argX, argY, argMoveDelta
+        ld hl, (argX)                               ; get X pixel
+        ld bc, argMoveDelta                         ; move pixel delta
+        add hl, bc                                  ; simulate move Right
+        add hl, 15                                  ; the sprite extends 0-15px right
+
+        DIV_HL_8                                    ; divide by 8 to get tile X
+        ld b, l                                     ; B = tile X
+
+        ld hl, (argY)                               ; get Y pixel
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; C = tile Y
+
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+; ----------------------------------------------------------------
+; worldBelow - read the map/field byte one tile-row below the byte
+; GET_WORLD_VALUE just fetched. HL still points at that byte.
+; Handles the (rare) 8K page cross. Returns tile in A.
+; ----------------------------------------------------------------
+.worldBelow:
+        inc  h                                      ; +256 bytes = one map row down
+        ld   a, h                                   ; put in a for compare
+        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
+        jr   nz, .same                              ; branch if not
+        ld   h, $C0                                 ; wrap back to slot-6 base
+        ld   a, (curWorldPage)                      ; get last saved page
+        inc  a                                      ; advance it
+        ld   (curWorldPage), a                      ; save it back
+        nextreg $56, a                              ; page in new block
+.same:
+        ld   a, (hl)                                ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+        set dir_right, e                            ; set bit in E indicating move is allowed
+        ret
+        ENDM
+
+MACRO checkDownM argX, argY, argMoveDelta
+        ld hl, (argY)                               ; get Y pixel
+        ld bc, argMoveDelta                         ; move pixel delta
+        add hl, bc                                  ; simulate move Down
+        add hl, 15                                  ; the sprite extends 0-15px down
+
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; C = tile Y
+
+        ld hl, (argX)                               ; get X pixel
+        DIV_HL_8                                    ; divide by 8 to get tile X
+        ld b, l                                     ; B = tile X
+
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+; ----------------------------------------------------------------
+; worldAdjacent - read the map/field byte one tile to the right
+; GET_WORLD_VALUE just fetched. HL still points at that byte.
+; guaranteed to be on same page, so just inc HL
+; ----------------------------------------------------------------
+        inc hl                                      ; point to adjacent tile right
+        ld a, (hl)                                  ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+        set dir_down, e                             ; set bit in E indicating move is allowed
+        ret
+        ENDM
+
+MACRO checkUpM argX, argY, argMoveDelta
+        ld hl, (argY)                               ; get Y pixel
+        ld bc, argMoveDelta                         ; move pixel delta
+        or a                                        ; clear carry
+        sbc hl, bc                                  ; simulate move Down
+
+        DIV_HL_8                                    ; divide by 8 to get tile Y
+        ld c, l                                     ; C = tile Y
+
+        ld hl, (argX)                               ; get X pixel
+        DIV_HL_8                                    ; divide by 8 to get tile X
+        ld b, l                                     ; B = tile X
+
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+; ----------------------------------------------------------------
+; worldAdjacent - read the map/field byte one tile to the right
+; GET_WORLD_VALUE just fetched. HL still points at that byte.
+; guaranteed to be on same page, so just inc HL
+; ----------------------------------------------------------------
+        inc hl                                      ; point to adjacent tile right
+        ld a, (hl)                                  ; see what tile is here
+        cp MAP_WALL                                 ; is it a wall?
+        ret z                                       ; return if so, do nothing
+
+        set dir_up, e                               ; set bit in E indicating move is allowed
+        ret
+        ENDM
+
