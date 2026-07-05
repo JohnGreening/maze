@@ -104,7 +104,8 @@ qTailIdx        db  0
 qCount          db  0
 floodTargetX    db  0
 floodTargetY    db  0
-FLOOD_LIMIT     equ 253
+;FLOOD_LIMIT     equ 253
+FLOOD_LIMIT     EQU 80
 
 L2_KEY          equ %11111100                       ; yellow (R+G, no blue)
 L2_WALL         equ %11100000                       ; red
@@ -349,6 +350,7 @@ doMoveLeft:
 
 	    ld hl, (player_px)
 	    ld bc, move_delta
+        or a
 	    sbc hl, bc 
 	    ld (player_px), hl
 
@@ -362,8 +364,7 @@ doMoveRight:
 
 	    ld hl, (player_px)
 	    ld bc, move_delta
-        and a
-	    adc hl, bc 
+	    add hl, bc 
 	    ld (player_px), hl
 
         ld a, vdir_right
@@ -376,8 +377,7 @@ doMoveDown:
 
 	    ld hl, (player_py)
 	    ld bc, move_delta
-        and a 
-	    adc hl, bc 
+        add hl, bc 
 	    ld (player_py), hl
 
         ld a, vdir_down
@@ -871,8 +871,7 @@ processBaddie:
         jr z, newTile                               ; aligned -> run the decision
 
         ld a, (ix +baddieRecord.dir)                ; not aligned -> continue current dir
-        ld b, a
-        jp reverse
+        jp gotDir                                   ; jump to do the move
         
 newTile:
         ld (ix +baddieRecord.tileX), b              ; save the tile X
@@ -955,14 +954,14 @@ moveAvailable:
 .pickHunt:
         call pickByField                            ; A = chosen vdir, or 0 if none
         and a
-        jr nz, .gotDir                              ; got a direction
+        jr nz, gotDir                               ; got a direction
         ; fall through to wander if field gave nothing
 
 .pickWander:
         ld a, e
         call random
 
-.gotDir:
+gotDir:
         ld b, a                                     ; B = chosen direction (vdir flag)
 
 reverse:
@@ -1081,6 +1080,7 @@ chkUp1
 doMoveLeft1
         ld hl, (baddie_x)
         ld bc, move_delta_baddie
+        or a
         sbc hl, bc
         ld (ix +baddieRecord.highX), h
         ld (ix +baddieRecord.lowX), l
@@ -1091,7 +1091,7 @@ doMoveLeft1
 doMoveRight1
         ld hl, (baddie_x)
         ld bc, move_delta_baddie
-        adc hl, bc
+        add hl, bc
         ld (ix +baddieRecord.highX), h
         ld (ix +baddieRecord.lowX), l
         ld a, vdir_right
@@ -1102,7 +1102,7 @@ doMoveRight1
 doMoveDown1
         ld hl, (baddie_y)
         ld bc, move_delta_baddie
-        adc hl, bc
+        add hl, bc
         ld (ix +baddieRecord.highY), h
         ld (ix +baddieRecord.lowY), l
         ld a, vdir_down
@@ -1113,6 +1113,7 @@ doMoveDown1
 doMoveUp1
         ld hl, (baddie_y)
         ld bc, move_delta_baddie
+        or a
         sbc hl, bc
         ld (ix +baddieRecord.highY), h
         ld (ix +baddieRecord.lowY), l
@@ -1353,21 +1354,21 @@ MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
 MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
 ORG     $C000
 tilemap_part1:
-INCBIN  "testmaze.map", 0, 16384                    ; first 16 KB
+INCBIN  "testmaze2.map", 0, 16384                    ; first 16 KB
 
 ; === Chunk 2 (bytes 16384-32767) -> 8 KB Page 42/43 ===
 MMU     6, TILEMAP_PAGE + 2
 MMU     7, TILEMAP_PAGE + 3
 ORG     $C000
 tilemap_part2:
-INCBIN  "testmaze.map", 16384, 16384
+INCBIN  "testmaze2.map", 16384, 16384
 
 ; === Chunk 3 (bytes 32768-49151) -> 8 KB Page 44/45 ===
 MMU     6, TILEMAP_PAGE + 4
 MMU     7, TILEMAP_PAGE + 5
 ORG     $C000
 tilemap_part3:
-INCBIN  "testmaze.map", 32768, 16384
+INCBIN  "testmaze2.map", 32768, 16384
 
 ; ----------------------------------------------------------------
 ; Distance field - 48 KB, one byte per maze cell (256x192).

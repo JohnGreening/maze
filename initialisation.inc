@@ -348,8 +348,8 @@ floodFill:
         nextreg $56, a
         ld a, h
         and $1F
+        or $C0
         ld h, a
-        add hl, $C000
         ld a, (hl)
 
         cp MAP_WALL                                 ; is it a wall?
@@ -365,8 +365,8 @@ floodFill:
         nextreg $56, a
         ld a, h
         and $1F
+        or $C0
         ld h, a
-        add hl, $C000
         ld a, (hl)
 
         ld h, b
@@ -407,8 +407,8 @@ putFieldByte:
         nextreg $56, a
         ld a, h
         and $1F
+        or $C0
         ld h, a
-        add hl, $C000
         pop af                                      ; restore A to set value
         ld (hl), a
 ;        pop hl
@@ -428,8 +428,8 @@ putMapByte:
         nextreg $56, a
         ld a, h
         and $1F
+        or $C0
         ld h, a
-        add hl, $C000
         pop af                                      ; restore A to set value
         ld (hl), a
         ret

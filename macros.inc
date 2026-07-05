@@ -66,10 +66,10 @@ MACRO GET_WORLD_VALUE arg, arg1
         and  $1F                                    ; $1F is binary 00011111 → keeps only the lowest 5 bits
                                                     ; This is exactly the same as (tile_y * 256 + tile_x) modulo 8192
                                                     ; (because 8192 = 2^13 and we are discarding everything above bit 12)
+        or $C0                                      ; "add" page offset
         ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
 
-    ; STEP 4: add the page offset so we can read it
-        add  hl, $C000                              ; HL = $C000 + offset_inside_page
+    ; STEP 4: read the byte
                                                     ; HL now points directly at the first byte we want to copy
         ld a, (hl)                                  ; so get the byte
         ENDM
