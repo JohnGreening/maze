@@ -984,36 +984,38 @@ reverse:
 pickByField:
         ld b, (ix + baddieRecord.tileX)             ; get baddie tile X
         ld c, (ix + baddieRecord.tileY)             ; get baddie tile Y
-        ld a, (ix + baddieRecord.lastDist)  ; own-cell distance
+        ld a, (ix + baddieRecord.lastDist)          ; own-cell distance
         ld (pf_best), a                             ; save best found
 
         xor a                                       ; A = 0
         ld (pf_dir), a                              ; current direction is nothing
 
-        bit dir_left, e
-        jr z, .noL
+        bit dir_left, e                             ; is a turn left permitted
+        jr z, .noL                                  ; branch if not
         ld a, b                                     ; get tile X
         dec a                                       ; look left
-        ld l, a                                     ; save in L, L= tile X
-        ld h, c                                     ; get tile Y
-        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-        ld d, vdir_left
-        call .consider
+        ld l, a                                     ; put test tile X in H for lookup
+        ld h, c                                     ; put tile Y in L for lookup
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; get (in A) the flood value
+        ld d, vdir_left                             ; mark that we are considering left
+        call .consider                              ; see if its the best move
 .noL:
-        bit dir_right, e
-        jr z, .noR
-        ld a, b
+        bit dir_right, e                            ; is a turn right permitted
+        jr z, .noR                                  ; branch if not
+        ld a, b                                     ; get tile X
+        inc a                                       ; sprites are 2x2 so we need to look right +2
         inc a
-        ld l, a
-        ld h, c
-        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-        ld d, vdir_right
-        call .consider
+        ld l, a                                     ; put test tile X in H for lookup
+        ld h, c                                     ; put tile Y in L for lookup
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; get (in A) the flood value here
+        ld d, vdir_right                            ; mark that we are considering right
+        call .consider                              ; see if its the best move
 .noR:
         bit dir_down, e
         jr z, .noD
         ld l, b
         ld a, c
+        inc a
         inc a
         ld h, a
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
@@ -1034,12 +1036,12 @@ pickByField:
         ret
 
 .consider:
-        ld hl, pf_best
-        cp (hl)
-        ret nc                                      ; candidate >= best -> keep
-        ld (hl), a
-        ld a, d
-        ld (pf_dir), a
+        ld hl, pf_best                              ; point to store of best move
+        cp (hl)                                     ; compare with current tile value
+        ret nc                                      ; return if no better
+        ld (hl), a                                  ; otherwise store new best
+        ld a, d                                     ; get the tested direction
+        ld (pf_dir), a                              ; store as the one to use
         ret
 
 pf_best     db 0
@@ -1354,21 +1356,21 @@ MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
 MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
 ORG     $C000
 tilemap_part1:
-INCBIN  "testmaze.map", 0, 16384                    ; first 16 KB
+INCBIN  "testmaze2.map", 0, 16384                    ; first 16 KB
 
 ; === Chunk 2 (bytes 16384-32767) -> 8 KB Page 42/43 ===
 MMU     6, TILEMAP_PAGE + 2
 MMU     7, TILEMAP_PAGE + 3
 ORG     $C000
 tilemap_part2:
-INCBIN  "testmaze.map", 16384, 16384
+INCBIN  "testmaze2.map", 16384, 16384
 
 ; === Chunk 3 (bytes 32768-49151) -> 8 KB Page 44/45 ===
 MMU     6, TILEMAP_PAGE + 4
 MMU     7, TILEMAP_PAGE + 5
 ORG     $C000
 tilemap_part3:
-INCBIN  "testmaze.map", 32768, 16384
+INCBIN  "testmaze2.map", 32768, 16384
 
 ; ----------------------------------------------------------------
 ; Distance field - 48 KB, one byte per maze cell (256x192).

@@ -37,29 +37,21 @@ collectKey:
         ld e, (hl)                                  ; get the tile y
         inc hl
         ld (hl), KEY_COLLECTED                      ; set the key as collected
-        ld l, d
-        ld h, e
-        ld a, MAP_PATH
-        call putMapByte                             ; key at tile x, y
 
         ld l, d
         ld h, e
-        inc l
-        ld a, MAP_PATH
-        call putMapByte                             ; key at tile x+1, y
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_HL
+        ld (hl), MAP_PATH                           ; reset key at tile x, y
+        inc hl
+        ld (hl), MAP_PATH                           ; reset key at tile x+1, y
 
         ld l, d
         ld h, e
         inc h
-        ld a, MAP_PATH
-        call putMapByte                             ; key at tile x, y+1
-
-        ld l, d
-        ld h, e
-        inc l
-        inc h
-        ld a, MAP_PATH
-        call putMapByte                             ; key at tile x+1, y+1
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_HL
+        ld (hl), MAP_PATH                           ; reset key at tile x, y+1
+        inc hl
+        ld (hl), MAP_PATH                           ; reset key at tile x+1, y+1
 
         ld a, soundCollect
         call playsound
@@ -188,27 +180,18 @@ addKey:
 
         ld l, d
         ld h, e
-        ld a, MAP_KEYTL
-        call putMapByte                             ; key at tile x, y
-
-        ld l, d
-        ld h, e
-        inc l
-        ld a, MAP_KEYTR
-        call putMapByte                             ; key at tile x+1, y
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_HL
+        ld (hl), MAP_KEYTL                          ; key TL
+        inc hl
+        ld (hl), MAP_KEYTR                          ; key TR
 
         ld l, d
         ld h, e
         inc h
-        ld a, MAP_KEYBL
-        call putMapByte                             ; key at tile x, y+1
-
-        ld l, d
-        ld h, e
-        inc l
-        inc h
-        ld a, MAP_KEYBR
-        call putMapByte                             ; key at tile x+1, y+1
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_HL
+        ld (hl), MAP_KEYBL                          ; key BL
+        inc hl
+        ld (hl), MAP_KEYBR                          ; key BR
         
         push de
         ld a, d

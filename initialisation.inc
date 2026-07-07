@@ -264,8 +264,10 @@ floodFill:
 
         ld h, d                                     ; Y also in H
         ld l, e                                     ; X also in L
-        xor a                                       ; a = 0
-        call putFieldByte                           ; field[target] = 0
+
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; use common routine to point HL to flood value we want to set
+        ld (hl), 0                                  ; set initial flood value to 0
+
         call qPushDE                                ; push target (d = y, e = x)
 
 .mainLoop:
@@ -344,7 +346,7 @@ floodFill:
         nextreg $56, a
         ld a, (hl)                                  ; get distance field for this tile
 
-        cp 255                                      ; is it untouched
+        cp 255                                      ; is it untouched? i.e. path but value = 255
         jr nz, .tcDone                              ; branch if we've already visited this tile
 
         ld a, (dist)                                ; get distance for original tile XY (from mainloop)
@@ -362,46 +364,6 @@ floodFill:
 .tcDone:
         pop de                                      ; return Original tile 
         ret                                         ; done
-
-putFieldByte:
-; HL = YX tile into our distance map
-; we set distanceMap(x,y) = A
-        push af                                     ; preserve AF, we need A to set the value
-        ld a, h
-        rlca
-        rlca
-        rlca
-        and 7
-
-        add a, DFIELD_PAGE
-        nextreg $56, a
-        ld a, h
-        and $1F
-        or $C0
-        ld h, a
-        pop af                                      ; restore A to set value
-        ld (hl), a
-        ret
-
-putMapByte:
-; HL = YX tile into our distance map
-; we set distanceMap(x,y) = A
-        push af                                     ; preserve AF, we need A to set the value
-        ld a, h
-        rlca
-        rlca
-        rlca
-        and 7
-
-        add a, TILEMAP_PAGE
-        nextreg $56, a
-        ld a, h
-        and $1F
-        or $C0
-        ld h, a
-        pop af                                      ; restore A to set value
-        ld (hl), a
-        ret
 
 
 ; ---- push cell offset in DE onto queue ----
