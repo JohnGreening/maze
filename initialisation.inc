@@ -330,72 +330,42 @@ floodFill:
 ; test one of the x +/- 1, y+/- 1 tiles
 ; here DE = yx of the tile taken off the queue
 ;      HL = tile being tested, i.e. +/- 1 of x or y
-        push de
+        push de                                     ; save yx of the tile taken of the queue
 
-        ld b, h
-        ld c, l
-
-        ; H = y, L = x (of tile being tested, NOT the tile popped of the queue (this is held in DE))
-        ; get map byte at this tile position; i.e. return A=0 (path) or A=1 (wall)
-        ld a, h
-        rlca
-        rlca
-        rlca
-        and 7
-
-        ld e, a
-        add a, TILEMAP_PAGE
-        nextreg $56, a
-        ld a, h
-        and $1F
-        or $C0
-        ld h, a
-        ld a, (hl)
-
+        ld b, h                                     ; temp preserve h = tile Y being tested
+        ld c, l                                     ; temp preserve l = tile X being tested
+        GET_WORLD_VALUE TILEMAP_PAGE, USE_HL        ; get tile at this tested location
         cp MAP_WALL                                 ; is it a wall?
-        jr z, .tcDone                               ; wall, the distance value is left as default 255 value
+        jr z, .tcDone                               ; branch if its a wall, done
 
-        ; H = y, L = x
-        ; get distance value for this tile
-        ld h, b
-        ld l, c
-        
-        ld a, e
-        add a, DFIELD_PAGE
+        ; get distance value for this tile, first page in the equivalent distance field data
+        ld a, (curWorldPage)      
+        add a, DFIELD_PAGE - TILEMAP_PAGE
         nextreg $56, a
-        ld a, h
-        and $1F
-        or $C0
-        ld h, a
-        ld a, (hl)
+        ld a, (hl)                                  ; get distance field for this tile
 
-        ld h, b
-        ld l, c
-        
-        cp 255
+        cp 255                                      ; is it untouched
         jr nz, .tcDone                              ; branch if we've already visited this tile
 
         ld a, (dist)                                ; get distance for original tile XY (from mainloop)
-        cp 254
+        cp 254                                      ; is it already at max
         jr nc, .clampMax                            ; C >= 254 -> store 254
         inc a                                       ; C+1
         jr .storeDist
 .clampMax:
         ld a, 254
 .storeDist:
-        call putFieldByte                           ; put this tested tile into the distance map
-        ld d, b
-        ld e, c
-        call qPushDE
+        ld (hl), a                                  ; set distance for this tile
+        ld d, b                                     ; retrieve preserved tile Y
+        ld e, c                                     ; retrieve preserced tile X
+        call qPushDE                                ; push to queue for later processing
 .tcDone:
-
-        pop de
-        ret
+        pop de                                      ; return Original tile 
+        ret                                         ; done
 
 putFieldByte:
 ; HL = YX tile into our distance map
 ; we set distanceMap(x,y) = A
-;        push hl                                     ; preserve HL
         push af                                     ; preserve AF, we need A to set the value
         ld a, h
         rlca
@@ -411,7 +381,6 @@ putFieldByte:
         ld h, a
         pop af                                      ; restore A to set value
         ld (hl), a
-;        pop hl
         ret
 
 putMapByte:
@@ -542,7 +511,7 @@ buildMapImage:
 .colLoop:
         ; ---- read MAP tile ----
         ld a, e
-        add a, MAP_PAGE
+        add a, TILEMAP_PAGE
         nextreg $56, a                              ; page map bank into slot 6
         ld a, (hl)                                  ; A = map tile at (X,Y)
         or a

@@ -132,11 +132,13 @@ DisplayDigit:
 debugs:
         ; get distance
         call getTileY
-        ld bc, 10
+        ld b, 1
+        ld c, 8
         call Bin8ToDec
 
         call getTileX
-        ld bc, 14
+        ld b, 1
+        ld c, 12
         call Bin8ToDec
 
         call getTileY        
@@ -146,10 +148,35 @@ debugs:
         ld e, a
 
         ex de, hl
+        push hl
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
-;        call getFieldByte
-        ld bc, 18
+        ld b, 1
+        ld c, 16
         call Bin8ToDec
+        pop hl
+
+        inc l
+        push hl
+        ld b, 1
+        ld c, 20
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+        call Bin8ToDec
+        pop hl
+        dec l
+        inc h
+        push hl
+        ld b, 1
+        ld c, 24
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+        call Bin8ToDec
+        pop hl
+        inc l
+        push hl
+        ld b, 1
+        ld c, 28
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL
+        call Bin8ToDec
+        pop hl
         ret
 
 getTileY

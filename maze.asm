@@ -473,7 +473,7 @@ chkUp:
 
 keyEnd:
 moveSprite:
-;        call debugs
+        call debugs
 ;        ld a, 2
 ;        out (254), a
         call processBaddies
@@ -750,8 +750,8 @@ processBaddies:
  
 .loop:
         call processBaddie                          ; process each baddie in turn
-        call checkBaddieCollision                   ; check collision
-        call c, .hit
+;        call checkBaddieCollision                   ; check collision
+;        call c, .hit
 
         ld de, baddieRecord                         ; get baddie record length
         add ix, de                                  ; point ix to next baddie
@@ -1354,21 +1354,21 @@ MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
 MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
 ORG     $C000
 tilemap_part1:
-INCBIN  "testmaze2.map", 0, 16384                    ; first 16 KB
+INCBIN  "testmaze.map", 0, 16384                    ; first 16 KB
 
 ; === Chunk 2 (bytes 16384-32767) -> 8 KB Page 42/43 ===
 MMU     6, TILEMAP_PAGE + 2
 MMU     7, TILEMAP_PAGE + 3
 ORG     $C000
 tilemap_part2:
-INCBIN  "testmaze2.map", 16384, 16384
+INCBIN  "testmaze.map", 16384, 16384
 
 ; === Chunk 3 (bytes 32768-49151) -> 8 KB Page 44/45 ===
 MMU     6, TILEMAP_PAGE + 4
 MMU     7, TILEMAP_PAGE + 5
 ORG     $C000
 tilemap_part3:
-INCBIN  "testmaze2.map", 32768, 16384
+INCBIN  "testmaze.map", 32768, 16384
 
 ; ----------------------------------------------------------------
 ; Distance field - 48 KB, one byte per maze cell (256x192).
@@ -1399,7 +1399,6 @@ dfield_part3:
 DEFS    16384
 
 ; --- radar / Layer 2 ---
-MAP_PAGE        equ TILEMAP_PAGE        ; map data lives here (40)
 L2_PAGE         equ DFIELD_PAGE + 6     ; Layer 2 image pages (52-57), after the field
 L2_BANK16       equ L2_PAGE / 2         ; 16K bank number for reg $12 (=26)
 
