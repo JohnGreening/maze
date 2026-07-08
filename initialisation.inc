@@ -661,12 +661,10 @@ setUpCamera:
 
         ; camera tile X/Y is pixel X/Y divided by 8
         ld hl, (cam_px)
-        DIV_HL_8
-        ld a, l
+        DIV_HL_8A
         ld (cam_tx), a
         ld hl, (cam_py)
-        DIV_HL_8
-        ld a, l
+        DIV_HL_8A
         ld (cam_ty), a
         ret
 

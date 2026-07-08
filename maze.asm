@@ -473,7 +473,7 @@ chkUp:
 
 keyEnd:
 moveSprite:
-        call debugs
+;        call debugs
 ;        ld a, 2
 ;        out (254), a
         call processBaddies
@@ -499,11 +499,11 @@ moveSprite1:
     ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
     ; ================================================
         ld hl, (cam_px)
-        DIV_HL_8
-        ld b, l
+        DIV_HL_8A
+        ld b, a
         ld hl, (cam_py)
-        DIV_HL_8
-        ld c, l
+        DIV_HL_8A
+        ld c, a
         
         ld a, (cam_tx)                              ; get last player tile X
         cp b                                        ; compare with current
@@ -617,13 +617,11 @@ showSprite:
 ; Trashes: AF, HL, BC
 ; ============================================================
         ld hl, (player_py)
-        DIV_HL_8                                    ; L = tileY (player_py / 8)
-        ld a, l
+        DIV_HL_8A                                    ; A = tileY (player_py / 8)
         ld (player_tile_y), a
 
         ld hl, (player_px)
-        DIV_HL_8                                    ; L = tileX (player_px / 8)
-        ld a, l
+        DIV_HL_8A                                    ; A = tileX (player_px / 8)
         ld (player_tile_x), a
 
         ; ... player_tile_x / player_tile_y just stored ...
@@ -750,8 +748,8 @@ processBaddies:
  
 .loop:
         call processBaddie                          ; process each baddie in turn
-;        call checkBaddieCollision                   ; check collision
-;        call c, .hit
+        call checkBaddieCollision                   ; check collision
+        call c, .hit
 
         ld de, baddieRecord                         ; get baddie record length
         add ix, de                                  ; point ix to next baddie
@@ -851,8 +849,8 @@ processBaddie:
         ld a, l
         and 7
         ld iyh, a
-        DIV_HL_8                                    ; div by 8 to get tile Y
-        ld b, l                                     ; save in B, see newTile below
+        DIV_HL_8A                                   ; div by 8 to get tile Y
+        ld b, a                                     ; save in B, see newTile below
 
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
@@ -860,8 +858,8 @@ processBaddie:
         ld a, l
         and 7
         ld iyl, a
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; save in C, see newTile below
+        DIV_HL_8A                                   ; divide by 8 to get tile Y
+        ld c, a                                     ; save in C, see newTile below
 
 ; Decide only when grid-aligned (iyh==0 AND iyl==0) - the only
         ; moment a turn is possible. "Tile changed" fired at the far tile

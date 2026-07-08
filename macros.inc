@@ -18,6 +18,18 @@ MACRO DIV_HL_8
         rr l
         ENDM
 
+MACRO DIV_HL_8A
+; version 2, 8 t-states quicker
+; simple 16-bit divide without the CALL/RET overhead
+        ld a, l                                     ; get low byte into a ready for rotate from carry   4t
+        srl h                                       ;                                                   8t
+        rra                                         ;                                                   4t
+        srl h                                       ;                                                   8t
+        rra                                         ;                                                   4t
+        srl h                                       ;                                                   8t
+        rra                                         ;                                                   4t
+        ENDM
+
 MACRO GET_WORLD_VALUE arg, arg1
 ; given B= tile X, C= tile Y, return "world" value at this position in the world map
 ;
@@ -79,12 +91,12 @@ MACRO checkLeftM argX, argY, argMoveDelta
         ld bc, argMoveDelta                         ; move pixel delta
         or a                                        ; clear carry
         sbc hl, bc                                  ; simulate move left
-        DIV_HL_8                                    ; divide by 8 to get tile X
-        ld b, l                                     ; B = tile X
+        DIV_HL_8A                                   ; divide by 8 to get tile X
+        ld b, a                                     ; B = tile X
 
         ld hl, (argY)                               ; get Y pixel
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; C = tile Y
+        DIV_HL_8A                                   ; divide by 8 to get tile Y
+        ld c, a                                     ; C = tile Y
 
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
         cp MAP_WALL                                 ; is it a wall?
@@ -120,12 +132,12 @@ MACRO checkRightM argX, argY, argMoveDelta
         add hl, bc                                  ; simulate move Right
         add hl, 15                                  ; the sprite extends 0-15px right
 
-        DIV_HL_8                                    ; divide by 8 to get tile X
-        ld b, l                                     ; B = tile X
+        DIV_HL_8A                                   ; divide by 8 to get tile X
+        ld b, a                                     ; B = tile X
 
         ld hl, (argY)                               ; get Y pixel
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; C = tile Y
+        DIV_HL_8A                                   ; divide by 8 to get tile Y
+        ld c, a                                     ; C = tile Y
 
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
         cp MAP_WALL                                 ; is it a wall?
@@ -161,12 +173,12 @@ MACRO checkDownM argX, argY, argMoveDelta
         add hl, bc                                  ; simulate move Down
         add hl, 15                                  ; the sprite extends 0-15px down
 
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; C = tile Y
+        DIV_HL_8A                                   ; divide by 8 to get tile Y
+        ld c, a                                     ; C = tile Y
 
         ld hl, (argX)                               ; get X pixel
-        DIV_HL_8                                    ; divide by 8 to get tile X
-        ld b, l                                     ; B = tile X
+        DIV_HL_8A                                   ; divide by 8 to get tile X
+        ld b, a                                     ; B = tile X
 
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
         cp MAP_WALL                                 ; is it a wall?
@@ -192,12 +204,12 @@ MACRO checkUpM argX, argY, argMoveDelta
         or a                                        ; clear carry
         sbc hl, bc                                  ; simulate move Down
 
-        DIV_HL_8                                    ; divide by 8 to get tile Y
-        ld c, l                                     ; C = tile Y
+        DIV_HL_8A                                   ; divide by 8 to get tile Y
+        ld c, a                                     ; C = tile Y
 
         ld hl, (argX)                               ; get X pixel
-        DIV_HL_8                                    ; divide by 8 to get tile X
-        ld b, l                                     ; B = tile X
+        DIV_HL_8A                                   ; divide by 8 to get tile X
+        ld b, a                                     ; B = tile X
 
         GET_WORLD_VALUE TILEMAP_PAGE, USE_BC        ; see what tile is here
         cp MAP_WALL                                 ; is it a wall?
