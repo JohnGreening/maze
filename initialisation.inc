@@ -498,7 +498,7 @@ buildMapImage:
         rlca
         and 7
 
-        ld e, a                                     ; E = page offset (held for the whole row)
+        ld b, a                                     ; B = page offset (held for the whole row)
 
         ld a, c
         and $1F                                     ; low 5 bits of Y = row within the 32-row page
@@ -508,38 +508,22 @@ buildMapImage:
 
 .colLoop:
         ; ---- read MAP tile ----
-        ld a, e
-        add a, TILEMAP_PAGE
+        ld a, b                                     ; get page offset
+        add a, TILEMAP_PAGE                         ; add in base page
         nextreg $56, a                              ; page map bank into slot 6
         ld a, (hl)                                  ; A = map tile at (X,Y)
-        or a
-        jr z, .checkFlood                           ; tile 0 = path -> needs flood check
 
         ; non-zero tile -> fixed colour via lookup table
-        push hl                                     ; save cell address
-        ld hl, tileColour
-        add hl, a                                   ; Z80N: HL = &tileColour[tile]
-        ld d, (hl)                                  ; D = colour for this tile
-        pop hl                                      ; restore cell address
-        jr .haveColour
+        ld de, tileColour                           ; point to colour lookup table
+        add de, a                                   ; add in the colour offset
+        ld a, (de)                                  ; A = colour for this tile
+        ld d, a                                     ; save it in D
 
-.checkFlood:
-        ; same HL is valid for the field (identical layout) once we page it in
-        ld a, e
-        add a, DFIELD_PAGE
-        nextreg $56, a
-        ld a, (hl)
-        cp 255
-        ld d, L2_PATH
-        jr z, .haveColour
-        ld d, L2_FLOOD
-
-.haveColour:
         ; same HL again, now page in the radar (Layer 2) bank and write
-        ld a, e
-        add a, L2_PAGE
+        ld a, b                                     ; get page offset
+        add a, L2_PAGE                              ; add in base page
         nextreg $56, a                              ; page radar bank into slot 6
-        ld a, d
+        ld a, d                                     ; get the colour
         ld (hl), a                                  ; write the pixel colour
 
 ; ---- next column ----

@@ -97,8 +97,6 @@ baddie_y            dw 00
 COLLIDE_DX      equ 11                              ; X overlap threshold (tune 9-14)
 COLLIDE_DY      equ 11                              ; Y overlap threshold
 
-QUEUE_SIZE      equ 256                             ; max wavefront is ~27, so this is ample
-
 
 ALIGN 256
 floodQueue  ds 256          ; 128 entries x 2 bytes (E=X, D=Y), page-aligned
@@ -108,7 +106,6 @@ qCount      db 0
 
 floodTargetX    db  0
 floodTargetY    db  0
-;FLOOD_LIMIT     equ 253
 FLOOD_LIMIT     EQU 80
 
 L2_KEY          equ %11111100                       ; yellow (R+G, no blue)
