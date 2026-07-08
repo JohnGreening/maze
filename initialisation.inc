@@ -82,7 +82,13 @@ newGame:
         ld (floodInProgress), a                     ; set it
 
         call resetMapData
+
+        ld a, 2
+        out (254), a
         call clearFloodField
+        xor a
+        out (254), a
+        
         call addKey
         call buildMapImage
 
@@ -227,6 +233,7 @@ floodInProgress db 0
 ; set all 49152 field bytes to 255
 ; (255 = unvisited/wall).
 ; ============================================================
+/*
 clearFloodField:
         ld a, DFIELD_PAGE           ; first field page
         ld b, 6                     ; six pages to clear
@@ -245,6 +252,40 @@ clearFloodField:
         pop bc
         djnz .clrPage
         ret
+*/
+
+FILL_BYTE   db 255
+DMA_PORT    equ $6B
+
+dmaFillProg:
+        db $C3                  ; WR6  reset DMA
+        db $7D                  ; WR0  A->B, addr+len follow
+        dw FILL_BYTE            ; WR0  Port A start (the byte we smear)
+        dw 8192                 ; WR0  block length   (verify off-by-one on your core)
+        db $24                  ; WR1  Port A = memory, FIXED  (no increment -> fill)
+        db $10                  ; WR2  Port B = memory, increment
+        db $AD                  ; WR4  continuous, Port B addr follows
+        dw $C000               ; WR4  Port B start
+        db $82                  ; WR5  /CE only, no auto-restart
+        db $CF                  ; WR6  LOAD
+        db $87                  ; WR6  ENABLE (go)
+dmaFillLen  equ $-dmaFillProg
+
+clearFloodField:
+        di                              ; see below
+        ld a, DFIELD_PAGE               ; A = page   (OTIR leaves A alone)
+        ld e, 6                         ; E = count  (OTIR leaves DE alone)
+.pg:
+        nextreg $56, a                  ; page field bank into slot 6
+        ld hl, dmaFillProg
+        ld bc, (dmaFillLen<<8) | DMA_PORT   ; B=len, C=$6B
+        otir                            ; upload program + trigger fill
+        inc a
+        dec e
+        jr nz, .pg
+        ei
+        ret
+
 
 ; ============================================================
 ; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
@@ -253,8 +294,8 @@ clearFloodField:
 ; ============================================================
 floodFill:
         ld a, 0                                     ; ready to initialise
-        ld (qHeadIdx), a                            ; set q head to 0
-        ld (qTailIdx), a                            ; set q tail to 0
+        ld (qHeadL), a                              ; set q head to 0
+        ld (qTailL), a                              ; set q tail to 0
         ld (qCount), a                              ; set q depth to 0
 
         ld a, (floodTargetY)                        ; get our target cell Y
@@ -366,44 +407,39 @@ floodFill:
         ret                                         ; done
 
 
-; ---- push cell offset in DE onto queue ----
-; DE = YX
-; add this to our ring buffer for processing
+
+; ---- push cell in DE (D=Y, E=X) onto the ring ----
+; corrupts A, HL ; preserves DE
 qPushDE:
-; DE = YX, add to ring buffer
-        ld a, (qTailIdx)            ; tail index (byte, 0-255)
+        ld a, (qTailL)
         ld l, a
-        ld h, 0
-        add hl, hl                  ; *2 (word entries)
-        add hl, floodQueue                  ; HL -> slot
-        ld (hl), e
-        inc hl
-        ld (hl), d
-        ld a, (qTailIdx)
-        inc a                       ; tail+1, wraps 255->0 automatically (byte)
-        ld (qTailIdx), a
-        ld a, (qCount)
-        inc a
-        ld (qCount), a
+        ld h, high floodQueue       ; constant page base
+        ld (hl), e                  ; store X
+        inc l                       ; wraps 255->0 within the page
+        ld (hl), d                  ; store Y
+        inc l                       ; -> next slot (free 128-entry wrap)
+        ld a, l
+        ld (qTailL), a
+        ld hl, qCount
+        inc (hl)
         ret
 
-; ---- pop cell offset from queue into DE ----
+; ---- pop cell from the ring into DE (D=Y, E=X) ----
+; corrupts A, HL
 qPopDE:
-        ld a, (qHeadIdx)            ; head index (byte)
+        ld a, (qHeadL)
         ld l, a
-        ld h, 0
-        add hl, hl                  ; *2
-        add hl, floodQueue                  ; HL -> slot
-        ld e, (hl)
-        inc hl
-        ld d, (hl)
-        ld a, (qHeadIdx)
-        inc a                       ; head+1, wraps automatically
-        ld (qHeadIdx), a
-        ld a, (qCount)
-        dec a
-        ld (qCount), a
-        ret
+        ld h, high floodQueue
+        ld e, (hl)                  ; X
+        inc l
+        ld d, (hl)                  ; Y
+        inc l
+        ld a, l
+        ld (qHeadL), a
+        ld hl, qCount
+        dec (hl)
+        ret        
+
 
 ; ============================================================
 ; Reset the map data, e.g. on new game

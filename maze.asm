@@ -98,10 +98,14 @@ COLLIDE_DX      equ 11                              ; X overlap threshold (tune 
 COLLIDE_DY      equ 11                              ; Y overlap threshold
 
 QUEUE_SIZE      equ 256                             ; max wavefront is ~27, so this is ample
-floodQueue      ds  QUEUE_SIZE * 2                  ; ring buffer of 16-bit cell offsets (y*256+x)
-qHeadIdx        db  0
-qTailIdx        db  0
-qCount          db  0
+
+
+ALIGN 256
+floodQueue  ds 256          ; 128 entries x 2 bytes (E=X, D=Y), page-aligned
+qHeadL      db 0            ; head low byte (high byte = high floodQueue, constant)
+qTailL      db 0            ; tail low byte
+qCount      db 0
+
 floodTargetX    db  0
 floodTargetY    db  0
 ;FLOOD_LIMIT     equ 253
@@ -843,23 +847,23 @@ checkBaddieCollision:
 
 
 processBaddie:
-        ld h, (ix +baddieRecord.highX)              ; get baddie X
-        ld l, (ix +baddieRecord.lowX)
-        ld (baddie_x), hl
-        ld a, l
-        and 7
-        ld iyh, a
-        DIV_HL_8A                                   ; div by 8 to get tile Y
-        ld b, a                                     ; save in B, see newTile below
-
         ld h, (ix +baddieRecord.highY)              ; get baddie Y
         ld l, (ix +baddieRecord.lowY)
         ld (baddie_y), hl
         ld a, l
         and 7
         ld iyl, a
-        DIV_HL_8A                                   ; divide by 8 to get tile Y
-        ld c, a                                     ; save in C, see newTile below
+        DIV_HL_8B                                   ; divide by 8 to get tile Y
+        ld c, e                                     ; save in C, see newTile below
+
+        ld h, (ix +baddieRecord.highX)              ; get baddie X
+        ld l, (ix +baddieRecord.lowX)
+        ld (baddie_x), hl
+        ld a, l
+        and 7
+        ld iyh, a
+        DIV_HL_8B                                   ; div by 8 to get tile Y
+        ld b, e                                     ; save in B, see newTile below
 
 ; Decide only when grid-aligned (iyh==0 AND iyl==0) - the only
         ; moment a turn is possible. "Tile changed" fired at the far tile

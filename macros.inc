@@ -9,6 +9,7 @@ MACRO SPEED arg
         ENDM
 
 MACRO DIV_HL_8
+; version 1, 48 t-states
 ; simple 16-bit divide without the CALL/RET overhead
         srl h                                       ; divide by 2
         rr l
@@ -19,7 +20,7 @@ MACRO DIV_HL_8
         ENDM
 
 MACRO DIV_HL_8A
-; version 2, 8 t-states quicker
+; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
 ; simple 16-bit divide without the CALL/RET overhead
         ld a, l                                     ; get low byte into a ready for rotate from carry   4t
         srl h                                       ;                                                   8t
@@ -28,6 +29,14 @@ MACRO DIV_HL_8A
         rra                                         ;                                                   4t
         srl h                                       ;                                                   8t
         rra                                         ;                                                   4t
+        ENDM
+
+MACRO DIV_HL_8B
+; version 3, 19 t-states (21 t-states quicker than A)
+; simple 16-bit divide without the CALL/RET overhead
+        EX DE, HL                                   ;                                                   4t
+        LD B, 3                                     ;                                                   7t
+        BSRA DE, B                                       ;                                                   8t
         ENDM
 
 MACRO GET_WORLD_VALUE arg, arg1
