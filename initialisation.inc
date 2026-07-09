@@ -81,16 +81,36 @@ newGame:
         ld a, 1                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
 
+        ;=============================================
+        ; reset tilemap data so that we only have
+        ; paths=0, walls=1
+        ; keys are removed
+        ;=============================================
         call resetMapData
 
-        ld a, 2
-        out (254), a
+        ;=============================================
+        ; clear flood fill data
+        ; everything is set to 255 (wall or unvisited)
+        ;=============================================
         call clearFloodField
-        xor a
-        out (254), a
-        
-        call addKey
+
+        ;=============================================
+        ; build the redar view
+        ; just paths and walls
+        ;=============================================        
         call buildMapImage
+
+        ;=============================================
+        ; add random keys to the tilemap 
+        ; and radar
+        ;=============================================
+        call addKeys
+
+        ;=============================================
+        ; create the floodfill for the keys
+        ;=============================================
+        call floodKey
+
 
         ld a, 0                                     ; indicator for interupt handler
         ld (floodInProgress), a                     ; set it
@@ -223,39 +243,13 @@ initHUD:
         ret
 
 
-dist    db 0
-paletteFlip db 0
-paletteDelay db 0
+dist            db 0
+paletteFlip     db 0
+paletteDelay    db 0
 floodInProgress db 0
 
-; ============================================================
-; Clear the flood field area completely
-; set all 49152 field bytes to 255
-; (255 = unvisited/wall).
-; ============================================================
-/*
-clearFloodField:
-        ld a, DFIELD_PAGE           ; first field page
-        ld b, 6                     ; six pages to clear
-.clrPage:
-        push bc
-        nextreg $56, a              ; page this 8K bank into slot 6 ($C000)
-        push af
-        ; smear 255 across $C000..$DFFF (8192 bytes)
-        ld hl, $C000
-        ld (hl), 255
-        ld de, $C001
-        ld bc, 8192 - 1
-        ldir
-        pop af
-        inc a                       ; next page
-        pop bc
-        djnz .clrPage
-        ret
-*/
-
-FILL_BYTE   db 255
-DMA_PORT    equ $6B
+FILL_BYTE       db 255
+DMA_PORT        equ $6B
 
 dmaFillProg:
         db $C3                  ; WR6  reset DMA
@@ -271,6 +265,11 @@ dmaFillProg:
         db $87                  ; WR6  ENABLE (go)
 dmaFillLen  equ $-dmaFillProg
 
+; ============================================================
+; Clear the flood field area completely
+; set all 49152 field bytes to 255
+; (255 = unvisited/wall).
+; ============================================================
 clearFloodField:
         di                              ; see below
         ld a, DFIELD_PAGE               ; A = page   (OTIR leaves A alone)
@@ -439,6 +438,51 @@ qPopDE:
         ld hl, qCount
         dec (hl)
         ret        
+
+; ============================================================
+; stampTrail - lay a "flood-like" value at the player's tile.
+; Called from showSprite with player_tile_x/y current.
+; Writes trailValue the first time the player enters a tile, then
+; decrements it: 255,254,...,1,0,255,... (byte wrap).
+; Trashes: AF, BC, HL ; pages slot 6.
+; ============================================================
+stampTrail:
+        ld a, (player_tile_x)
+        ld hl, trailLastX
+        cp (hl)                     ; same tile X as last stamp?
+        jr nz, .moved
+        ld a, (player_tile_y)
+        ld hl, trailLastY
+        cp (hl)                     ; same tile Y too?
+        ret z                       ; still on the same tile -> nothing to do
+.moved:
+        ld a, (player_tile_x)
+        ld (trailLastX), a
+        ld l, a                     ; e = tileX
+        ld a, (player_tile_y)
+        ld (trailLastY), a
+        ld h, a                     ; d = tileY
+
+;        ld h, d
+;        ld l, e
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL   ; page field bank, HL -> field(tileX,tileY)
+        ld a, (trailValue)
+        ld (hl), a                  ; lay the trail value at this tile
+ ;       inc hl
+ ;       ld (hl), a
+
+;        ld h, d
+;        ld l, e
+;        inc h
+;        GET_WORLD_VALUE DFIELD_PAGE, USE_HL   ; page field bank, HL -> field(tileX,tileY)
+;        ld a, (trailValue)
+;        ld (hl), a                  ; lay the trail value at this tile
+;        inc hl
+;        ld (hl), a
+
+        dec a                       ; next value (0 -> 255 wraps)
+        ld (trailValue), a
+        ret
 
 
 ; ============================================================

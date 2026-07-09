@@ -38,6 +38,11 @@ player_px           dw 0                            ; world pixel position of sp
 player_py           dw 0
 player_tile_x       db 0                            ; world tile position of sprite, basically px / 256
 player_tile_y       db 0
+
+trailValue  db 255                                  ; next value to lay (decrements per new tile)
+trailLastX  db 255                                  ; last tile stamped (255 = none yet)
+trailLastY  db 255
+
 lastMove            db 1                            ; 
 playerAnimFrame     db 0                            ; current animation frame 0-3
 playerAnimTick      db 0                            ; counts frames to slow the animation
@@ -474,7 +479,7 @@ chkUp:
 
 keyEnd:
 moveSprite:
-;        call debugs
+;       call debugs
 ;        ld a, 2
 ;        out (254), a
         call processBaddies
@@ -624,6 +629,8 @@ showSprite:
         ld hl, (player_px)
         DIV_HL_8A                                    ; A = tileX (player_px / 8)
         ld (player_tile_x), a
+
+        call stampTrail
 
         ; ... player_tile_x / player_tile_y just stored ...
         call checkKeyCollect

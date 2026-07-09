@@ -53,74 +53,44 @@ collectKey:
         inc hl
         ld (hl), MAP_PATH                           ; reset key at tile x+1, y+1
 
+
+        ; --- clear the key from the radar (Layer 2) image (same 2x2 footprint) ---
+        ; D = tileX, E = tileY are preserved across GET_WORLD_VALUE, so reuse them.
+        ld l, d
+        ld h, e
+        GET_WORLD_VALUE L2_PAGE, USE_HL             ; page radar bank, HL -> radar (x,y)
+        ld (hl), L2_PATH                            ; radar tile x, y   -> black
+        inc hl
+        ld (hl), L2_PATH                            ; radar tile x+1, y
+
+        ld l, d
+        ld h, e
+        inc h
+        GET_WORLD_VALUE L2_PAGE, USE_HL             ; recompute (y+1 may cross a page)
+        ld (hl), L2_PATH                            ; radar tile x, y+1
+        inc hl
+        ld (hl), L2_PATH                            ; radar tile x+1, y+1
+
         ld a, soundCollect
         call playsound
 
-        CALL rebuildMaps
+        ; probably a temporary routine to reset the floodmap for all
+        ; and then reflood for the available keys
+        call floodKey
+
         ld a, (playerKeys)
         inc a
         ld (playerKeys), a
         call showKeys
         ret
 
-;===========================================================
-; this routine callled when a key is collected
-; for each key still in play it
-;     calculates the distance field
-;     rebuilds the radar layer 2 map
-;===========================================================
-rebuildMaps:
-        ;=======================================================
-        ; build the maps for a new game or when key is collected
-        ;=======================================================
-        SPEED 3
-        ld a, 1                                     ; indicator for interupt handler
-        ld (floodInProgress), a                     ; set it
-
-        call clearFloodField                        ; clear any flood fill
-
-        ld b, 0
-.keyFlood:
-        push bc
-        ; compute KEY_DATA + b*3 fresh each time (floodFill trashes HL)
-        ld hl, KEY_DATA
-        ld a, b
-        add a, a
-        add a, b                        ; A = b*3
-        add hl, a                       ; HL -> this key's record
-        ld d, (hl)                      ; tileX
-        inc hl
-        ld e, (hl)                      ; tileY
-        inc hl
-        ld a, (hl)                      ; status
-        cp KEY_AVAILABLE
-        jr nz, .nextKey
-        ld a, d
-        ld (floodTargetX), a
-        ld a, e
-        ld (floodTargetY), a
-        call floodFill                  ; trashes HL - but we recompute it next iter
-.nextKey:        
-        pop bc
-
-        inc b
-        ld a, b
-        cp KEY_COUNT
-        jr nz, .keyFlood
-
-        call buildMapImage                          ; render maze into Layer 2
-
-        LD A, 0                                     ; reset value
-        ld (floodInProgress), a                     ; indicator for interupt handler
-        nextreg $6c, a                              ; tilemap palette offset 0
-        SPEED 0
-        ret
 
 ;===========================================================
 ; this routine called as part of a new game
 ; it randomly adds each key into the maze map
+; and paints the key onto the radar (Layer 2) image
 ;===========================================================
-addKey:
+addKeys:
         ld b, 0
 .nextKey:
         push bc
@@ -178,6 +148,7 @@ addKey:
         cp 255                                      ; 255 = unflooded
         jp nz, .tryPos                              ; already flooded -> re-pick
 
+        ; --- place the key into the maze map (2x2 footprint) ---
         ld l, d
         ld h, e
         GET_WORLD_VALUE TILEMAP_PAGE, USE_HL
@@ -192,14 +163,31 @@ addKey:
         ld (hl), MAP_KEYBL                          ; key BL
         inc hl
         ld (hl), MAP_KEYBR                          ; key BR
-        
-        push de
-        ld a, d
-        ld (floodTargetX), a
-        ld a, e
-        ld (floodTargetY), a
-        call floodFill
-        pop de
+
+        ; --- paint the key onto the radar (Layer 2) image (same 2x2 footprint) ---
+        ; D = tileX, E = tileY are preserved across GET_WORLD_VALUE, so reuse them.
+        ld l, d
+        ld h, e
+        GET_WORLD_VALUE L2_PAGE, USE_HL             ; page radar bank, HL -> radar (x,y)
+        ld (hl), L2_KEY                             ; radar tile x, y   -> yellow
+        inc hl
+        ld (hl), L2_KEY                             ; radar tile x+1, y
+
+        ld l, d
+        ld h, e
+        inc h
+        GET_WORLD_VALUE L2_PAGE, USE_HL             ; recompute (y+1 may cross a page)
+        ld (hl), L2_KEY                             ; radar tile x, y+1
+        inc hl
+        ld (hl), L2_KEY                             ; radar tile x+1, y+1
+
+;        push de
+;        ld a, d
+;        ld (floodTargetX), a
+;        ld a, e
+;        ld (floodTargetY), a
+;        call floodFill
+;        pop de
 
         pop bc
         ld hl, KEY_DATA
@@ -219,3 +207,38 @@ addKey:
         jp nz, .nextKey
         ret
 
+floodKey:
+        SPEED 3
+
+        call clearFloodField
+        ld b, 0
+        ld hl, KEY_DATA
+.loop:
+        ld d, (hl)
+        inc hl
+        ld e, (hl)
+        inc hl
+        ld a, (hl)
+        inc hl
+        cp KEY_AVAILABLE
+        jr nz, .nextKey
+
+        push bc
+        push hl
+        ld a, d
+        ld (floodTargetX), a
+        ld a, e
+        ld (floodTargetY), a
+        call floodFill
+        pop hl
+        pop bc
+
+.nextKey:
+        inc b
+        ld a, b
+        cp KEY_COUNT
+        jr nz, .loop
+
+        SPEED 0
+
+        ret
