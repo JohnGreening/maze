@@ -285,90 +285,55 @@ clearFloodField:
         ei
         ret
 
+; ---- push cell in BC (B=Y, C=X) onto the ring ----
+; corrupts A, HL ; preserves DE
+MACRO QPUSH_BC
+        ld a, (qTailL)
+        ld l, a
+        ld h, high floodQueue
+        ld (hl), c                  ; store X
+        inc l
+        ld (hl), b                  ; store Y
+        inc l
+        ld a, l
+        ld (qTailL), a
+        ld hl, qCount
+        inc (hl)
+        ENDM
 
-; ============================================================
-; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
-; distance field: 0 at target, increasing outward, clamped at
-; 254. 255 = wall/unvisited/unreachable. INERT until called.
-; ============================================================
-floodFill:
-        ld a, 0                                     ; ready to initialise
-        ld (qHeadL), a                              ; set q head to 0
-        ld (qTailL), a                              ; set q tail to 0
-        ld (qCount), a                              ; set q depth to 0
+; ---- push cell in DE (D=Y, E=X) onto the ring ----
+; corrupts A, HL ; preserves DE
+MACRO QPUSH_DE
+        ld a, (qTailL)
+        ld l, a
+        ld h, high floodQueue       ; constant page base
+        ld (hl), e                  ; store X
+        inc l                       ; wraps 255->0 within the page
+        ld (hl), d                  ; store Y
+        inc l                       ; -> next slot (free 128-entry wrap)
+        ld a, l
+        ld (qTailL), a
+        ld hl, qCount
+        inc (hl)
+        ENDM
 
-        ld a, (floodTargetY)                        ; get our target cell Y
-        ld d, a                                     ; put in D
-        ld a, (floodTargetX)                        ; get out target cell X
-        ld e, a                                     ; put in E
+; ---- pop cell from the ring into DE (D=Y, E=X) ----
+; corrupts A, HL
+MACRO QPOP_DE
+        ld a, (qHeadL)
+        ld l, a
+        ld h, high floodQueue
+        ld e, (hl)                  ; X
+        inc l
+        ld d, (hl)                  ; Y
+        inc l
+        ld a, l
+        ld (qHeadL), a
+        ld hl, qCount
+        dec (hl)
+        ENDM      
 
-        ld h, d                                     ; Y also in H
-        ld l, e                                     ; X also in L
-
-        GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; use common routine to point HL to flood value we want to set
-        ld (hl), 0                                  ; set initial flood value to 0
-
-        call qPushDE                                ; push target (d = y, e = x)
-
-.mainLoop:
-        ld a, (qCount)                              ; get the count of items on the queue
-        or a
-        ret z                                       ; empty -> done
-
-        ; qPopDE is only called from here
-        ; it's effectively the driver for the processing for this tile
-        call qPopDE                                 ; DE = current cell (D=y, E=x)
-        ld b, e                                     ; b = X    ** note opposite of DE
-        ld c, d                                     ; c = Y
-        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
-        ld (dist), a                                ; save distance
-        cp FLOOD_LIMIT
-        jr nc, .mainLoop
-
-        ; ----------------------------------------------------------------------------
-        ; we've popped a tile of the queue (having previously processed it)
-        ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
-        ; ----------------------------------------------------------------------------
-.skip
-        ; LEFT
-        ld a, e                                     ; get tile X
-        or a                                        ; test for 0, lhs of maze
-        jr z, .skipL                                ; branch if so, nothing to do
-        dec a                                       ; get x - 1
-        ld l, a                                     ; set L = X - 1 to test it
-        ld h, d                                     ; set H = y  to test it
-        call .tryCell                               ; do the test. HL is now x-1, y
-.skipL:
-        ; RIGHT
-        ld a, e                                     ; get tile X
-        cp 255                                      ; test for 255, rhs of maze
-        jr z, .skipR                                ; branch if so, nothing to do
-        inc a                                       ; get X + 1
-        ld l, a                                     ; set L = X + 1 to test it
-        ld h, d                                     ; set H = y to test it
-        call .tryCell                               ; do the test. HL is now x+1, y
-.skipR:
-        ; UP
-        ld a, d                                     ; get tile Y
-        or a                                        ; test for 0, top of maze
-        jr z, .skipU                                ; branch if so, nothing to do
-        dec a                                       ; get y -1
-        ld l, e                                     ; set L = X to test it
-        ld h, a                                     ; set H = y - 1 to test it
-        call .tryCell                               ; do the test, HL is now x, y-1
-.skipU:
-        ; DOWN
-        ld a, d
-        cp 191
-        jr z, .skipD
-        inc a
-        ld l, e
-        ld h, a
-        call .tryCell
-.skipD:
-        jr .mainLoop
-
-.tryCell:
+MACRO TRY_CELL
 ; test one of the x +/- 1, y+/- 1 tiles
 ; here DE = yx of the tile taken off the queue
 ;      HL = tile being tested, i.e. +/- 1 of x or y
@@ -398,60 +363,97 @@ floodFill:
         ld a, 254
 .storeDist:
         ld (hl), a                                  ; set distance for this tile
-        call qPushBC                                ; push this tested tile onto the queue
+        QPUSH_BC                                ; push this tested tile onto the queue
 .tcDone:
-        ret                                         ; done
+        ENDM                                         ; done
 
 
+; ============================================================
+; floodFill - BFS from (floodTargetX,floodTargetY). Fills the
+; distance field: 0 at target, increasing outward, clamped at
+; 254. 255 = wall/unvisited/unreachable. INERT until called.
+; ============================================================
+floodFill:
+        ld a, 0                                     ; ready to initialise
+        ld (qHeadL), a                              ; set q head to 0
+        ld (qTailL), a                              ; set q tail to 0
+        ld (qCount), a                              ; set q depth to 0
 
+        ld a, (floodTargetY)                        ; get our target cell Y
+        ld d, a                                     ; put in D
+        ld a, (floodTargetX)                        ; get out target cell X
+        ld e, a                                     ; put in E
 
-; ---- push cell in BC (B=Y, C=X) onto the ring ----
-; corrupts A, HL ; preserves DE
-qPushBC:
-        ld a, (qTailL)
-        ld l, a
-        ld h, high floodQueue
-        ld (hl), c                  ; store X
-        inc l
-        ld (hl), b                  ; store Y
-        inc l
-        ld a, l
-        ld (qTailL), a
-        ld hl, qCount
-        inc (hl)
-        ret
+        ld h, d                                     ; Y also in H
+        ld l, e                                     ; X also in L
 
-; ---- push cell in DE (D=Y, E=X) onto the ring ----
-; corrupts A, HL ; preserves DE
-qPushDE:
-        ld a, (qTailL)
-        ld l, a
-        ld h, high floodQueue       ; constant page base
-        ld (hl), e                  ; store X
-        inc l                       ; wraps 255->0 within the page
-        ld (hl), d                  ; store Y
-        inc l                       ; -> next slot (free 128-entry wrap)
-        ld a, l
-        ld (qTailL), a
-        ld hl, qCount
-        inc (hl)
-        ret
+        GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; use common routine to point HL to flood value we want to set
+        ld (hl), 0                                  ; set initial flood value to 0
 
-; ---- pop cell from the ring into DE (D=Y, E=X) ----
-; corrupts A, HL
-qPopDE:
-        ld a, (qHeadL)
-        ld l, a
-        ld h, high floodQueue
-        ld e, (hl)                  ; X
-        inc l
-        ld d, (hl)                  ; Y
-        inc l
-        ld a, l
-        ld (qHeadL), a
-        ld hl, qCount
-        dec (hl)
-        ret        
+        QPUSH_DE                                    ; push target (d = y, e = x)
+
+.mainLoop:
+        ld a, (qCount)                              ; get the count of items on the queue
+        or a
+        ret z                                       ; empty -> done
+
+        ; qPopDE is only called from here
+        ; it's effectively the driver for the processing for this tile
+        QPOP_DE                                     ; DE = current cell (D=y, E=x)
+        ld b, e                                     ; b = X    ** note opposite of DE
+        ld c, d                                     ; c = Y
+        GET_WORLD_VALUE DFIELD_PAGE, USE_BC
+        ld (dist), a                                ; save distance
+        cp FLOOD_LIMIT
+        jr nc, .mainLoop
+
+        ; ----------------------------------------------------------------------------
+        ; we've popped a tile of the queue (having previously processed it)
+        ; now we want to look at it's neighbours, i.e. x-1, y; x+1, y; x, y-1; x, y+1 
+        ; ----------------------------------------------------------------------------
+.skip
+        ; LEFT
+        ld a, e                                     ; get tile X
+        or a                                        ; test for 0, lhs of maze
+        jr z, .skipL                                ; branch if so, nothing to do
+        dec a                                       ; get x - 1
+        ld l, a                                     ; set L = X - 1 to test it
+        ld h, d                                     ; set H = y  to test it
+        TRY_CELL
+        ;call .tryCell                               ; do the test. HL is now x-1, y
+.skipL:
+        ; RIGHT
+        ld a, e                                     ; get tile X
+        cp 255                                      ; test for 255, rhs of maze
+        jr z, .skipR                                ; branch if so, nothing to do
+        inc a                                       ; get X + 1
+        ld l, a                                     ; set L = X + 1 to test it
+        ld h, d                                     ; set H = y to test it
+        TRY_CELL
+        ;call .tryCell                               ; do the test. HL is now x+1, y
+.skipR:
+        ; UP
+        ld a, d                                     ; get tile Y
+        or a                                        ; test for 0, top of maze
+        jr z, .skipU                                ; branch if so, nothing to do
+        dec a                                       ; get y -1
+        ld l, e                                     ; set L = X to test it
+        ld h, a                                     ; set H = y - 1 to test it
+        TRY_CELL
+        ;call .tryCell                               ; do the test, HL is now x, y-1
+.skipU:
+        ; DOWN
+        ld a, d
+        cp 191
+        jr z, .skipD
+        inc a
+        ld l, e
+        ld h, a
+        TRY_CELL
+        ;call .tryCell
+.skipD:
+        jp .mainLoop
+
 
 ; ============================================================
 ; stampTrail - lay a "flood-like" value at the player's tile.
@@ -461,6 +463,13 @@ qPopDE:
 ; Trashes: AF, BC, HL ; pages slot 6.
 ; ============================================================
 stampTrail:
+        ld a, (player_tile_y)
+        ld (floodTargetY), a                        ; get our target cell Y
+        ld a, (player_tile_x)
+        ld (floodTargetX), a                        ; get out target cell X
+        call floodFill
+        ret
+
         ld a, (player_tile_x)
         ld hl, trailLastX
         cp (hl)                     ; same tile X as last stamp?

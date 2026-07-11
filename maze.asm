@@ -620,14 +620,26 @@ showSprite:
 ; Trashes: AF, HL, BC
 ; ============================================================
         ld hl, (player_py)
-        DIV_HL_8A                                    ; A = tileY (player_py / 8)
+        ld a, l
+        and 7
+        ld iyl, a
+        DIV_HL_8B                                    ; A = tileY (player_py / 8)
+        ld a, e
         ld (player_tile_y), a
 
         ld hl, (player_px)
-        DIV_HL_8A                                    ; A = tileX (player_px / 8)
+        ld a, l
+        and 7
+        ld iyl, a
+        DIV_HL_8B                                    ; A = tileX (player_px / 8)
+        ld a, e
         ld (player_tile_x), a
 
-        call stampTrail
+
+        ld a, iyl
+        and ixh
+
+        call z, stampTrail
 
         ; ... player_tile_x / player_tile_y just stored ...
         call checkKeyCollect
@@ -982,6 +994,17 @@ reverse:
         ld l, a
         jp (hl)
 
+
+MACRO CONSIDER
+        ld hl, pf_best                              ; point to store of best move
+        cp (hl)                                     ; compare with current tile value
+        jr nc, .keep                                ; return if no better
+        ld (hl), a                                  ; otherwise store new best
+        ld a, d                                     ; get the tested direction
+        ld (pf_dir), a                              ; store as the one to use
+.keep
+        ENDM
+
 ; ============================================================
 ; pickByField - of the available directions (mask in E), choose the
 ; neighbour with the lowest field distance. Returns vdir flag in A,
@@ -1004,7 +1027,7 @@ pickByField:
         ld h, c                                     ; put tile Y in L for lookup
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; get (in A) the flood value
         ld d, vdir_left                             ; mark that we are considering left
-        call .consider                              ; see if its the best move
+        CONSIDER                                    ; see if its the best move
 .noL:
         bit dir_right, e                            ; is a turn right permitted
         jr z, .noR                                  ; branch if not
@@ -1015,7 +1038,7 @@ pickByField:
         ld h, c                                     ; put tile Y in L for lookup
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL         ; get (in A) the flood value here
         ld d, vdir_right                            ; mark that we are considering right
-        call .consider                              ; see if its the best move
+        CONSIDER                              ; see if its the best move
 .noR:
         bit dir_down, e
         jr z, .noD
@@ -1026,7 +1049,7 @@ pickByField:
         ld h, a
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
         ld d, vdir_down
-        call .consider
+        CONSIDER
 .noD:
         bit dir_up, e
         jr z, .noU
@@ -1036,11 +1059,12 @@ pickByField:
         ld h, a
         GET_WORLD_VALUE DFIELD_PAGE, USE_HL
         ld d, vdir_up
-        call .consider
+        CONSIDER
 .noU:
         ld a, (pf_dir)
         ret
 
+/*
 .consider:
         ld hl, pf_best                              ; point to store of best move
         cp (hl)                                     ; compare with current tile value
@@ -1049,6 +1073,7 @@ pickByField:
         ld a, d                                     ; get the tested direction
         ld (pf_dir), a                              ; store as the one to use
         ret
+*/
 
 pf_best     db 0
 pf_dir      db 0
