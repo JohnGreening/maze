@@ -372,21 +372,21 @@ floodFill:
 ; test one of the x +/- 1, y+/- 1 tiles
 ; here DE = yx of the tile taken off the queue
 ;      HL = tile being tested, i.e. +/- 1 of x or y
-        push de                                     ; save yx of the tile taken of the queue
-
         ld b, h                                     ; temp preserve h = tile Y being tested
         ld c, l                                     ; temp preserve l = tile X being tested
         GET_WORLD_VALUE TILEMAP_PAGE, USE_HL        ; get tile at this tested location
         cp MAP_WALL                                 ; is it a wall?
         jr z, .tcDone                               ; branch if its a wall, done
 
-        ; get distance value for this tile, first page in the equivalent distance field data
+        ; get distance value for this tile. Page in the equivalent distance field data
         ld a, (curWorldPage)      
         add a, DFIELD_PAGE - TILEMAP_PAGE
         nextreg $56, a
         ld a, (hl)                                  ; get distance field for this tile
 
-        cp 255                                      ; is it untouched? i.e. path but value = 255
+;        cp 255                                      ; is it untouched? i.e. path but value = 255
+; performance tweak, saves 3 t-states !
+        inc a
         jr nz, .tcDone                              ; branch if we've already visited this tile
 
         ld a, (dist)                                ; get distance for original tile XY (from mainloop)
@@ -398,14 +398,28 @@ floodFill:
         ld a, 254
 .storeDist:
         ld (hl), a                                  ; set distance for this tile
-        ld d, b                                     ; retrieve preserved tile Y
-        ld e, c                                     ; retrieve preserced tile X
-        call qPushDE                                ; push to queue for later processing
+        call qPushBC                                ; push this tested tile onto the queue
 .tcDone:
-        pop de                                      ; return Original tile 
         ret                                         ; done
 
 
+
+
+; ---- push cell in BC (B=Y, C=X) onto the ring ----
+; corrupts A, HL ; preserves DE
+qPushBC:
+        ld a, (qTailL)
+        ld l, a
+        ld h, high floodQueue
+        ld (hl), c                  ; store X
+        inc l
+        ld (hl), b                  ; store Y
+        inc l
+        ld a, l
+        ld (qTailL), a
+        ld hl, qCount
+        inc (hl)
+        ret
 
 ; ---- push cell in DE (D=Y, E=X) onto the ring ----
 ; corrupts A, HL ; preserves DE

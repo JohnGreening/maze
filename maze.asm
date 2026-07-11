@@ -99,9 +99,6 @@ baddieData          defs baddieRecord * baddieCount
 baddie_x            dw 00
 baddie_y            dw 00
 
-COLLIDE_DX      equ 11                              ; X overlap threshold (tune 9-14)
-COLLIDE_DY      equ 11                              ; Y overlap threshold
-
 
 ALIGN 256
 floodQueue  ds 256          ; 128 entries x 2 bytes (E=X, D=Y), page-aligned
@@ -811,43 +808,46 @@ processBaddies:
 
 ; IX -> baddie record. Returns carry SET if player overlaps this baddie.
 ; Trashes AF, DE, HL
+; hit iff |player-baddie| <= COLLIDE-1 on both axes.
+; bias trick: |d| <= K  <=>  (d+K) in [0,2K] unsigned  -> one range test, no abs branch.
+COLLIDE_DX      equ 11                              ; X overlap threshold (tune 9-14)
+COLLIDE_DY      equ 11                              ; Y overlap threshold
+
+COLLIDE_BIAS_X  equ COLLIDE_DX - 1          ; 10
+COLLIDE_SPAN_X  equ 2*COLLIDE_DX - 1        ; 21
+COLLIDE_BIAS_Y  equ COLLIDE_DY - 1          ; 10
+COLLIDE_SPAN_Y  equ 2*COLLIDE_DY - 1        ; 21
+
+; IX -> baddie record. Returns carry SET if player overlaps this baddie.
+; Trashes AF, DE, HL
 checkBaddieCollision:
-        ; --- X: |player_px - baddie_x| < COLLIDE_DX ? ---
-        ld hl, (player_px)
-        ld e, (ix + baddieRecord.lowX)
-        ld d, (ix + baddieRecord.highX)
-        or a
-        sbc hl, de                                  ; HL = player_px - baddie_x
-        bit 7, h                                    ; negative?
-        jr z, .xAbs
-        ex de, hl
-        ld hl, 0
-        or a
-        sbc hl, de                                  ; HL = |dx|
-.xAbs:
-        ld de, COLLIDE_DX
-        or a
-        sbc hl, de
-        ret nc                                      ; |dx| >= threshold -> no hit (carry clear)
+        ; --- X ---
+        ld hl, (player_px)                          ; get player pixel xy
+        ld e, (ix + baddieRecord.lowX)              ; get skull pixel x
+        ld d, (ix + baddieRecord.highX)             ; 
+        or a                                        ; clear carry
+        sbc hl, de                                  ; get diff, could be -ve
+        add hl, COLLIDE_BIAS_X                      ; add in the collide threshold (remember sprites are 16 pixels wide)
+        ld a, h                                     ; check the high byte
+        or a                                        ; high byte set? (also clears carry)
+        ret nz                                      ; too big -> no hit (carry clear)
+        ld a, l                                     ; get low byte
+        cp COLLIDE_SPAN_X                           ; L < 21 ?
+        ret nc                                      ; L >= 21 -> no hit (carry clear)
 
-        ; --- Y: |player_py - baddie_y| < COLLIDE_DY ? ---
-        ld hl, (player_py)
-        ld e, (ix + baddieRecord.lowY)
-        ld d, (ix + baddieRecord.highY)
-        or a
-        sbc hl, de
-        bit 7, h
-        jr z, .yAbs
-        ex de, hl
-        ld hl, 0
-        or a
-        sbc hl, de
-.yAbs:
-        ld de, COLLIDE_DY
-        or a
-        sbc hl, de
-        ret                                         ; carry set if |dy| < threshold -> HIT
-
+        ; --- Y --- (only reached when X overlaps)
+        ld hl, (player_py)                          ;
+        ld e, (ix + baddieRecord.lowY)              ;
+        ld d, (ix + baddieRecord.highY)             ;
+        or a                                        ;
+        sbc hl, de                                  ;
+        add hl, COLLIDE_BIAS_Y                      ;
+        ld a, h                                     ;
+        or a                                        ;
+        ret nz                                      ;
+        ld a, l                                     ;
+        cp COLLIDE_SPAN_Y                           ;
+        ret                                         ;
 
 
 processBaddie:
