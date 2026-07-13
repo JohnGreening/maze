@@ -121,9 +121,9 @@ playsound:
 sound1:
 ; initial tone period
 ; tone period delta
-; initial volme (*256)
+; initial volme (*256) allows really fine delta movement although most will be unheard (only 0-15 of the high byte is used in the AY chip)
 ; volume delta
-; tone, noise, envelope flags
+; tone, noise, envelope flags. Mostly unused. bit 0 is tone enable, bit 1 is noise enable
 ; length in frames (50hz)
 
 ; hit head sound

@@ -2064,7 +2064,7 @@
   12+ 7E49 FD 21 86 80          ld iy, keys_text
   13+ 7E4D CD 73 87             call displayText
   14+ 7E50 01 13 00             ld bc, 19
-  15+ 7E53 3A 39 90             ld a, (playerKeys)
+  15+ 7E53 3A 05 90             ld a, (playerKeys)
   16+ 7E56 CD F1 87             call DisplayDigit
   17+ 7E59
   18+ 7E59 01 15 00             ld bc, 21
@@ -2131,7 +2131,7 @@
   43+ 7E78             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
   43+ 7E78             >
   43+ 7E78 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-  43+ 7E7A 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+  43+ 7E7A 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
   43+ 7E7D ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
   43+ 7E80             >
   43+ 7E80             >
@@ -2192,7 +2192,7 @@
   51+ 7E95             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
   51+ 7E95             >
   51+ 7E95 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-  51+ 7E97 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+  51+ 7E97 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
   51+ 7E9A ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
   51+ 7E9D             >
   51+ 7E9D             >
@@ -2255,7 +2255,7 @@
   61+ 7EB1             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
   61+ 7EB1             >
   61+ 7EB1 C6 34       >        add  a, L2_PAGE                                 ; add the starting page number
-  61+ 7EB3 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+  61+ 7EB3 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
   61+ 7EB6 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
   61+ 7EB9             >
   61+ 7EB9             >
@@ -2316,7 +2316,7 @@
   69+ 7ECE             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
   69+ 7ECE             >
   69+ 7ECE C6 34       >        add  a, L2_PAGE                                 ; add the starting page number
-  69+ 7ED0 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+  69+ 7ED0 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
   69+ 7ED3 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
   69+ 7ED6             >
   69+ 7ED6             >
@@ -2342,9 +2342,9 @@
   78+ 7EE7                      ; and then reflood for the available keys
   79+ 7EE7 CD 28 80             call floodKey
   80+ 7EEA
-  81+ 7EEA 3A 39 90             ld a, (playerKeys)
+  81+ 7EEA 3A 05 90             ld a, (playerKeys)
   82+ 7EED 3C                   inc a
-  83+ 7EEE 32 39 90             ld (playerKeys), a
+  83+ 7EEE 32 05 90             ld (playerKeys), a
   84+ 7EF1 CD 49 7E             call showKeys
   85+ 7EF4 C9                   ret
   86+ 7EF5
@@ -2416,7 +2416,7 @@
  116+ 7F16             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  116+ 7F16             >
  116+ 7F16 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 116+ 7F18 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 116+ 7F18 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  116+ 7F1B ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  116+ 7F1E             >
  116+ 7F1E             >
@@ -2476,7 +2476,7 @@
  123+ 7F33             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  123+ 7F33             >
  123+ 7F33 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 123+ 7F35 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 123+ 7F35 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  123+ 7F38 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  123+ 7F3B             >
  123+ 7F3B             >
@@ -2536,7 +2536,7 @@
  130+ 7F50             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  130+ 7F50             >
  130+ 7F50 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 130+ 7F52 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 130+ 7F52 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  130+ 7F55 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  130+ 7F58             >
  130+ 7F58             >
@@ -2597,7 +2597,7 @@
  138+ 7F6E             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  138+ 7F6E             >
  138+ 7F6E C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 138+ 7F70 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 138+ 7F70 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  138+ 7F73 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  138+ 7F76             >
  138+ 7F76             >
@@ -2659,7 +2659,7 @@
  147+ 7F8B             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  147+ 7F8B             >
  147+ 7F8B C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 147+ 7F8D 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 147+ 7F8D 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  147+ 7F90 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  147+ 7F93             >
  147+ 7F93             >
@@ -2719,7 +2719,7 @@
  154+ 7FA7             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  154+ 7FA7             >
  154+ 7FA7 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 154+ 7FA9 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 154+ 7FA9 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  154+ 7FAC ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  154+ 7FAF             >
  154+ 7FAF             >
@@ -2780,7 +2780,7 @@
  162+ 7FC4             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  162+ 7FC4             >
  162+ 7FC4 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 162+ 7FC6 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 162+ 7FC6 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  162+ 7FC9 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  162+ 7FCC             >
  162+ 7FCC             >
@@ -2842,7 +2842,7 @@
  171+ 7FE0             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  171+ 7FE0             >
  171+ 7FE0 C6 34       >        add  a, L2_PAGE                                 ; add the starting page number
- 171+ 7FE2 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 171+ 7FE2 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  171+ 7FE5 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  171+ 7FE8             >
  171+ 7FE8             >
@@ -2903,7 +2903,7 @@
  179+ 7FFD             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  179+ 7FFD             >
  179+ 7FFD C6 34       >        add  a, L2_PAGE                                 ; add the starting page number
- 179+ 7FFF 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 179+ 7FFF 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  179+ 8002 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  179+ 8005             >
  179+ 8005             >
@@ -3080,7 +3080,7 @@
   33+ 815A              ; add 1 to the current score and display it
   34+ 815A              ;===========================================================
   35+ 815A              addScore:
-  36+ 815A 21 3F 90             ld hl, score0                               ; point to the units value
+  36+ 815A 21 0B 90             ld hl, score0                               ; point to the units value
   37+ 815D              .addScore1:
   38+ 815D 7E                   ld a, (hl)                                  ; get digit here
   39+ 815E FE 09                cp 9                                        ; is it 9, +1 needs to set to 0 and carry 1 to next value
@@ -3092,13 +3092,13 @@
   45+ 8165 36 00                ld (hl), 0                                  ; carry occured, so set this one to 0
   46+ 8167 2B                   dec hl                                      ; point to next value
   47+ 8168 7D                   ld a, l                                     ; get low byte of this entry
-  48+ 8169 FE 3B                cp low score4                               ; check to see if will are going to overflow
+  48+ 8169 FE 07                cp low score4                               ; check to see if will are going to overflow
   49+ 816B 30 F0                jr nc, .addScore1                           ; branch if not so do the +1
   50+ 816D
   51+ 816D              ; routine as part of addScore but can be called independently
   52+ 816D              showScore:
   53+ 816D 01 07 00             ld bc, 7
-  54+ 8170 11 3B 90             ld de, score4
+  54+ 8170 11 07 90             ld de, score4
   55+ 8173 1A                   ld a, (de)
   56+ 8174 C6 30                add a, "0"
   57+ 8176 CD 95 87             call displayChar                            ; ten thousands
@@ -3171,20 +3171,20 @@
  120+ 81BD
  121+ 81BD              resetPlayerVals:
  122+ 81BD 3E 03                ld a, 3
- 123+ 81BF 32 38 90             ld (playerLives), a
+ 123+ 81BF 32 04 90             ld (playerLives), a
  124+ 81C2 3E 00                ld a, 0
- 125+ 81C4 32 39 90             ld (playerKeys), a
- 126+ 81C7 32 3B 90             ld (score4), a
- 127+ 81CA 32 3C 90             ld (score3), a
- 128+ 81CD 32 3D 90             ld (score2), a
- 129+ 81D0 32 3E 90             ld (score1), a
- 130+ 81D3 32 3F 90             ld (score0), a
+ 125+ 81C4 32 05 90             ld (playerKeys), a
+ 126+ 81C7 32 07 90             ld (score4), a
+ 127+ 81CA 32 08 90             ld (score3), a
+ 128+ 81CD 32 09 90             ld (score2), a
+ 129+ 81D0 32 0A 90             ld (score1), a
+ 130+ 81D3 32 0B 90             ld (score0), a
  131+ 81D6
  132+ 81D6 3E 08                ld a, initHealth
- 133+ 81D8 32 36 90             ld (playerHealth), a
+ 133+ 81D8 32 02 90             ld (playerHealth), a
  134+ 81DB
  135+ 81DB 3E 17                ld a, initHealthBlock
- 136+ 81DD 32 37 90             ld (healthBlock), a
+ 136+ 81DD 32 03 90             ld (healthBlock), a
  137+ 81E0
  138+ 81E0 CD 35 82             call initHUD
  139+ 81E3 C9                   ret
@@ -3196,13 +3196,13 @@
  145+ 81E4              ;   on zero health, falls into lost life and shows result
  146+ 81E4              ;===========================================================
  147+ 81E4              takeDamage:
- 148+ 81E4 3A 36 90             ld a, (playerHealth)                        ; get current health value
+ 148+ 81E4 3A 02 90             ld a, (playerHealth)                        ; get current health value
  149+ 81E7 3D                   dec a                                       ; take damage !
- 150+ 81E8 32 36 90             ld (playerHealth), a                        ; set it back
+ 150+ 81E8 32 02 90             ld (playerHealth), a                        ; set it back
  151+ 81EB 5F                   ld e,  a                                    ; preserve in E
  152+ 81EC
  153+ 81EC 06 02                ld b, 2                                     ; set row 2
- 154+ 81EE 3A 37 90             ld a, (healthBlock)                         ; get current health block
+ 154+ 81EE 3A 03 90             ld a, (healthBlock)                         ; get current health block
  155+ 81F1 C6 07                add a, 7                                    ; add starting column
  156+ 81F3 4F                   ld c, a                                     ; set column for display
  157+ 81F4 3E 88                ld a, 136                                   ; udg graphic to use, 136 is 0 length, 128 is full block strength
@@ -3214,33 +3214,33 @@
  163+ 81FD
  164+ 81FD              ; block now empty -> redraw it as fully empty (136), then move left
  165+ 81FD 3E 08                ld a, initHealth                            ; full health block value
- 166+ 81FF 32 36 90             ld (playerHealth), a                        ; set it
- 167+ 8202 3A 37 90             ld a, (healthBlock)                         ; but health block value needs to reduce
+ 166+ 81FF 32 02 90             ld (playerHealth), a                        ; set it
+ 167+ 8202 3A 03 90             ld a, (healthBlock)                         ; but health block value needs to reduce
  168+ 8205 3D                   dec a                                       ; deduct 1
- 169+ 8206 32 37 90             ld (healthBlock), a                         ; save health block value
+ 169+ 8206 32 03 90             ld (healthBlock), a                         ; save health block value
  170+ 8209 C0                   ret nz                                      ; return if still alive
  171+ 820A
  172+ 820A              lostLife:
  173+ 820A 3E 08                ld a, initHealth                            ; reset health of current block
- 174+ 820C 32 36 90             ld (playerHealth), a
+ 174+ 820C 32 02 90             ld (playerHealth), a
  175+ 820F
  176+ 820F 3E 17                ld a, initHealthBlock                       ; reset count of health blocks
- 177+ 8211 32 37 90             ld (healthBlock), a
+ 177+ 8211 32 03 90             ld (healthBlock), a
  178+ 8214
  179+ 8214 FD 21 93 80          ld iy, health_bar                           ; show the full strength health bar
  180+ 8218 CD 73 87             call displayText
  181+ 821B
- 182+ 821B 3A 38 90             ld a, (playerLives)                         ; get player lives
+ 182+ 821B 3A 04 90             ld a, (playerLives)                         ; get player lives
  183+ 821E 3D                   dec a                                       ; - 1
  184+ 821F E6 03                and 3                                       ; don't overflow
- 185+ 8221 32 38 90             ld (playerLives), a                         ; save it
+ 185+ 8221 32 04 90             ld (playerLives), a                         ; save it
  186+ 8224
  187+ 8224              showLives:
  188+ 8224 FD 21 7B 80          ld iy, lives_text
  189+ 8228 CD 73 87             call displayText
  190+ 822B
  191+ 822B 01 1F 00             ld bc, 31
- 192+ 822E 3A 38 90             ld a, (playerLives)
+ 192+ 822E 3A 04 90             ld a, (playerLives)
  193+ 8231 CD F1 87             call DisplayDigit
  194+ 8234 C9                   ret
  195+ 8235
@@ -3477,7 +3477,7 @@
  390+ 82D3             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  390+ 82D3             >
  390+ 82D3 C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 390+ 82D5 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 390+ 82D5 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  390+ 82D8 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  390+ 82DB             >
  390+ 82DB             >
@@ -3567,7 +3567,7 @@
  405+ 8317             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  405+ 8317             >
  405+ 8317 C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 405+ 8319 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 405+ 8319 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  405+ 831C ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  405+ 831F             >
  405+ 831F             >
@@ -3643,7 +3643,7 @@
  422+ 833C             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  422+ 833C             >
  422+ 833C C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 422+ 833E 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 422+ 833E 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  422+ 8341 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  422+ 8344             >
  422+ 8344             >
@@ -3662,7 +3662,7 @@
  422+ 834D 28 2B       >        jr z, .tcDone                               ; branch if its a wall, done
  422+ 834F             >
  422+ 834F             >        ; get distance value for this tile. Page in the equivalent distance field data
- 422+ 834F 3A 35 90    >        ld a, (curWorldPage)
+ 422+ 834F 3A 01 90    >        ld a, (curWorldPage)
  422+ 8352 C6 06       >        add a, DFIELD_PAGE - TILEMAP_PAGE
  422+ 8354 ED 92 56    >        nextreg $56, a
  422+ 8357 7E          >        ld a, (hl)                                  ; get distance field for this tile
@@ -3748,7 +3748,7 @@
  432+ 838A             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  432+ 838A             >
  432+ 838A C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 432+ 838C 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 432+ 838C 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  432+ 838F ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  432+ 8392             >
  432+ 8392             >
@@ -3767,7 +3767,7 @@
  432+ 839B 28 2B       >        jr z, .tcDone                               ; branch if its a wall, done
  432+ 839D             >
  432+ 839D             >        ; get distance value for this tile. Page in the equivalent distance field data
- 432+ 839D 3A 35 90    >        ld a, (curWorldPage)
+ 432+ 839D 3A 01 90    >        ld a, (curWorldPage)
  432+ 83A0 C6 06       >        add a, DFIELD_PAGE - TILEMAP_PAGE
  432+ 83A2 ED 92 56    >        nextreg $56, a
  432+ 83A5 7E          >        ld a, (hl)                                  ; get distance field for this tile
@@ -3853,7 +3853,7 @@
  442+ 83D7             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  442+ 83D7             >
  442+ 83D7 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 442+ 83D9 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 442+ 83D9 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  442+ 83DC ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  442+ 83DF             >
  442+ 83DF             >
@@ -3872,7 +3872,7 @@
  442+ 83E8 28 2B       >        jr z, .tcDone                               ; branch if its a wall, done
  442+ 83EA             >
  442+ 83EA             >        ; get distance value for this tile. Page in the equivalent distance field data
- 442+ 83EA 3A 35 90    >        ld a, (curWorldPage)
+ 442+ 83EA 3A 01 90    >        ld a, (curWorldPage)
  442+ 83ED C6 06       >        add a, DFIELD_PAGE - TILEMAP_PAGE
  442+ 83EF ED 92 56    >        nextreg $56, a
  442+ 83F2 7E          >        ld a, (hl)                                  ; get distance field for this tile
@@ -3958,7 +3958,7 @@
  452+ 8425             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  452+ 8425             >
  452+ 8425 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 452+ 8427 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 452+ 8427 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  452+ 842A ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  452+ 842D             >
  452+ 842D             >
@@ -3977,7 +3977,7 @@
  452+ 8436 28 2B       >        jr z, .tcDone                               ; branch if its a wall, done
  452+ 8438             >
  452+ 8438             >        ; get distance value for this tile. Page in the equivalent distance field data
- 452+ 8438 3A 35 90    >        ld a, (curWorldPage)
+ 452+ 8438 3A 01 90    >        ld a, (curWorldPage)
  452+ 843B C6 06       >        add a, DFIELD_PAGE - TILEMAP_PAGE
  452+ 843D ED 92 56    >        nextreg $56, a
  452+ 8440 7E          >        ld a, (hl)                                  ; get distance field for this tile
@@ -4022,27 +4022,27 @@
  463+ 8466              ; Trashes: AF, BC, HL ; pages slot 6.
  464+ 8466              ; ============================================================
  465+ 8466              stampTrail:
- 466+ 8466 3A 45 90             ld a, (player_tile_y)
+ 466+ 8466 3A 11 90             ld a, (player_tile_y)
  467+ 8469 32 04 94             ld (floodTargetY), a                        ; get our target cell Y
- 468+ 846C 3A 44 90             ld a, (player_tile_x)
+ 468+ 846C 3A 10 90             ld a, (player_tile_x)
  469+ 846F 32 03 94             ld (floodTargetX), a                        ; get out target cell X
  470+ 8472 CD B8 82             call floodFill
  471+ 8475 C9                   ret
  472+ 8476
- 473+ 8476 3A 44 90             ld a, (player_tile_x)
- 474+ 8479 21 47 90             ld hl, trailLastX
+ 473+ 8476 3A 10 90             ld a, (player_tile_x)
+ 474+ 8479 21 13 90             ld hl, trailLastX
  475+ 847C BE                   cp (hl)                     ; same tile X as last stamp?
  476+ 847D 20 08                jr nz, .moved
- 477+ 847F 3A 45 90             ld a, (player_tile_y)
- 478+ 8482 21 48 90             ld hl, trailLastY
+ 477+ 847F 3A 11 90             ld a, (player_tile_y)
+ 478+ 8482 21 14 90             ld hl, trailLastY
  479+ 8485 BE                   cp (hl)                     ; same tile Y too?
  480+ 8486 C8                   ret z                       ; still on the same tile -> nothing to do
  481+ 8487              .moved:
- 482+ 8487 3A 44 90             ld a, (player_tile_x)
- 483+ 848A 32 47 90             ld (trailLastX), a
+ 482+ 8487 3A 10 90             ld a, (player_tile_x)
+ 483+ 848A 32 13 90             ld (trailLastX), a
  484+ 848D 6F                   ld l, a                     ; e = tileX
- 485+ 848E 3A 45 90             ld a, (player_tile_y)
- 486+ 8491 32 48 90             ld (trailLastY), a
+ 485+ 848E 3A 11 90             ld a, (player_tile_y)
+ 486+ 8491 32 14 90             ld (trailLastY), a
  487+ 8494 67                   ld h, a                     ; d = tileY
  488+ 8495
  489+ 8495              ;        ld h, d
@@ -4086,7 +4086,7 @@
  491+ 849B             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  491+ 849B             >
  491+ 849B C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 491+ 849D 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 491+ 849D 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  491+ 84A0 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  491+ 84A3             >
  491+ 84A3             >
@@ -4101,7 +4101,7 @@
  491+ 84A9             >    ; STEP 4: read the byte
  491+ 84A9             >                                                    ; HL now points directly at the first byte we want to copy
  491+ 84A9 7E          >        ld a, (hl)                                  ; so get the byte
- 492+ 84AA 3A 46 90             ld a, (trailValue)
+ 492+ 84AA 3A 12 90             ld a, (trailValue)
  493+ 84AD 77                   ld (hl), a                  ; lay the trail value at this tile
  494+ 84AE               ;       inc hl
  495+ 84AE               ;       ld (hl), a
@@ -4116,7 +4116,7 @@
  504+ 84AE              ;        ld (hl), a
  505+ 84AE
  506+ 84AE 3D                   dec a                       ; next value (0 -> 255 wraps)
- 507+ 84AF 32 46 90             ld (trailValue), a
+ 507+ 84AF 32 12 90             ld (trailValue), a
  508+ 84B2 C9                   ret
  509+ 84B3
  510+ 84B3
@@ -4167,7 +4167,7 @@
  519+ 84BF             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  519+ 84BF             >
  519+ 84BF C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 519+ 84C1 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 519+ 84C1 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  519+ 84C4 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  519+ 84C7             >
  519+ 84C7             >
@@ -4282,7 +4282,7 @@
  617+ 851D              ; Assumes: rnd8 returns raw 0-255 in A; GET_WORLD_VALUE takes
  618+ 851D              ;          B=tileX, C=tileY, returns tile byte in A (0 = open).
  619+ 851D              ; ============================================================
- 620+ 851D DD 21 4C 90          ld ix, baddieData
+ 620+ 851D DD 21 18 90          ld ix, baddieData
  621+ 8521 06 3C                ld b, baddieCount           ; loop counter (B not used by inner logic until call)
  622+ 8523              .nextBaddie:
  623+ 8523 C5                   push bc                     ; preserve outer counter
@@ -4346,7 +4346,7 @@
  645+ 8542             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  645+ 8542             >
  645+ 8542 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 645+ 8544 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 645+ 8544 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  645+ 8547 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  645+ 854A             >
  645+ 854A             >
@@ -4406,7 +4406,7 @@
  652+ 855F             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  652+ 855F             >
  652+ 855F C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 652+ 8561 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 652+ 8561 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  652+ 8564 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  652+ 8567             >
  652+ 8567             >
@@ -4466,7 +4466,7 @@
  659+ 857C             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  659+ 857C             >
  659+ 857C C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 659+ 857E 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 659+ 857E 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  659+ 8581 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  659+ 8584             >
  659+ 8584             >
@@ -4527,7 +4527,7 @@
  667+ 859A             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  667+ 859A             >
  667+ 859A C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 667+ 859C 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 667+ 859C 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  667+ 859F ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  667+ 85A2             >
  667+ 85A2             >
@@ -4607,24 +4607,24 @@
  730+ 85FD              setUpCamera:
  731+ 85FD                      ; set camera X/Y position based on player X/Y
  732+ 85FD 21 D0 01             ld hl, 464
- 733+ 8600 22 40 90             ld (player_px), hl
+ 733+ 8600 22 0C 90             ld (player_px), hl
  734+ 8603 21 58 01             ld hl, 344
- 735+ 8606 22 42 90             ld (player_py), hl
+ 735+ 8606 22 0E 90             ld (player_py), hl
  736+ 8609
- 737+ 8609 2A 40 90             ld hl, (player_px)                          ; get initial player pixel X
+ 737+ 8609 2A 0C 90             ld hl, (player_px)                          ; get initial player pixel X
  738+ 860C 01 98 00             ld bc, CENTRE_X                             ; the camera position is roughly centered
  739+ 860F B7                   or a                                        ; clear carry
  740+ 8610 ED 42                sbc hl, bc                                  ; hence get camera "world" X position in HL
- 741+ 8612 22 2E 90             ld (cam_px), hl                             ; and set it.
+ 741+ 8612 22 FA 8F             ld (cam_px), hl                             ; and set it.
  742+ 8615
- 743+ 8615 2A 42 90             ld hl, (player_py)                          ; do the same for camera "world" Y position
+ 743+ 8615 2A 0E 90             ld hl, (player_py)                          ; do the same for camera "world" Y position
  744+ 8618 01 78 00             ld bc, CENTRE_Y
  745+ 861B B7                   or a
  746+ 861C ED 42                sbc hl, bc
- 747+ 861E 22 30 90             ld (cam_py), hl
+ 747+ 861E 22 FC 8F             ld (cam_py), hl
  748+ 8621
  749+ 8621                      ; camera tile X/Y is pixel X/Y divided by 8
- 750+ 8621 2A 2E 90             ld hl, (cam_px)
+ 750+ 8621 2A FA 8F             ld hl, (cam_px)
  751+ 8624                      DIV_HL_8A
  751+ 8624             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  751+ 8624             >; simple 16-bit divide without the CALL/RET overhead
@@ -4635,8 +4635,8 @@
  751+ 862A 1F          >        rra                                         ;                                                   4t
  751+ 862B CB 3C       >        srl h                                       ;                                                   8t
  751+ 862D 1F          >        rra                                         ;                                                   4t
- 752+ 862E 32 32 90             ld (cam_tx), a
- 753+ 8631 2A 30 90             ld hl, (cam_py)
+ 752+ 862E 32 FE 8F             ld (cam_tx), a
+ 753+ 8631 2A FC 8F             ld hl, (cam_py)
  754+ 8634                      DIV_HL_8A
  754+ 8634             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  754+ 8634             >; simple 16-bit divide without the CALL/RET overhead
@@ -4647,7 +4647,7 @@
  754+ 863A 1F          >        rra                                         ;                                                   4t
  754+ 863B CB 3C       >        srl h                                       ;                                                   8t
  754+ 863D 1F          >        rra                                         ;                                                   4t
- 755+ 863E 32 33 90             ld (cam_ty), a
+ 755+ 863E 32 FF 8F             ld (cam_ty), a
  756+ 8641 C9                   ret
  757+ 8642
  758+ 8642              attractMode:
@@ -4721,7 +4721,7 @@
  826+ 86BC
  827+ 86BC              setupAttract:
  828+ 86BC                      ; derive camera TILE (B = cam_px>>3, C = cam_py>>3) - required by copy_visible_window
- 829+ 86BC 2A 2E 90             ld hl, (cam_px)
+ 829+ 86BC 2A FA 8F             ld hl, (cam_px)
  830+ 86BF                      DIV_HL_8
  830+ 86BF             >; version 1, 48 t-states
  830+ 86BF             >; simple 16-bit divide without the CALL/RET overhead
@@ -4732,7 +4732,7 @@
  830+ 86C7 CB 3C       >        srl h                                       ; divide by 8
  830+ 86C9 CB 1D       >        rr l
  831+ 86CB 45                   ld b, l                     ; B = camera tile X
- 832+ 86CC 2A 30 90             ld hl, (cam_py)
+ 832+ 86CC 2A FC 8F             ld hl, (cam_py)
  833+ 86CF                      DIV_HL_8
  833+ 86CF             >; version 1, 48 t-states
  833+ 86CF             >; simple 16-bit divide without the CALL/RET overhead
@@ -4747,10 +4747,10 @@
  836+ 86DC CD 67 97             call copy_visible_window    ; now draws maze from correct camera origin
  837+ 86DF
  838+ 86DF                      ; fine scroll to match
- 839+ 86DF 3A 2E 90             ld a, (cam_px)
+ 839+ 86DF 3A FA 8F             ld a, (cam_px)
  840+ 86E2 E6 07                and 7
  841+ 86E4 ED 92 30             nextreg $30, a
- 842+ 86E7 3A 30 90             ld a, (cam_py)
+ 842+ 86E7 3A FC 8F             ld a, (cam_py)
  843+ 86EA E6 07                and 7
  844+ 86EC ED 92 31             nextreg $31, a
  845+ 86EF
@@ -4990,7 +4990,7 @@
  152+ 881B             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  152+ 881B             >
  152+ 881B C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 152+ 881D 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 152+ 881D 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  152+ 8820 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  152+ 8823             >
  152+ 8823             >
@@ -5053,7 +5053,7 @@
  162+ 883E             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  162+ 883E             >
  162+ 883E C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 162+ 8840 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 162+ 8840 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  162+ 8843 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  162+ 8846             >
  162+ 8846             >
@@ -5114,7 +5114,7 @@
  170+ 885E             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  170+ 885E             >
  170+ 885E C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 170+ 8860 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 170+ 8860 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  170+ 8863 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  170+ 8866             >
  170+ 8866             >
@@ -5174,7 +5174,7 @@
  177+ 887D             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  177+ 887D             >
  177+ 887D C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 177+ 887F 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 177+ 887F 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  177+ 8882 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  177+ 8885             >
  177+ 8885             >
@@ -5194,7 +5194,7 @@
  180+ 8890 C9                   ret
  181+ 8891
  182+ 8891              getTileY
- 183+ 8891 2A 42 90             ld hl, (player_py)
+ 183+ 8891 2A 0E 90             ld hl, (player_py)
  184+ 8894                      DIV_HL_8
  184+ 8894             >; version 1, 48 t-states
  184+ 8894             >; simple 16-bit divide without the CALL/RET overhead
@@ -5208,7 +5208,7 @@
  186+ 88A1 C9                   ret
  187+ 88A2
  188+ 88A2              getTileX
- 189+ 88A2 2A 40 90             ld hl, (player_px)
+ 189+ 88A2 2A 0C 90             ld hl, (player_px)
  190+ 88A5                      DIV_HL_8
  190+ 88A5             >; version 1, 48 t-states
  190+ 88A5             >; simple 16-bit divide without the CALL/RET overhead
@@ -5777,302 +5777,261 @@
   73+ 8F6B ~                    OUT (C), A
   74+ 8F6B                      ENDM
   75+ 8F6B
-  76+ 8F6B              ; ---- fold one channel's flags into the mixer accumulator in C ----
-  77+ 8F6B              MACRO AY_MIX flagVar, tableOffset
-  78+ 8F6B ~                    LD HL, mixerFlags + tableOffset
-  79+ 8F6B ~                    LD A, (flagVar)
-  80+ 8F6B ~                    AND %00000011
-  81+ 8F6B ~                    ADD HL, A
-  82+ 8F6B ~                    LD A, (HL)
-  83+ 8F6B ~                    AND C
-  84+ 8F6B ~                    LD C, A
-  85+ 8F6B                      ENDM
-  86+ 8F6B
-  87+ 8F6B              ; ---- age a channel; silence it when its note length hits 0 ----
-  88+ 8F6B              ;      pass a unique end-label name per channel (sjasmplus substitutes it textually)
-  89+ 8F6B              MACRO AY_TIMEOUT endLbl, lengthVar, flagsVar, volVar, volDVar
-  90+ 8F6B ~                    LD A, (lengthVar)
-  91+ 8F6B ~                    DEC A
-  92+ 8F6B ~                    JR NZ, endLbl
-  93+ 8F6B ~                    LD (flagsVar), A            ; A = 0 -> flags off
-  94+ 8F6B ~                    LD HL, 0
-  95+ 8F6B ~                    LD (volVar), HL
-  96+ 8F6B ~                    LD (volDVar), HL
-  97+ 8F6B ~            endLbl:
-  98+ 8F6B ~                    LD (lengthVar), A
-  99+ 8F6B                      ENDM
- 100+ 8F6B
- 101+ 8F6B
- 102+ 8F6B              playsound:
- 103+ 8F6B              ; Input : A = sound fx to play
- 104+ 8F6B              ;
- 105+ 8F6B              ; routine will choose next available channel and copy sound fx to that channel
- 106+ 8F6B              ; IM2 will then process that data
- 107+ 8F6B E5                   PUSH HL
- 108+ 8F6C D5                   PUSH DE
- 109+ 8F6D C5                   PUSH BC
- 110+ 8F6E
- 111+ 8F6E 3D                   DEC A
- 112+ 8F6F 87                   ADD A, A
- 113+ 8F70 87                   ADD A, A
- 114+ 8F71 87                   ADD A, A
- 115+ 8F72 87                   ADD A, A
- 116+ 8F73
- 117+ 8F73 21 9F 8F             LD HL, sound1
- 118+ 8F76 ED 31                ADD HL, A
- 119+ 8F78
- 120+ 8F78 3A FF 8F             LD A, (nextCH)                      ; whats the nextCH to use
- 121+ 8F7B FE 00                CP 0                                ; is it 0?
- 122+ 8F7D 28 0B                JR Z, playCh1                       ; jump if so
- 123+ 8F7F FE 01                CP 1                                ; is it 1?
- 124+ 8F81 28 0C                JR Z, playCh2                       ; jump if so
- 125+ 8F83 3E FF                LD A, 255                           ; its 2, set next so its 0
- 126+ 8F85 11 14 90             LD DE, Ch3                          ; set AY channel to 3
- 127+ 8F88 18 08                JR play                             ; and branch to do the sound setup
- 128+ 8F8A              playCh1:
- 129+ 8F8A 11 00 90             LD DE, Ch1                          ; set the AY channel to 1
- 130+ 8F8D 18 03                JR play                             ; and branch to do the sound setup
- 131+ 8F8F              playCh2:
- 132+ 8F8F 11 0A 90             LD DE, Ch2                          ; set the AY channel to 2
- 133+ 8F92              play:
- 134+ 8F92 3C                   INC A                               ; roll on nextCH
- 135+ 8F93 32 FF 8F             LD (nextCH), A                      ; and save it
- 136+ 8F96 01 0A 00             LD BC, 10                           ; we copy 10 bytes of sound setup
- 137+ 8F99 ED B0                LDIR                                ; do the copy
- 138+ 8F9B
- 139+ 8F9B C1                   POP BC
- 140+ 8F9C D1                   POP DE
- 141+ 8F9D E1                   POP HL
- 142+ 8F9E C9                   RET
- 143+ 8F9F
- 144+ 8F9F              sound1:
- 145+ 8F9F              ; initial tone period
- 146+ 8F9F              ; tone period delta
- 147+ 8F9F              ; initial volme (*256)
- 148+ 8F9F              ; volume delta
- 149+ 8F9F              ; tone, noise, envelope flags
- 150+ 8F9F              ; length in frames (50hz)
- 151+ 8F9F              ; filler to make each 16 bytes long
- 152+ 8F9F
- 153+ 8F9F              ; hit head sound
- 154+ 8F9F F4 01                DW 500
- 155+ 8FA1 0A 00                DW 10
- 156+ 8FA3 00 0F                DW 15 * 256
- 157+ 8FA5 14 00                DW 20
- 158+ 8FA7 01                   DB %00000001
- 159+ 8FA8 05                   DB 5
- 160+ 8FA9 00 00 00 00          DB 0,0,0,0,0,0
- 160+ 8FAD 00 00
- 161+ 8FAF
- 162+ 8FAF              ; this is the pop sound
- 163+ 8FAF              sound2:
- 164+ 8FAF 64 00                DW 100
- 165+ 8FB1 0A 00                DW 10
- 166+ 8FB3 00 0F                DW 15*256
- 167+ 8FB5 EC FF                DW -20
- 168+ 8FB7 01                   DB %0000001
- 169+ 8FB8 0A                   DB 10
- 170+ 8FB9 00 00 00 00          DB 0,0,0,0,0,0
- 170+ 8FBD 00 00
- 171+ 8FBF
- 172+ 8FBF              ; bounce sound
- 173+ 8FBF              sound3:
- 174+ 8FBF FC 00                DW 252
- 175+ 8FC1 F6 FF                DW -10
- 176+ 8FC3 00 0F                DW 15*256
- 177+ 8FC5 9C FF                DW -100
- 178+ 8FC7 01                   DB 1
- 179+ 8FC8              sound3Dur
- 180+ 8FC8 0F                   DB 15
- 181+ 8FC9 00 00 00 00          DB 0,0,0,0,0,0
- 181+ 8FCD 00 00
- 182+ 8FCF
- 183+ 8FCF              sound4:
- 184+ 8FCF 64 00                DW 100
- 185+ 8FD1 F6 FF                DW -10
- 186+ 8FD3 00 0F                DW 15*256
- 187+ 8FD5 9C FF                DW -100
- 188+ 8FD7 03                   DB 3
- 189+ 8FD8 05                   DB 5
- 190+ 8FD9 00 00 00 00          DB 0,0,0,0,0,0
- 190+ 8FDD 00 00
- 191+ 8FDF
- 192+ 8FDF              ; item hit sound
- 193+ 8FDF              sound5:
- 194+ 8FDF 64 00                DW 100
- 195+ 8FE1 F6 FF                DW -10
- 196+ 8FE3 00 0F                DW 15*256
- 197+ 8FE5 14 00                DW 20
- 198+ 8FE7 01                   DB %0000001
- 199+ 8FE8 0A                   DB 10
- 200+ 8FE9 00 00 00 00          DB 0,0,0,0,0,0
- 200+ 8FED 00 00
- 201+ 8FEF
- 202+ 8FEF              ; kill skull sound
- 203+ 8FEF              sound6:
- 204+ 8FEF F4 01                DW 500
- 205+ 8FF1 0A 00                DW 10
- 206+ 8FF3 00 0F                DW 15*256
- 207+ 8FF5 14 00                DW 20
- 208+ 8FF7 FF                   DB %11111111
- 209+ 8FF8 64                   DB 100
- 210+ 8FF9 00 00 00 00          DB 0,0,0,0,0,0
- 210+ 8FFD 00 00
- 211+ 8FFF
- 212+ 8FFF 00           nextCH:      DB 0
- 213+ 9000
- 214+ 9000              Ch1:
- 215+ 9000 00 00        Ch1Pitch:    DW 0
- 216+ 9002 00 00        Ch1PitchD:   DW 0
- 217+ 9004 00 00        Ch1Volume    DW 00
- 218+ 9006 00 00        Ch1VolumeD:  DW 00
- 219+ 9008 00           Ch1Flags:    DB 0
- 220+ 9009 00           Ch1Length:   DB 0
- 221+ 900A
- 222+ 900A              Ch2:
- 223+ 900A 00 00        Ch2Pitch:    DW 00
- 224+ 900C 00 00        Ch2PitchD:   DW 00
- 225+ 900E 00 00        Ch2Volume    DW 00
- 226+ 9010 00 00        Ch2VolumeD:  DW 00
- 227+ 9012 00           Ch2Flags:    DB 0
- 228+ 9013 00           Ch2Length:   DB 0
- 229+ 9014
- 230+ 9014              Ch3:
- 231+ 9014 00 00        Ch3Pitch:    DW 00
- 232+ 9016 00 00        Ch3PitchD:   DW 00
- 233+ 9018 00 00        Ch3Volume    DW 00
- 234+ 901A 00 00        Ch3VolumeD:  DW 00
- 235+ 901C 00           Ch3Flags:    DB 0
- 236+ 901D 00           Ch3Length:   DB 0
- 237+ 901E
- 238+ 901E              AYSelect        EQU $FFFD
- 239+ 901E              AYrw            EQU $bffd
- 240+ 901E              AYPortC         EQU $FD                     ; Port low byte, stays in C
- 241+ 901E              AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
- 242+ 901E              AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
- 243+ 901E              channel1ToneL   equ 0
- 244+ 901E              channel1ToneH   equ 1
- 245+ 901E              channel2ToneL   equ 2
- 246+ 901E              channel2ToneH   equ 3
- 247+ 901E              channel3ToneL   equ 4
- 248+ 901E              channel3ToneH   equ 5
- 249+ 901E              channel1Volume  equ 8
- 250+ 901E              channel2Volume  equ 9
- 251+ 901E              channel3Volume  equ 10
- 252+ 901E              mixerFlag       equ 7
- 253+ 901E 01           frameCount   DB $01                         ; interrupt count for note set
- 254+ 901F 2F 8E        framePointer DW frameTable                  ; pointer to the ic and note set
- 255+ 9021 0F           volume       DB %00001111                   ; volume
- 256+ 9022
- 257+ 9022              mixerFlags
- 258+ 9022 FF FE F7 F6                  db %11111111, %11111110, %11110111, %11110110
- 259+ 9026 FF FD EF ED                  db %11111111, %11111101, %11101111, %11101101
- 260+ 902A FF FB DF DB                  db %11111111, %11111011, %11011111, %11011011
- 261+ 902E
- 262+ 902E
- 263+ 902E              soundHithead   EQU 1
- 264+ 902E              soundPop       EQU 2
- 265+ 902E              soundBounce    EQU 3
- 266+ 902E              soundHitskull  EQU 4
- 267+ 902E              soundCollect   EQU 5
- 268+ 902E              soundKillskull EQU 6
- 269+ 902E
+  76+ 8F6B              playsound:
+  77+ 8F6B              ; Input : A = sound fx to play
+  78+ 8F6B              ;
+  79+ 8F6B              ; routine will rotate next available channel (even if still playing) and copy sound fx to that channel
+  80+ 8F6B              ; IM2 will then process that data
+  81+ 8F6B E5                   PUSH HL
+  82+ 8F6C D5                   PUSH DE
+  83+ 8F6D C5                   PUSH BC
+  84+ 8F6E
+  85+ 8F6E                      ; source for the sound effect is: sound1 + (fx-1) * 10 (sound effect record length)
+  86+ 8F6E 3D                   DEC A                                       ; do the fx-1
+  87+ 8F6F 5F                   LD E, A
+  88+ 8F70 87                   ADD A, A                                    ; now * 2
+  89+ 8F71 87                   ADD A, A                                    ; * 4
+  90+ 8F72 83                   ADD A, E                                    ; * 5 (i.e. +n)
+  91+ 8F73 87                   ADD A, A                                    ; * 10
+  92+ 8F74 21 9B 8F             LD HL, sound1                               ; point to base of data
+  93+ 8F77 ED 31                ADD HL, A                                   ; and add the offset to get to fx
+  94+ 8F79
+  95+ 8F79                      ; destination is: ch1 + nextCH * 10
+  96+ 8F79 3A D7 8F             LD A, (nextCH)                              ; whats the nextCH to use
+  97+ 8F7C 5F                   ld e, a                                     ; save it (0, 1 or 2)
+  98+ 8F7D 87                   add a, a                                    ; * 2
+  99+ 8F7E 87                   add a, a                                    ; * 4
+ 100+ 8F7F 83                   add a, e                                    ; * 5 (i.e. +n)
+ 101+ 8F80 87                   add a, a                                    ; * 10
+ 102+ 8F81 11 D8 8F             ld de, Ch1                                  ; point to base of data
+ 103+ 8F84 ED 32                add de, a                                   ; and add the offset to get Ch1, Ch2 or Ch3
+ 104+ 8F86
+ 105+ 8F86 01 0A 00             LD BC, 10                                   ; we copy 10 bytes of sound setup
+ 106+ 8F89 ED B0                LDIR                                        ; do the copy
+ 107+ 8F8B
+ 108+ 8F8B 3A D7 8F             ld a, (nextCH)                              ; ready to rotate for next fx
+ 109+ 8F8E 3C                   inc a                                       ; point to next
+ 110+ 8F8F FE 03                cp 3                                        ; only channel values of 0, 1 or 2 are valid
+ 111+ 8F91 38 01                jr c, .store                                ; branch if ok
+ 112+ 8F93 AF                   xor a                                       ; reset to 0 (wrap 3 -> 0)
+ 113+ 8F94              .store
+ 114+ 8F94 32 D7 8F             ld (nextCH), a                              ; save it back
+ 115+ 8F97
+ 116+ 8F97 C1                   POP BC
+ 117+ 8F98 D1                   POP DE
+ 118+ 8F99 E1                   POP HL
+ 119+ 8F9A C9                   RET
+ 120+ 8F9B
+ 121+ 8F9B              sound1:
+ 122+ 8F9B              ; initial tone period
+ 123+ 8F9B              ; tone period delta
+ 124+ 8F9B              ; initial volme (*256) allows really fine delta movement although most will be unheard (only 0-15 of the high byte is used in the AY chip)
+ 125+ 8F9B              ; volume delta
+ 126+ 8F9B              ; tone, noise, envelope flags. Mostly unused. bit 0 is tone enable, bit 1 is noise enable
+ 127+ 8F9B              ; length in frames (50hz)
+ 128+ 8F9B
+ 129+ 8F9B              ; hit head sound
+ 130+ 8F9B F4 01                DW 500
+ 131+ 8F9D 0A 00                DW 10
+ 132+ 8F9F 00 0F                DW 15 * 256
+ 133+ 8FA1 14 00                DW 20
+ 134+ 8FA3 01                   DB %00000001
+ 135+ 8FA4 05                   DB 5
+ 136+ 8FA5
+ 137+ 8FA5              ; this is the pop sound
+ 138+ 8FA5              sound2:
+ 139+ 8FA5 64 00                DW 100
+ 140+ 8FA7 0A 00                DW 10
+ 141+ 8FA9 00 0F                DW 15*256
+ 142+ 8FAB EC FF                DW -20
+ 143+ 8FAD 01                   DB %0000001
+ 144+ 8FAE 0A                   DB 10
+ 145+ 8FAF
+ 146+ 8FAF              ; bounce sound
+ 147+ 8FAF              sound3:
+ 148+ 8FAF FC 00                DW 252
+ 149+ 8FB1 F6 FF                DW -10
+ 150+ 8FB3 00 0F                DW 15*256
+ 151+ 8FB5 9C FF                DW -100
+ 152+ 8FB7 01                   DB 1
+ 153+ 8FB8              sound3Dur
+ 154+ 8FB8 0F                   DB 15
+ 155+ 8FB9
+ 156+ 8FB9              sound4:
+ 157+ 8FB9 64 00                DW 100
+ 158+ 8FBB F6 FF                DW -10
+ 159+ 8FBD 00 0F                DW 15*256
+ 160+ 8FBF 9C FF                DW -100
+ 161+ 8FC1 03                   DB 3
+ 162+ 8FC2 05                   DB 5
+ 163+ 8FC3
+ 164+ 8FC3              ; item hit sound
+ 165+ 8FC3              sound5:
+ 166+ 8FC3 64 00                DW 100
+ 167+ 8FC5 F6 FF                DW -10
+ 168+ 8FC7 00 0F                DW 15*256
+ 169+ 8FC9 14 00                DW 20
+ 170+ 8FCB 01                   DB %0000001
+ 171+ 8FCC 0A                   DB 10
+ 172+ 8FCD
+ 173+ 8FCD              ; kill skull sound
+ 174+ 8FCD              sound6:
+ 175+ 8FCD F4 01                DW 500
+ 176+ 8FCF 0A 00                DW 10
+ 177+ 8FD1 00 0F                DW 15*256
+ 178+ 8FD3 14 00                DW 20
+ 179+ 8FD5 FF                   DB %11111111
+ 180+ 8FD6 64                   DB 100
+ 181+ 8FD7
+ 182+ 8FD7 00           nextCH:      DB 0
+ 183+ 8FD8
+ 184+ 8FD8              Ch1:
+ 185+ 8FD8 00 00        Ch1Pitch:    DW 0
+ 186+ 8FDA 00 00        Ch1PitchD:   DW 0
+ 187+ 8FDC 00 00        Ch1Volume    DW 00
+ 188+ 8FDE 00 00        Ch1VolumeD:  DW 00
+ 189+ 8FE0 00           Ch1Flags:    DB 0
+ 190+ 8FE1 00           Ch1Length:   DB 0
+ 191+ 8FE2
+ 192+ 8FE2              Ch2:
+ 193+ 8FE2 00 00        Ch2Pitch:    DW 00
+ 194+ 8FE4 00 00        Ch2PitchD:   DW 00
+ 195+ 8FE6 00 00        Ch2Volume    DW 00
+ 196+ 8FE8 00 00        Ch2VolumeD:  DW 00
+ 197+ 8FEA 00           Ch2Flags:    DB 0
+ 198+ 8FEB 00           Ch2Length:   DB 0
+ 199+ 8FEC
+ 200+ 8FEC              Ch3:
+ 201+ 8FEC 00 00        Ch3Pitch:    DW 00
+ 202+ 8FEE 00 00        Ch3PitchD:   DW 00
+ 203+ 8FF0 00 00        Ch3Volume    DW 00
+ 204+ 8FF2 00 00        Ch3VolumeD:  DW 00
+ 205+ 8FF4 00           Ch3Flags:    DB 0
+ 206+ 8FF5 00           Ch3Length:   DB 0
+ 207+ 8FF6
+ 208+ 8FF6              AYSelect        EQU $FFFD
+ 209+ 8FF6              AYrw            EQU $bffd
+ 210+ 8FF6              AYPortC         EQU $FD                     ; Port low byte, stays in C
+ 211+ 8FF6              AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
+ 212+ 8FF6              AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
+ 213+ 8FF6              channel1ToneL   equ 0
+ 214+ 8FF6              channel1ToneH   equ 1
+ 215+ 8FF6              channel2ToneL   equ 2
+ 216+ 8FF6              channel2ToneH   equ 3
+ 217+ 8FF6              channel3ToneL   equ 4
+ 218+ 8FF6              channel3ToneH   equ 5
+ 219+ 8FF6              channel1Volume  equ 8
+ 220+ 8FF6              channel2Volume  equ 9
+ 221+ 8FF6              channel3Volume  equ 10
+ 222+ 8FF6              mixerFlag       equ 7
+ 223+ 8FF6 01           frameCount   DB $01                         ; interrupt count for note set
+ 224+ 8FF7 2F 8E        framePointer DW frameTable                  ; pointer to the ic and note set
+ 225+ 8FF9 0F           volume       DB %00001111                   ; volume
+ 226+ 8FFA
+ 227+ 8FFA
+ 228+ 8FFA              soundHithead   EQU 1
+ 229+ 8FFA              soundPop       EQU 2
+ 230+ 8FFA              soundBounce    EQU 3
+ 231+ 8FFA              soundHitskull  EQU 4
+ 232+ 8FFA              soundCollect   EQU 5
+ 233+ 8FFA              soundKillskull EQU 6
+ 234+ 8FFA
 # file closed: soundEffects.inc
-   9  902E 00 00        cam_px              dw  0
-  10  9030 00 00        cam_py              dw  0
-  11  9032 00           cam_tx              db  0
-  12  9033 00           cam_ty              db  0
-  13  9034
-  14  9034              CENTRE_X            equ 152
-  15  9034              CENTRE_Y            equ 120
-  16  9034              CAM_MIN_X           equ 0
-  17  9034              CAM_MIN_Y           equ 0
-  18  9034              CAM_MAX_X           equ (256 - 40) * 8              ; 1728  (map width - view width)
-  19  9034              CAM_MAX_Y           equ (192 - 32) * 8              ; 1280  (map height - visible rows incl partial)
-  20  9034
-  21  9034
-  22  9034 00           tilemapPage         db 0
-  23  9035 00           curWorldPage        db 0
-  24  9036
-  25  9036 08           playerHealth        db 8
-  26  9037 17           healthBlock         db 23
-  27  9038 00           playerLives         db 0
-  28  9039 00           playerKeys          db 0
-  29  903A 00           playerAlive         db 0
-  30  903B
-  31  903B 00           score4              db 0
-  32  903C 00           score3              db 0                            ; thousands
-  33  903D 00           score2              db 0                            ; hundreds
-  34  903E 00           score1              db 0                            ; tens
-  35  903F 00           score0              db 0                            ; units
-  36  9040
-  37  9040 00 00        player_px           dw 0                            ; world pixel position of sprite
-  38  9042 00 00        player_py           dw 0
-  39  9044 00           player_tile_x       db 0                            ; world tile position of sprite, basically px / 256
-  40  9045 00           player_tile_y       db 0
-  41  9046
-  42  9046 FF           trailValue  db 255                                  ; next value to lay (decrements per new tile)
-  43  9047 FF           trailLastX  db 255                                  ; last tile stamped (255 = none yet)
-  44  9048 FF           trailLastY  db 255
-  45  9049
-  46  9049 01           lastMove            db 1                            ;
-  47  904A 00           playerAnimFrame     db 0                            ; current animation frame 0-3
-  48  904B 00           playerAnimTick      db 0                            ; counts frames to slow the animation
-  49  904C
-  50  904C              PAT_DOWN            equ 4                           ; facing forward
-  51  904C              PAT_RIGHT           equ 8                           ; facing right
-  52  904C              PAT_LEFT            equ 12                          ; facing left
-  53  904C              PAT_UP              equ 16                          ; facing away
-  54  904C              ANIM_SPEED          equ 4                           ; advance frame every N moves (higher = slower)
-  55  904C
-  56  904C
-  57  904C              ; tiles used in map
-  58  904C              MAP_PATH            EQU 0                           ; path, basically an empty tile
-  59  904C              MAP_WALL            EQU 1                           ; wall, simple brick graphic
-  60  904C              MAP_KEYTL           EQU 4                           ; key, top left
-  61  904C              MAP_KEYTR           EQU 5                           ; key, top right
-  62  904C              MAP_KEYBL           EQU 6                           ; key, bottom left
-  63  904C              MAP_KEYBR           EQU 7                           ; key, bottom right
-  64  904C
-  65  904C              move_delta          equ 2                           ; player move pixel increment
-  66  904C              move_delta_baddie   equ 1                           ; baddie move pixel increment
-  67  904C
-  68  904C              dir_left            equ 0
-  69  904C              dir_right           equ 1
-  70  904C              dir_down            equ 2
-  71  904C              dir_up              equ 3
-  72  904C              vdir_left           equ 1
-  73  904C              vdir_right          equ 2
-  74  904C              vdir_down           equ 4
-  75  904C              vdir_up             equ 8
-  76  904C
-  77  904C              mode_auto           equ 0
-  78  904C              mode_hunt           equ 1
-  79  904C              mode_wander         equ 2
-  80  904C
-  81  904C                  struct baddieRecord
-  82  904C ~            index               byte
-  83  904C ~            lowX                byte
-  84  904C ~            highX               byte
-  85  904C ~            lowY                byte
-  86  904C ~            highY               byte
-  87  904C ~            tileX               byte
-  88  904C ~            tileY               byte
-  89  904C ~            dir                 byte
-  90  904C ~            pattern             byte
-  91  904C ~            mode                byte
-  92  904C ~            lastDist            byte
-  93  904C                  ENDS
-  94  904C
-  95  904C              baddieCount         equ 60
-  96  904C 00 00 00...  baddieData          defs baddieRecord * baddieCount
-  97  92E0
-  98  92E0              ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
-  99  92E0 00 00        baddie_x            dw 00
- 100  92E2 00 00        baddie_y            dw 00
- 101  92E4
- 102  92E4
- 103  92E4 00 00 00...  ALIGN 256
+   9  8FFA 00 00        cam_px              dw  0
+  10  8FFC 00 00        cam_py              dw  0
+  11  8FFE 00           cam_tx              db  0
+  12  8FFF 00           cam_ty              db  0
+  13  9000
+  14  9000              CENTRE_X            equ 152
+  15  9000              CENTRE_Y            equ 120
+  16  9000              CAM_MIN_X           equ 0
+  17  9000              CAM_MIN_Y           equ 0
+  18  9000              CAM_MAX_X           equ (256 - 40) * 8              ; 1728  (map width - view width)
+  19  9000              CAM_MAX_Y           equ (192 - 32) * 8              ; 1280  (map height - visible rows incl partial)
+  20  9000
+  21  9000
+  22  9000 00           tilemapPage         db 0
+  23  9001 00           curWorldPage        db 0
+  24  9002
+  25  9002 08           playerHealth        db 8
+  26  9003 17           healthBlock         db 23
+  27  9004 00           playerLives         db 0
+  28  9005 00           playerKeys          db 0
+  29  9006 00           playerAlive         db 0
+  30  9007
+  31  9007 00           score4              db 0
+  32  9008 00           score3              db 0                            ; thousands
+  33  9009 00           score2              db 0                            ; hundreds
+  34  900A 00           score1              db 0                            ; tens
+  35  900B 00           score0              db 0                            ; units
+  36  900C
+  37  900C 00 00        player_px           dw 0                            ; world pixel position of sprite
+  38  900E 00 00        player_py           dw 0
+  39  9010 00           player_tile_x       db 0                            ; world tile position of sprite, basically px / 256
+  40  9011 00           player_tile_y       db 0
+  41  9012
+  42  9012 FF           trailValue  db 255                                  ; next value to lay (decrements per new tile)
+  43  9013 FF           trailLastX  db 255                                  ; last tile stamped (255 = none yet)
+  44  9014 FF           trailLastY  db 255
+  45  9015
+  46  9015 01           lastMove            db 1                            ;
+  47  9016 00           playerAnimFrame     db 0                            ; current animation frame 0-3
+  48  9017 00           playerAnimTick      db 0                            ; counts frames to slow the animation
+  49  9018
+  50  9018              PAT_DOWN            equ 4                           ; facing forward
+  51  9018              PAT_RIGHT           equ 8                           ; facing right
+  52  9018              PAT_LEFT            equ 12                          ; facing left
+  53  9018              PAT_UP              equ 16                          ; facing away
+  54  9018              ANIM_SPEED          equ 4                           ; advance frame every N moves (higher = slower)
+  55  9018
+  56  9018
+  57  9018              ; tiles used in map
+  58  9018              MAP_PATH            EQU 0                           ; path, basically an empty tile
+  59  9018              MAP_WALL            EQU 1                           ; wall, simple brick graphic
+  60  9018              MAP_KEYTL           EQU 4                           ; key, top left
+  61  9018              MAP_KEYTR           EQU 5                           ; key, top right
+  62  9018              MAP_KEYBL           EQU 6                           ; key, bottom left
+  63  9018              MAP_KEYBR           EQU 7                           ; key, bottom right
+  64  9018
+  65  9018              move_delta          equ 2                           ; player move pixel increment
+  66  9018              move_delta_baddie   equ 1                           ; baddie move pixel increment
+  67  9018
+  68  9018              dir_left            equ 0
+  69  9018              dir_right           equ 1
+  70  9018              dir_down            equ 2
+  71  9018              dir_up              equ 3
+  72  9018              vdir_left           equ 1
+  73  9018              vdir_right          equ 2
+  74  9018              vdir_down           equ 4
+  75  9018              vdir_up             equ 8
+  76  9018
+  77  9018              mode_auto           equ 0
+  78  9018              mode_hunt           equ 1
+  79  9018              mode_wander         equ 2
+  80  9018
+  81  9018                  struct baddieRecord
+  82  9018 ~            index               byte
+  83  9018 ~            lowX                byte
+  84  9018 ~            highX               byte
+  85  9018 ~            lowY                byte
+  86  9018 ~            highY               byte
+  87  9018 ~            tileX               byte
+  88  9018 ~            tileY               byte
+  89  9018 ~            dir                 byte
+  90  9018 ~            pattern             byte
+  91  9018 ~            mode                byte
+  92  9018 ~            lastDist            byte
+  93  9018                  ENDS
+  94  9018
+  95  9018              baddieCount         equ 60
+  96  9018 00 00 00...  baddieData          defs baddieRecord * baddieCount
+  97  92AC
+  98  92AC              ; working x/y pixel co-ords to minimise LD N, (IX+N) calls
+  99  92AC 00 00        baddie_x            dw 00
+ 100  92AE 00 00        baddie_y            dw 00
+ 101  92B0
+ 102  92B0
+ 103  92B0 00 00 00...  ALIGN 256
  104  9300 00 00 00...  floodQueue  ds 256          ; 128 entries x 2 bytes (E=X, D=Y), page-aligned
  105  9400 00           qHeadL      db 0            ; head low byte (high byte = high floodQueue, constant)
  106  9401 00           qTailL      db 0            ; tail low byte
@@ -6125,7 +6084,7 @@
  153  9448 CD 2B 97             call moveSprite1
  154  944B
  155  944B              main:
- 156  944B 3A 38 90             ld a, (playerLives)
+ 156  944B 3A 04 90             ld a, (playerLives)
  157  944E A7                   and a
  158  944F CA 07 94             jp z, progStart
  159  9452
@@ -6251,13 +6210,13 @@
  279  94F6              ; so set up another mask here, E, holding whether vertical and/or horizontal movement is actually allowed
  280  94F6              chkVert:
  281  94F6 1E 00            	ld e, 0                                     ; set mask to 0
- 282  94F8 3A 40 90         	ld a, (player_px)                           ; get player px (low byte   )
+ 282  94F8 3A 0C 90         	ld a, (player_px)                           ; get player px (low byte   )
  283  94FB E6 07            	and 7                                       ; check bits 2-0, if 0 then vertical movement may be allowed
  284  94FD 20 02            	jr nz, chkHoriz
  285  94FF 1E 0C            	ld e, %00001100                             ; set bits to allow vertical movement
  286  9501
  287  9501              chkHoriz:
- 288  9501 3A 42 90     	    ld a, (player_py)                           ; get player px (low byte)
+ 288  9501 3A 0E 90     	    ld a, (player_py)                           ; get player px (low byte)
  289  9504 E6 07            	and 7                                       ; check bits 2-0 if 0 then horizontal movement may be allowed
  290  9506 20 04            	jr nz, chkEnd
  291  9508 3E 03            	ld a, %00000011                             ; set bits to allow horizontal movement
@@ -6300,7 +6259,7 @@
  328  9528
  329  9528              ; d holds keys pressed where move is allowed (no collision)
  330  9528              ; see if last move still pressed
- 331  9528 3A 49 90         	ld a, (lastMove)                            ; get last move
+ 331  9528 3A 15 90         	ld a, (lastMove)                            ; get last move
  332  952B 5F                   ld e, a                                     ; save in e
  333  952C
  334  952C 7A                   ld a, d                                     ; get valid moves bit mask
@@ -6323,54 +6282,54 @@
  351  9535 CB 42        	    bit dir_left, d
  352  9537 28 14        	    jr z, doMoveRight
  353  9539
- 354  9539 2A 40 90     	    ld hl, (player_px)
+ 354  9539 2A 0C 90     	    ld hl, (player_px)
  355  953C 01 02 00     	    ld bc, move_delta
  356  953F B7                   or a
  357  9540 ED 42        	    sbc hl, bc
- 358  9542 22 40 90     	    ld (player_px), hl
+ 358  9542 22 0C 90     	    ld (player_px), hl
  359  9545
  360  9545 3E 01                ld a, vdir_left
- 361  9547 32 49 90             ld (lastMove), a
+ 361  9547 32 15 90             ld (lastMove), a
  362  954A C3 92 95             jp updateCameraXY
  363  954D
  364  954D              doMoveRight:
  365  954D CB 4A        	    bit dir_right, d
  366  954F 28 12        	    jr z, doMoveDown
  367  9551
- 368  9551 2A 40 90     	    ld hl, (player_px)
+ 368  9551 2A 0C 90     	    ld hl, (player_px)
  369  9554 01 02 00     	    ld bc, move_delta
  370  9557 09           	    add hl, bc
- 371  9558 22 40 90     	    ld (player_px), hl
+ 371  9558 22 0C 90     	    ld (player_px), hl
  372  955B
  373  955B 3E 02                ld a, vdir_right
- 374  955D 32 49 90             ld (lastMove), a
+ 374  955D 32 15 90             ld (lastMove), a
  375  9560 C3 92 95             jp updateCameraXY
  376  9563
  377  9563              doMoveDown:
  378  9563 CB 52        	    bit dir_down, d
  379  9565 28 12        	    jr z, doMoveUp
  380  9567
- 381  9567 2A 42 90     	    ld hl, (player_py)
+ 381  9567 2A 0E 90     	    ld hl, (player_py)
  382  956A 01 02 00     	    ld bc, move_delta
  383  956D 09                   add hl, bc
- 384  956E 22 42 90     	    ld (player_py), hl
+ 384  956E 22 0E 90     	    ld (player_py), hl
  385  9571
  386  9571 3E 04                ld a, vdir_down
- 387  9573 32 49 90             ld (lastMove), a
+ 387  9573 32 15 90             ld (lastMove), a
  388  9576 C3 92 95             jp updateCameraXY
  389  9579
  390  9579              doMoveUp:
  391  9579 CB 5A        	    bit dir_up, d
  392  957B CA 28 97     	    jp z, moveSprite
  393  957E
- 394  957E 2A 42 90     	    ld hl, (player_py)
+ 394  957E 2A 0E 90     	    ld hl, (player_py)
  395  9581 01 02 00     	    ld bc, move_delta
  396  9584 B7                   or a
  397  9585 ED 42        	    sbc hl, bc
- 398  9587 22 42 90     	    ld (player_py), hl
+ 398  9587 22 0E 90     	    ld (player_py), hl
  399  958A
  400  958A 3E 08                ld a, vdir_up
- 401  958C 32 49 90             ld (lastMove), a
+ 401  958C 32 15 90             ld (lastMove), a
  402  958F C3 92 95             jp updateCameraXY
  403  9592
  404  9592              ; ============================================================
@@ -6383,7 +6342,7 @@
  411  9592 CD 5A 81             call addScore
  412  9595
  413  9595                      ; ---------- X ----------
- 414  9595 2A 40 90             ld hl, (player_px)
+ 414  9595 2A 0C 90             ld hl, (player_px)
  415  9598 01 98 00             ld bc, CENTRE_X
  416  959B B7                   or a
  417  959C ED 42                sbc hl, bc                                  ; hl = player_px - CENTRE_X
@@ -6397,10 +6356,10 @@
  425  95AC 21 00 00             ld hl, 0                                    ; value >= max -> result = max (after add back)
  426  95AF              .camXHighOK:
  427  95AF 09                   add hl, bc                                  ; add CAM_MAX_X back
- 428  95B0 22 2E 90             ld (cam_px), hl
+ 428  95B0 22 FA 8F             ld (cam_px), hl
  429  95B3
  430  95B3                      ; ---------- Y ----------
- 431  95B3 2A 42 90             ld hl, (player_py)
+ 431  95B3 2A 0E 90             ld hl, (player_py)
  432  95B6 01 78 00             ld bc, CENTRE_Y
  433  95B9 B7                   or a
  434  95BA ED 42                sbc hl, bc                                  ; hl = player_py - CENTRE_Y
@@ -6414,29 +6373,29 @@
  442  95CA 21 00 00             ld hl, 0
  443  95CD              .camYHighOK:
  444  95CD 09                   add hl, bc
- 445  95CE 22 30 90             ld (cam_py), hl
+ 445  95CE 22 FC 8F             ld (cam_py), hl
  446  95D1 C3 D4 95             jp doMoveDone
  447  95D4
  448  95D4              ; --- a move was committed: advance the walk animation (throttled) ---
  449  95D4              doMoveDone:
- 450  95D4 3A 4B 90             ld a, (playerAnimTick)
+ 450  95D4 3A 17 90             ld a, (playerAnimTick)
  451  95D7 3C                   inc a
- 452  95D8 32 4B 90             ld (playerAnimTick), a
+ 452  95D8 32 17 90             ld (playerAnimTick), a
  453  95DB FE 04                cp ANIM_SPEED
  454  95DD 38 0D                jr c, .noAdvance                            ; not time to advance frame yet
  455  95DF AF                   xor a
- 456  95E0 32 4B 90             ld (playerAnimTick), a
- 457  95E3 3A 4A 90             ld a, (playerAnimFrame)
+ 456  95E0 32 17 90             ld (playerAnimTick), a
+ 457  95E3 3A 16 90             ld a, (playerAnimFrame)
  458  95E6 3C                   inc a
  459  95E7 E6 03                and 3                                        ; cycle 0-3
- 460  95E9 32 4A 90             ld (playerAnimFrame), a
+ 460  95E9 32 16 90             ld (playerAnimFrame), a
  461  95EC              .noAdvance:
  462  95EC CD 0E 98             call showSprite                             ; write new pattern (direction + frame)
  463  95EF C3 28 97             jp moveSprite
  464  95F2
  465  95F2              chkLeft:
  466  95F2                      checkLeftM player_px, player_py, move_delta
- 466  95F2 2A 40 90    >        ld hl, (player_px)                               ; get X pixel
+ 466  95F2 2A 0C 90    >        ld hl, (player_px)                               ; get X pixel
  466  95F5 01 02 00    >        ld bc, move_delta                         ; move pixel delta
  466  95F8 B7          >        or a                                        ; clear carry
  466  95F9 ED 42       >        sbc hl, bc                                  ; simulate move left
@@ -6452,7 +6411,7 @@
  466  9604 1F          >        rra                                         ;                                                   4t
  466  9605 47          >        ld b, a                                     ; B = tile X
  466  9606             >
- 466  9606 2A 42 90    >        ld hl, (player_py)                               ; get Y pixel
+ 466  9606 2A 0E 90    >        ld hl, (player_py)                               ; get Y pixel
  466  9609             >        DIV_HL_8A                                   ; divide by 8 to get tile Y
  466  9609             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  466  9609             >; simple 16-bit divide without the CALL/RET overhead
@@ -6504,7 +6463,7 @@
  466  961C             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  466  961C             >
  466  961C C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 466  961E 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 466  961E 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  466  9621 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  466  9624             >
  466  9624             >
@@ -6533,9 +6492,9 @@
  466  9630 FE E0       >        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
  466  9632 20 0C       >        jr   nz, .same                              ; branch if not
  466  9634 26 C0       >        ld   h, $C0                                 ; wrap back to slot-6 base
- 466  9636 3A 35 90    >        ld   a, (curWorldPage)                      ; get last saved page
+ 466  9636 3A 01 90    >        ld   a, (curWorldPage)                      ; get last saved page
  466  9639 3C          >        inc  a                                      ; advance it
- 466  963A 32 35 90    >        ld   (curWorldPage), a                      ; save it back
+ 466  963A 32 01 90    >        ld   (curWorldPage), a                      ; save it back
  466  963D ED 92 56    >        nextreg $56, a                              ; page in new block
  466  9640             >.same:
  466  9640 7E          >        ld   a, (hl)                                ; see what tile is here
@@ -6547,7 +6506,7 @@
  467  9647
  468  9647              chkRight:
  469  9647                      checkRightM player_px, player_py, move_delta
- 469  9647 2A 40 90    >        ld hl, (player_px)                               ; get X pixel
+ 469  9647 2A 0C 90    >        ld hl, (player_px)                               ; get X pixel
  469  964A 01 02 00    >        ld bc, move_delta                         ; move pixel delta
  469  964D 09          >        add hl, bc                                  ; simulate move Right
  469  964E ED 34 0F 00 >        add hl, 15                                  ; the sprite extends 0-15px right
@@ -6564,7 +6523,7 @@
  469  965B 1F          >        rra                                         ;                                                   4t
  469  965C 47          >        ld b, a                                     ; B = tile X
  469  965D             >
- 469  965D 2A 42 90    >        ld hl, (player_py)                               ; get Y pixel
+ 469  965D 2A 0E 90    >        ld hl, (player_py)                               ; get Y pixel
  469  9660             >        DIV_HL_8A                                   ; divide by 8 to get tile Y
  469  9660             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  469  9660             >; simple 16-bit divide without the CALL/RET overhead
@@ -6616,7 +6575,7 @@
  469  9673             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  469  9673             >
  469  9673 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 469  9675 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 469  9675 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  469  9678 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  469  967B             >
  469  967B             >
@@ -6645,9 +6604,9 @@
  469  9687 FE E0       >        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
  469  9689 20 0C       >        jr   nz, .same                              ; branch if not
  469  968B 26 C0       >        ld   h, $C0                                 ; wrap back to slot-6 base
- 469  968D 3A 35 90    >        ld   a, (curWorldPage)                      ; get last saved page
+ 469  968D 3A 01 90    >        ld   a, (curWorldPage)                      ; get last saved page
  469  9690 3C          >        inc  a                                      ; advance it
- 469  9691 32 35 90    >        ld   (curWorldPage), a                      ; save it back
+ 469  9691 32 01 90    >        ld   (curWorldPage), a                      ; save it back
  469  9694 ED 92 56    >        nextreg $56, a                              ; page in new block
  469  9697             >.same:
  469  9697 7E          >        ld   a, (hl)                                ; see what tile is here
@@ -6659,7 +6618,7 @@
  470  969E
  471  969E              chkDown:
  472  969E                      checkDownM player_px, player_py, move_delta
- 472  969E 2A 42 90    >        ld hl, (player_py)                               ; get Y pixel
+ 472  969E 2A 0E 90    >        ld hl, (player_py)                               ; get Y pixel
  472  96A1 01 02 00    >        ld bc, move_delta                         ; move pixel delta
  472  96A4 09          >        add hl, bc                                  ; simulate move Down
  472  96A5 ED 34 0F 00 >        add hl, 15                                  ; the sprite extends 0-15px down
@@ -6676,7 +6635,7 @@
  472  96B2 1F          >        rra                                         ;                                                   4t
  472  96B3 4F          >        ld c, a                                     ; C = tile Y
  472  96B4             >
- 472  96B4 2A 40 90    >        ld hl, (player_px)                               ; get X pixel
+ 472  96B4 2A 0C 90    >        ld hl, (player_px)                               ; get X pixel
  472  96B7             >        DIV_HL_8A                                   ; divide by 8 to get tile X
  472  96B7             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  472  96B7             >; simple 16-bit divide without the CALL/RET overhead
@@ -6728,7 +6687,7 @@
  472  96CA             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  472  96CA             >
  472  96CA C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 472  96CC 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 472  96CC 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  472  96CF ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  472  96D2             >
  472  96D2             >
@@ -6761,7 +6720,7 @@
  473  96E4
  474  96E4              chkUp:
  475  96E4                      checkUpM player_px, player_py, move_delta
- 475  96E4 2A 42 90    >        ld hl, (player_py)                               ; get Y pixel
+ 475  96E4 2A 0E 90    >        ld hl, (player_py)                               ; get Y pixel
  475  96E7 01 02 00    >        ld bc, move_delta                         ; move pixel delta
  475  96EA B7          >        or a                                        ; clear carry
  475  96EB ED 42       >        sbc hl, bc                                  ; simulate move Down
@@ -6778,7 +6737,7 @@
  475  96F6 1F          >        rra                                         ;                                                   4t
  475  96F7 4F          >        ld c, a                                     ; C = tile Y
  475  96F8             >
- 475  96F8 2A 40 90    >        ld hl, (player_px)                               ; get X pixel
+ 475  96F8 2A 0C 90    >        ld hl, (player_px)                               ; get X pixel
  475  96FB             >        DIV_HL_8A                                   ; divide by 8 to get tile X
  475  96FB             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  475  96FB             >; simple 16-bit divide without the CALL/RET overhead
@@ -6830,7 +6789,7 @@
  475  970E             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  475  970E             >
  475  970E C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
- 475  9710 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 475  9710 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  475  9713 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  475  9716             >
  475  9716             >
@@ -6877,18 +6836,18 @@
  490  972B                  ; ================================================
  491  972B CD FF 97             call wait_vblank
  492  972E
- 493  972E 3A 2E 90             ld a, (cam_px)                              ; get LOW byte of camera X position
+ 493  972E 3A FA 8F             ld a, (cam_px)                              ; get LOW byte of camera X position
  494  9731 E6 07                and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
  495  9733 ED 92 30             nextreg $30, a                              ; ← X fine offset (MUST be every frame)
  496  9736
- 497  9736 3A 30 90             ld a, (cam_py)                              ; get LOW byte of camera Y position
+ 497  9736 3A FC 8F             ld a, (cam_py)                              ; get LOW byte of camera Y position
  498  9739 E6 07                and 7                                       ; keep only the bottom 3 bits (0-7 pixels)
  499  973B ED 92 31             nextreg $31, a                              ; ← Y fine offset (MUST be every frame)
  500  973E
  501  973E              ; ================================================
  502  973E                  ; COPY DECISION - copy ONLY when X or Y is aligned to tile boundary
  503  973E                  ; ================================================
- 504  973E 2A 2E 90             ld hl, (cam_px)
+ 504  973E 2A FA 8F             ld hl, (cam_px)
  505  9741                      DIV_HL_8A
  505  9741             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  505  9741             >; simple 16-bit divide without the CALL/RET overhead
@@ -6900,7 +6859,7 @@
  505  9748 CB 3C       >        srl h                                       ;                                                   8t
  505  974A 1F          >        rra                                         ;                                                   4t
  506  974B 47                   ld b, a
- 507  974C 2A 30 90             ld hl, (cam_py)
+ 507  974C 2A FC 8F             ld hl, (cam_py)
  508  974F                      DIV_HL_8A
  508  974F             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
  508  974F             >; simple 16-bit divide without the CALL/RET overhead
@@ -6913,11 +6872,11 @@
  508  9758 1F          >        rra                                         ;                                                   4t
  509  9759 4F                   ld c, a
  510  975A
- 511  975A 3A 32 90             ld a, (cam_tx)                              ; get last player tile X
+ 511  975A 3A FE 8F             ld a, (cam_tx)                              ; get last player tile X
  512  975D B8                   cp b                                        ; compare with current
  513  975E 20 07                jr nz, copy_visible_window                  ; branch if different
  514  9760
- 515  9760 3A 33 90             ld a, (cam_ty)                              ; get last player tile Y
+ 515  9760 3A FF 8F             ld a, (cam_ty)                              ; get last player tile Y
  516  9763 B9                   cp c                                        ; compare with current
  517  9764 20 01                jr nz, copy_visible_window                  ; branch if different
  518  9766
@@ -6925,9 +6884,9 @@
  520  9767
  521  9767              copy_visible_window:
  522  9767 78                   ld a, b                                     ; get current player tile X
- 523  9768 32 32 90             ld (cam_tx), a                              ; save it away
+ 523  9768 32 FE 8F             ld (cam_tx), a                              ; save it away
  524  976B 79                   ld a, c                                     ; get current player tile Y
- 525  976C 32 33 90             ld (cam_ty), a                              ; save it away
+ 525  976C 32 FF 8F             ld (cam_ty), a                              ; save it away
  526  976F
  527  976F                  ; STEP 1: Build the starting linear offset in the world map
  528  976F 61                   ld h, c                                     ; read the Y tile coordinate of the top-left corner we want
@@ -6957,7 +6916,7 @@
  552  9777                                                                  ;   8192 ÷ 256 = exactly 32 rows per page.
  553  9777                                                                  ;   Therefore page number = 40 + (cam_tile_y ÷ 32)
  554  9777 C6 28                add  a,40                                   ; add the starting page number (your world map begins at page 40)
- 555  9779 32 34 90             ld   (tilemapPage), a                       ; save the page number in register C for later
+ 555  9779 32 00 90             ld   (tilemapPage), a                       ; save the page number in register C for later
  556  977C
  557  977C                  ; STEP 3: Keep only the part of the address that fits inside one 8K page
  558  977C 7C                   ld   a,h                                    ; get the high byte again
@@ -6967,7 +6926,7 @@
  562  977F 67                   ld   h,a                                    ; HL now holds the offset *inside* the current 8K page
  563  9780
  564  9780                  ; STEP 4: Page the correct 8K bank into slot 6 so we can read it
- 565  9780 3A 34 90             ld   a, (tilemapPage)                       ; A = page number we want
+ 565  9780 3A 00 90             ld   a, (tilemapPage)                       ; A = page number we want
  566  9783 ED 92 56             nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  567  9786 01 00 C0             ld   bc,$C000                               ; $C000 is the start of slot 6
  568  9789 09                   add  hl,bc                                  ; HL = $C000 + offset_inside_page
@@ -7039,9 +6998,9 @@
  595  97F0 7C                   ld   a,h                                    ; look at the high byte of the source pointer
  596  97F1 D6 20                sub  $20                                    ; $20 is 32 in decimal. $E000 - $2000 = $C000 → subtract 32 from the high byte to wrap back to the start of slot 6
  597  97F3 67                   ld   h,a
- 598  97F4 3A 34 90             ld a, (tilemapPage)
+ 598  97F4 3A 00 90             ld a, (tilemapPage)
  599  97F7 3C                   inc a
- 600  97F8 32 34 90             ld (tilemapPage), a
+ 600  97F8 32 00 90             ld (tilemapPage), a
  601  97FB ED 92 56             nextreg $56, a                              ; set MMU slot 6 ($C000-$DFFF) to that page
  602  97FE C9                   ret
  603  97FF
@@ -7063,7 +7022,7 @@
  619  980E              ; 255 = wall / unreached. Lower = closer to flood target.
  620  980E              ; Trashes: AF, HL, BC
  621  980E              ; ============================================================
- 622  980E 2A 42 90             ld hl, (player_py)
+ 622  980E 2A 0E 90             ld hl, (player_py)
  623  9811 7D                   ld a, l
  624  9812 E6 07                and 7
  625  9814 FD 6F                ld iyl, a
@@ -7074,9 +7033,9 @@
  626  9817 06 03       >        LD B, 3                                     ;                                                   7t
  626  9819 ED 29       >        BSRA DE, B                                  ;                                                   8t
  627  981B 7B                   ld a, e
- 628  981C 32 45 90             ld (player_tile_y), a
+ 628  981C 32 11 90             ld (player_tile_y), a
  629  981F
- 630  981F 2A 40 90             ld hl, (player_px)
+ 630  981F 2A 0C 90             ld hl, (player_px)
  631  9822 7D                   ld a, l
  632  9823 E6 07                and 7
  633  9825 FD 6F                ld iyl, a
@@ -7087,7 +7046,7 @@
  634  9828 06 03       >        LD B, 3                                     ;                                                   7t
  634  982A ED 29       >        BSRA DE, B                                  ;                                                   8t
  635  982C 7B                   ld a, e
- 636  982D 32 44 90             ld (player_tile_x), a
+ 636  982D 32 10 90             ld (player_tile_x), a
  637  9830
  638  9830
  639  9830 FD 7D                ld a, iyl
@@ -7110,16 +7069,16 @@
  656  9844
  657  9844 AF                   xor a                                       ; sprite index = 0
  658  9845 ED 92 34             NEXTREG $34, A
- 659  9848 2A 40 90             ld hl, (player_px)
- 660  984B ED 4B 2E 90          ld bc, (cam_px)
+ 659  9848 2A 0C 90             ld hl, (player_px)
+ 660  984B ED 4B FA 8F          ld bc, (cam_px)
  661  984F ED 42                sbc hl, bc
  662  9851 5C                   ld e, h
  663  9852
  664  9852 7D                   LD A, l                                     ; set the low byte of player X
  665  9853 ED 92 35             NEXTREG $35, A
  666  9856
- 667  9856 2A 42 90             ld hl, (player_py)
- 668  9859 ED 4B 30 90          ld bc, (cam_py)
+ 667  9856 2A 0E 90             ld hl, (player_py)
+ 668  9859 ED 4B FC 8F          ld bc, (cam_py)
  669  985D ED 42                sbc hl, bc
  670  985F
  671  985F 7D                   LD A, l                                     ; set the low byte of player Y
@@ -7129,7 +7088,7 @@
  675  9866 ED 92 37             NEXTREG $37, A                              ; set it
  676  9869
  677  9869                      ; --- choose pattern from facing direction + animation frame ---
- 678  9869 3A 49 90             ld a, (lastMove)                            ; vdir flag: 1=L 2=R 4=D 8=U
+ 678  9869 3A 15 90             ld a, (lastMove)                            ; vdir flag: 1=L 2=R 4=D 8=U
  679  986C 06 04                ld b, PAT_DOWN                              ; default down
  680  986E FE 01                cp vdir_left
  681  9870 20 04                jr nz, .notL
@@ -7145,7 +7104,7 @@
  691  9880 20 02                jr nz, .haveBase                            ; else stays PAT_DOWN
  692  9882 06 10                ld b, PAT_UP
  693  9884              .haveBase:
- 694  9884 3A 4A 90             ld a, (playerAnimFrame)                     ; 0-3
+ 694  9884 3A 16 90             ld a, (playerAnimFrame)                     ; 0-3
  695  9887 80                   add a, b                                    ; base + frame = pattern
  696  9888
  697  9888 F6 80                OR %10000000                                ; bit 7 = visible
@@ -7179,7 +7138,7 @@
  725  989D 20 1B                jr nz, .next                                ; not available -> skip
  726  989F
  727  989F                      ; --- X overlap: abs(player_tile_x - keyX) <= 1 ? ---
- 728  989F 3A 44 90             ld a, (player_tile_x)
+ 728  989F 3A 10 90             ld a, (player_tile_x)
  729  98A2 92                   sub d                                       ; A = px - kx
  730  98A3 30 02                jr nc, .xpos
  731  98A5 ED 44                neg                                         ; A = |px - kx|
@@ -7188,7 +7147,7 @@
  734  98A9 30 0F                jr nc, .next                                ; |dx| >= 2 -> no overlap
  735  98AB
  736  98AB                      ; --- Y overlap: abs(player_tile_y - keyY) <= 1 ? ---
- 737  98AB 3A 45 90             ld a, (player_tile_y)
+ 737  98AB 3A 11 90             ld a, (player_tile_y)
  738  98AE 91                   sub c                                       ; A = py - ky
  739  98AF 30 02                jr nc, .ypos
  740  98B1 ED 44                neg
@@ -7215,7 +7174,7 @@
  761  98C2              baddieEnd equ baddieData + (baddieRecord * baddieCount)
  762  98C2
  763  98C2              processBaddies:
- 764  98C2 DD 21 4C 90          ld ix, baddieData                           ; point to start of baddie data
+ 764  98C2 DD 21 18 90          ld ix, baddieData                           ; point to start of baddie data
  765  98C6
  766  98C6              .loop:
  767  98C6 CD 45 99             call processBaddie                          ; process each baddie in turn
@@ -7225,7 +7184,7 @@
  771  98CF 11 0B 00             ld de, baddieRecord                         ; get baddie record length
  772  98D2 DD 19                add ix, de                                  ; point ix to next baddie
  773  98D4 DD 7D                ld a, ixl
- 774  98D6 FE E0                cp low baddieEnd
+ 774  98D6 FE AC                cp low baddieEnd
  775  98D8 20 EC                jr nz, .loop
  776  98DA DD 7C                ld a, ixh
  777  98DC FE 92                cp high baddieEnd
@@ -7240,12 +7199,12 @@
  786  98E5                      ; -------------------------------------------------------
  787  98E5
  788  98E5                      ; tile x/y already calculated, just use them
- 789  98E5 3A 44 90             ld a, (player_tile_x)
+ 789  98E5 3A 10 90             ld a, (player_tile_x)
  790  98E8 6F                   ld l, a
  791  98E9 26 00                ld h, 0
  792  98EB ED 34 20 00          add hl, 32
  793  98EF
- 794  98EF 3A 45 90             ld a, (player_tile_y)
+ 794  98EF 3A 11 90             ld a, (player_tile_y)
  795  98F2 C6 20                add 32
  796  98F4 5F                   ld e, a
  797  98F5
@@ -7288,7 +7247,7 @@
  834  9917              ; Trashes AF, DE, HL
  835  9917              checkBaddieCollision:
  836  9917                      ; --- X ---
- 837  9917 2A 40 90             ld hl, (player_px)                          ; get player pixel xy
+ 837  9917 2A 0C 90             ld hl, (player_px)                          ; get player pixel xy
  838  991A DD 5E 01             ld e, (ix + baddieRecord.lowX)              ; get skull pixel x
  839  991D DD 56 02             ld d, (ix + baddieRecord.highX)             ;
  840  9920 B7                   or a                                        ; clear carry
@@ -7302,7 +7261,7 @@
  848  992D D0                   ret nc                                      ; L >= 21 -> no hit (carry clear)
  849  992E
  850  992E                      ; --- Y --- (only reached when X overlaps)
- 851  992E 2A 42 90             ld hl, (player_py)                          ;
+ 851  992E 2A 0E 90             ld hl, (player_py)                          ;
  852  9931 DD 5E 03             ld e, (ix + baddieRecord.lowY)              ;
  853  9934 DD 56 04             ld d, (ix + baddieRecord.highY)             ;
  854  9937 B7                   or a                                        ;
@@ -7319,7 +7278,7 @@
  865  9945              processBaddie:
  866  9945 DD 66 04             ld h, (ix +baddieRecord.highY)              ; get baddie Y
  867  9948 DD 6E 03             ld l, (ix +baddieRecord.lowY)
- 868  994B 22 E2 92             ld (baddie_y), hl
+ 868  994B 22 AE 92             ld (baddie_y), hl
  869  994E 7D                   ld a, l
  870  994F E6 07                and 7
  871  9951 FD 6F                ld iyl, a
@@ -7333,7 +7292,7 @@
  874  9959
  875  9959 DD 66 02             ld h, (ix +baddieRecord.highX)              ; get baddie X
  876  995C DD 6E 01             ld l, (ix +baddieRecord.lowX)
- 877  995F 22 E0 92             ld (baddie_x), hl
+ 877  995F 22 AC 92             ld (baddie_x), hl
  878  9962 7D                   ld a, l
  879  9963 E6 07                and 7
  880  9965 FD 67                ld iyh, a
@@ -7454,7 +7413,7 @@
  954  99BE             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
  954  99BE             >
  954  99BE C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
- 954  99C0 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+ 954  99C0 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
  954  99C3 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
  954  99C6             >
  954  99C6             >
@@ -7581,7 +7540,7 @@
 1028  9A16             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1028  9A16             >
 1028  9A16 C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
-1028  9A18 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1028  9A18 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1028  9A1B ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1028  9A1E             >
 1028  9A1E             >
@@ -7652,7 +7611,7 @@
 1039  9A41             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1039  9A41             >
 1039  9A41 C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
-1039  9A43 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1039  9A43 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1039  9A46 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1039  9A49             >
 1039  9A49             >
@@ -7723,7 +7682,7 @@
 1050  9A6C             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1050  9A6C             >
 1050  9A6C C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
-1050  9A6E 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1050  9A6E 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1050  9A71 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1050  9A74             >
 1050  9A74             >
@@ -7793,7 +7752,7 @@
 1060  9A96             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1060  9A96             >
 1060  9A96 C6 2E       >        add  a, DFIELD_PAGE                                 ; add the starting page number
-1060  9A98 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1060  9A98 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1060  9A9B ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1060  9A9E             >
 1060  9A9E             >
@@ -7849,7 +7808,7 @@
 1088  9ACD C0                   ret nz                                      ; return if not
 1089  9ACE
 1090  9ACE                      checkLeftM baddie_x, baddie_y, move_delta_baddie
-1090  9ACE 2A E0 92    >        ld hl, (baddie_x)                               ; get X pixel
+1090  9ACE 2A AC 92    >        ld hl, (baddie_x)                               ; get X pixel
 1090  9AD1 01 01 00    >        ld bc, move_delta_baddie                         ; move pixel delta
 1090  9AD4 B7          >        or a                                        ; clear carry
 1090  9AD5 ED 42       >        sbc hl, bc                                  ; simulate move left
@@ -7865,7 +7824,7 @@
 1090  9AE0 1F          >        rra                                         ;                                                   4t
 1090  9AE1 47          >        ld b, a                                     ; B = tile X
 1090  9AE2             >
-1090  9AE2 2A E2 92    >        ld hl, (baddie_y)                               ; get Y pixel
+1090  9AE2 2A AE 92    >        ld hl, (baddie_y)                               ; get Y pixel
 1090  9AE5             >        DIV_HL_8A                                   ; divide by 8 to get tile Y
 1090  9AE5             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
 1090  9AE5             >; simple 16-bit divide without the CALL/RET overhead
@@ -7917,7 +7876,7 @@
 1090  9AF8             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1090  9AF8             >
 1090  9AF8 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-1090  9AFA 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1090  9AFA 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1090  9AFD ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1090  9B00             >
 1090  9B00             >
@@ -7946,9 +7905,9 @@
 1090  9B0C FE E0       >        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
 1090  9B0E 20 0C       >        jr   nz, .same                              ; branch if not
 1090  9B10 26 C0       >        ld   h, $C0                                 ; wrap back to slot-6 base
-1090  9B12 3A 35 90    >        ld   a, (curWorldPage)                      ; get last saved page
+1090  9B12 3A 01 90    >        ld   a, (curWorldPage)                      ; get last saved page
 1090  9B15 3C          >        inc  a                                      ; advance it
-1090  9B16 32 35 90    >        ld   (curWorldPage), a                      ; save it back
+1090  9B16 32 01 90    >        ld   (curWorldPage), a                      ; save it back
 1090  9B19 ED 92 56    >        nextreg $56, a                              ; page in new block
 1090  9B1C             >.same:
 1090  9B1C 7E          >        ld   a, (hl)                                ; see what tile is here
@@ -7964,7 +7923,7 @@
 1095  9B26 C0                   ret nz                                      ; return if not
 1096  9B27
 1097  9B27                      checkRightM baddie_x, baddie_y, move_delta_baddie
-1097  9B27 2A E0 92    >        ld hl, (baddie_x)                               ; get X pixel
+1097  9B27 2A AC 92    >        ld hl, (baddie_x)                               ; get X pixel
 1097  9B2A 01 01 00    >        ld bc, move_delta_baddie                         ; move pixel delta
 1097  9B2D 09          >        add hl, bc                                  ; simulate move Right
 1097  9B2E ED 34 0F 00 >        add hl, 15                                  ; the sprite extends 0-15px right
@@ -7981,7 +7940,7 @@
 1097  9B3B 1F          >        rra                                         ;                                                   4t
 1097  9B3C 47          >        ld b, a                                     ; B = tile X
 1097  9B3D             >
-1097  9B3D 2A E2 92    >        ld hl, (baddie_y)                               ; get Y pixel
+1097  9B3D 2A AE 92    >        ld hl, (baddie_y)                               ; get Y pixel
 1097  9B40             >        DIV_HL_8A                                   ; divide by 8 to get tile Y
 1097  9B40             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
 1097  9B40             >; simple 16-bit divide without the CALL/RET overhead
@@ -8033,7 +7992,7 @@
 1097  9B53             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1097  9B53             >
 1097  9B53 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-1097  9B55 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1097  9B55 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1097  9B58 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1097  9B5B             >
 1097  9B5B             >
@@ -8062,9 +8021,9 @@
 1097  9B67 FE E0       >        cp   $E0                                    ; walked past the end of slot 6 ($C000-$DFFF)?
 1097  9B69 20 0C       >        jr   nz, .same                              ; branch if not
 1097  9B6B 26 C0       >        ld   h, $C0                                 ; wrap back to slot-6 base
-1097  9B6D 3A 35 90    >        ld   a, (curWorldPage)                      ; get last saved page
+1097  9B6D 3A 01 90    >        ld   a, (curWorldPage)                      ; get last saved page
 1097  9B70 3C          >        inc  a                                      ; advance it
-1097  9B71 32 35 90    >        ld   (curWorldPage), a                      ; save it back
+1097  9B71 32 01 90    >        ld   (curWorldPage), a                      ; save it back
 1097  9B74 ED 92 56    >        nextreg $56, a                              ; page in new block
 1097  9B77             >.same:
 1097  9B77 7E          >        ld   a, (hl)                                ; see what tile is here
@@ -8080,7 +8039,7 @@
 1102  9B81 C0                   ret nz                                      ; return if not
 1103  9B82
 1104  9B82                      checkDownM baddie_x, baddie_y, move_delta_baddie
-1104  9B82 2A E2 92    >        ld hl, (baddie_y)                               ; get Y pixel
+1104  9B82 2A AE 92    >        ld hl, (baddie_y)                               ; get Y pixel
 1104  9B85 01 01 00    >        ld bc, move_delta_baddie                         ; move pixel delta
 1104  9B88 09          >        add hl, bc                                  ; simulate move Down
 1104  9B89 ED 34 0F 00 >        add hl, 15                                  ; the sprite extends 0-15px down
@@ -8097,7 +8056,7 @@
 1104  9B96 1F          >        rra                                         ;                                                   4t
 1104  9B97 4F          >        ld c, a                                     ; C = tile Y
 1104  9B98             >
-1104  9B98 2A E0 92    >        ld hl, (baddie_x)                               ; get X pixel
+1104  9B98 2A AC 92    >        ld hl, (baddie_x)                               ; get X pixel
 1104  9B9B             >        DIV_HL_8A                                   ; divide by 8 to get tile X
 1104  9B9B             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
 1104  9B9B             >; simple 16-bit divide without the CALL/RET overhead
@@ -8149,7 +8108,7 @@
 1104  9BAE             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1104  9BAE             >
 1104  9BAE C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-1104  9BB0 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1104  9BB0 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1104  9BB3 ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1104  9BB6             >
 1104  9BB6             >
@@ -8186,7 +8145,7 @@
 1109  9BCB C0                   ret nz                                      ; return if not
 1110  9BCC
 1111  9BCC                      checkUpM baddie_x, baddie_y, move_delta_baddie
-1111  9BCC 2A E2 92    >        ld hl, (baddie_y)                               ; get Y pixel
+1111  9BCC 2A AE 92    >        ld hl, (baddie_y)                               ; get Y pixel
 1111  9BCF 01 01 00    >        ld bc, move_delta_baddie                         ; move pixel delta
 1111  9BD2 B7          >        or a                                        ; clear carry
 1111  9BD3 ED 42       >        sbc hl, bc                                  ; simulate move Down
@@ -8203,7 +8162,7 @@
 1111  9BDE 1F          >        rra                                         ;                                                   4t
 1111  9BDF 4F          >        ld c, a                                     ; C = tile Y
 1111  9BE0             >
-1111  9BE0 2A E0 92    >        ld hl, (baddie_x)                               ; get X pixel
+1111  9BE0 2A AC 92    >        ld hl, (baddie_x)                               ; get X pixel
 1111  9BE3             >        DIV_HL_8A                                   ; divide by 8 to get tile X
 1111  9BE3             >; version 2, 40 t-states (8 t-states quicker than DIV_HL_8)
 1111  9BE3             >; simple 16-bit divide without the CALL/RET overhead
@@ -8255,7 +8214,7 @@
 1111  9BF6             >                                                    ;   Therefore page number = 40 + (tile_y ÷ 32)
 1111  9BF6             >
 1111  9BF6 C6 28       >        add  a, TILEMAP_PAGE                                 ; add the starting page number
-1111  9BF8 32 35 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
+1111  9BF8 32 01 90    >        ld (curWorldPage), a                        ; save page for subsequent reads - likely no need to reload
 1111  9BFB ED 92 56    >        nextreg $56,a                               ; set MMU slot 6 ($C000-$DFFF) to that page
 1111  9BFE             >
 1111  9BFE             >
@@ -8287,7 +8246,7 @@
 1111  9C0F C9          >        ret
 1112  9C10
 1113  9C10              doMoveLeft1
-1114  9C10 2A E0 92             ld hl, (baddie_x)
+1114  9C10 2A AC 92             ld hl, (baddie_x)
 1115  9C13 01 01 00             ld bc, move_delta_baddie
 1116  9C16 B7                   or a
 1117  9C17 ED 42                sbc hl, bc
@@ -8298,7 +8257,7 @@
 1122  9C24 18 3C                jr displayBaddie
 1123  9C26
 1124  9C26              doMoveRight1
-1125  9C26 2A E0 92             ld hl, (baddie_x)
+1125  9C26 2A AC 92             ld hl, (baddie_x)
 1126  9C29 01 01 00             ld bc, move_delta_baddie
 1127  9C2C 09                   add hl, bc
 1128  9C2D DD 74 02             ld (ix +baddieRecord.highX), h
@@ -8309,7 +8268,7 @@
 1133  9C38 18 28                jr displayBaddie
 1134  9C3A
 1135  9C3A              doMoveDown1
-1136  9C3A 2A E2 92             ld hl, (baddie_y)
+1136  9C3A 2A AE 92             ld hl, (baddie_y)
 1137  9C3D 01 01 00             ld bc, move_delta_baddie
 1138  9C40 09                   add hl, bc
 1139  9C41 DD 74 04             ld (ix +baddieRecord.highY), h
@@ -8320,7 +8279,7 @@
 1144  9C4C 18 14                jr displayBaddie
 1145  9C4E
 1146  9C4E              doMoveUp1
-1147  9C4E 2A E2 92             ld hl, (baddie_y)
+1147  9C4E 2A AE 92             ld hl, (baddie_y)
 1148  9C51 01 01 00             ld bc, move_delta_baddie
 1149  9C54 B7                   or a
 1150  9C55 ED 42                sbc hl, bc
@@ -8348,7 +8307,7 @@
 1172  9C69                      ; HL = baddie world X
 1173  9C69 DD 6E 01             ld l, (ix + baddieRecord.lowX)
 1174  9C6C DD 66 02             ld h, (ix + baddieRecord.highX)
-1175  9C6F ED 4B 2E 90          ld bc, (cam_px)                             ; BC = player world X
+1175  9C6F ED 4B FA 8F          ld bc, (cam_px)                             ; BC = player world X
 1176  9C73 B7                   or a                                        ; clear carry for a clean subtract
 1177  9C74 ED 42                sbc hl, bc                                  ; HL = baddieX - playerX  (signed)
 1178  9C76                  ; add screen centre AND the 15px overhang bias in one go.
@@ -8375,7 +8334,7 @@
 1199  9C87                  ; HL = baddie world Y
 1200  9C87 DD 6E 03             ld l, (ix + baddieRecord.lowY)
 1201  9C8A DD 66 04             ld h, (ix + baddieRecord.highY)
-1202  9C8D ED 4B 30 90          ld bc, (cam_py)             ; BC = player world Y
+1202  9C8D ED 4B FC 8F          ld bc, (cam_py)             ; BC = player world Y
 1203  9C91 B7                   or a                           ; clear carry
 1204  9C92 ED 42                sbc hl, bc                     ; HL = baddieY - playerY  (signed)
 1205  9C94                  ; centre + bias again: CENTER_SCREEN_Y + 15 = 120 + 15 = 135, fits in 8 bits.
@@ -8574,10 +8533,10 @@
   27+ F11A
   28+ F11A              ; get the Ch1 tone value
   29+ F11A              ; apply delta
-  30+ F11A 2A 00 90             LD HL, (Ch1Pitch)
-  31+ F11D ED 5B 02 90          LD DE, (Ch1PitchD)
+  30+ F11A 2A D8 8F             LD HL, (Ch1Pitch)
+  31+ F11D ED 5B DA 8F          LD DE, (Ch1PitchD)
   32+ F121 19                   ADD HL, DE
-  33+ F122 22 00 90             LD (Ch1Pitch), HL
+  33+ F122 22 D8 8F             LD (Ch1Pitch), HL
   34+ F125
   35+ F125              ; write Ch1 tone to AY chip
   36+ F125                      AY_TONE 'A'
@@ -8626,10 +8585,10 @@
   37+ F139
   38+ F139              ; get the Ch1 volume value
   39+ F139              ; apply delta
-  40+ F139 2A 04 90             LD HL, (Ch1Volume)
-  41+ F13C ED 5B 06 90          LD DE, (Ch1VolumeD)
+  40+ F139 2A DC 8F             LD HL, (Ch1Volume)
+  41+ F13C ED 5B DE 8F          LD DE, (Ch1VolumeD)
   42+ F140 19                   ADD HL, DE
-  43+ F141 22 04 90             LD (Ch1Volume), HL
+  43+ F141 22 DC 8F             LD (Ch1Volume), HL
   44+ F144
   45+ F144 7C                   LD A, H
   46+ F145 E6 0F                AND 15
@@ -8661,10 +8620,10 @@
   50+ F151
   51+ F151              ; get the Ch2 tone value
   52+ F151              ; apply delta
-  53+ F151 2A 0A 90             LD HL, (Ch2Pitch)
-  54+ F154 ED 5B 0C 90          LD DE, (Ch2PitchD)
+  53+ F151 2A E2 8F             LD HL, (Ch2Pitch)
+  54+ F154 ED 5B E4 8F          LD DE, (Ch2PitchD)
   55+ F158 19                   ADD HL, DE
-  56+ F159 22 0A 90             LD (Ch2Pitch), HL
+  56+ F159 22 E2 8F             LD (Ch2Pitch), HL
   57+ F15C
   58+ F15C              ; write Ch2 tone to AY chip
   59+ F15C                      AY_TONE 'B'
@@ -8713,10 +8672,10 @@
   60+ F170
   61+ F170              ; get the Ch2 volume value
   62+ F170              ; apply delta
-  63+ F170 2A 0E 90             LD HL, (Ch2Volume)
-  64+ F173 ED 5B 10 90          LD DE, (Ch2VolumeD)
+  63+ F170 2A E6 8F             LD HL, (Ch2Volume)
+  64+ F173 ED 5B E8 8F          LD DE, (Ch2VolumeD)
   65+ F177 19                   ADD HL, DE
-  66+ F178 22 0E 90             LD (Ch2Volume), HL
+  66+ F178 22 E6 8F             LD (Ch2Volume), HL
   67+ F17B
   68+ F17B 7C                   LD A, H
   69+ F17C E6 0F                AND 15
@@ -8748,10 +8707,10 @@
   73+ F188
   74+ F188              ; get the Ch3 tone value
   75+ F188              ; apply delta
-  76+ F188 2A 14 90             LD HL, (Ch3Pitch)
-  77+ F18B ED 5B 16 90          LD DE, (Ch3PitchD)
+  76+ F188 2A EC 8F             LD HL, (Ch3Pitch)
+  77+ F18B ED 5B EE 8F          LD DE, (Ch3PitchD)
   78+ F18F 19                   ADD HL, DE
-  79+ F190 22 14 90             LD (Ch3Pitch), HL
+  79+ F190 22 EC 8F             LD (Ch3Pitch), HL
   80+ F193
   81+ F193              ; write Ch3 tone to AY chip
   82+ F193                      AY_TONE 'C'
@@ -8800,10 +8759,10 @@
   83+ F1A7
   84+ F1A7              ; get the Ch3 volume value
   85+ F1A7              ; apply delta
-  86+ F1A7 2A 18 90             LD HL, (Ch3Volume)
-  87+ F1AA ED 5B 1A 90          LD DE, (Ch3VolumeD)
+  86+ F1A7 2A F0 8F             LD HL, (Ch3Volume)
+  87+ F1AA ED 5B F2 8F          LD DE, (Ch3VolumeD)
   88+ F1AE 19                   ADD HL, DE
-  89+ F1AF 22 18 90             LD (Ch3Volume), HL
+  89+ F1AF 22 F0 8F             LD (Ch3Volume), HL
   90+ F1B2
   91+ F1B2 7C                   LD A, H
   92+ F1B3 E6 0F                AND 15
@@ -8850,31 +8809,31 @@
  111+ F1BF              ; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
  112+ F1BF              ; ChNFlags: bit0 = tone-on, bit1 = noise-on.
  113+ F1BF              ; Gather each channel's tone bit into E and noise bit into D, then place & invert.
- 114+ F1BF 16 00                ld d, 0                     ; D = noise bits (will land in mixer bits 3-5)
- 115+ F1C1 1E 00                ld e, 0                     ; E = tone  bits (mixer bits 0-2)
+ 114+ F1BF 16 00                ld d, 0                                     ; D = noise bits (will land in mixer bits 3-5)
+ 115+ F1C1 1E 00                ld e, 0                                     ; E = tone  bits (mixer bits 0-2)
  116+ F1C3
- 117+ F1C3 3A 1C 90             ld a, (Ch3Flags)            ; process 3,2,1 so channel 1 ends up in bit 0
+ 117+ F1C3 3A F4 8F             ld a, (Ch3Flags)                            ; process 3,2,1 so channel 1 ends up in bit 0
  118+ F1C6 1F                   rra
- 118+ F1C7 CB 13          rl e                  ; tone3  -> E
+ 118+ F1C7 CB 13          rl e                                  ; tone3  -> E
  119+ F1C9 1F                   rra
- 119+ F1CA CB 12          rl d                  ; noise3 -> D
- 120+ F1CC 3A 12 90             ld a, (Ch2Flags)
+ 119+ F1CA CB 12          rl d                                  ; noise3 -> D
+ 120+ F1CC 3A EA 8F             ld a, (Ch2Flags)
  121+ F1CF 1F                   rra
- 121+ F1D0 CB 13          rl e                  ; tone2
+ 121+ F1D0 CB 13          rl e                                  ; tone2
  122+ F1D2 1F                   rra
- 122+ F1D3 CB 12          rl d                  ; noise2
- 123+ F1D5 3A 08 90             ld a, (Ch1Flags)
+ 122+ F1D3 CB 12          rl d                                  ; noise2
+ 123+ F1D5 3A E0 8F             ld a, (Ch1Flags)
  124+ F1D8 1F                   rra
- 124+ F1D9 CB 13          rl e                  ; tone1
+ 124+ F1D9 CB 13          rl e                                  ; tone1
  125+ F1DB 1F                   rra
- 125+ F1DC CB 12          rl d                  ; noise1
+ 125+ F1DC CB 12          rl d                                  ; noise1
  126+ F1DE
  127+ F1DE 7A                   ld a, d
  128+ F1DF 87                   add a,a
  128+ F1E0 87             add a,a
- 128+ F1E1 87             add a,a ; noise bits up to positions 3-5
- 129+ F1E2 B3                   or e                        ; + tone bits 0-2  = active-high enables
- 130+ F1E3 2F                   cpl                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
+ 128+ F1E1 87             add a,a                 ; noise bits up to positions 3-5
+ 129+ F1E2 B3                   or e                                        ; + tone bits 0-2  = active-high enables
+ 130+ F1E3 2F                   cpl                                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
  131+ F1E4
  132+ F1E4 01 FD FF             ld bc, AYSelect
  133+ F1E7 16 07                ld d, mixerFlag
@@ -8883,305 +8842,299 @@
  136+ F1EE ED 79                out (c), a
  137+ F1F0
  138+ F1F0
- 139+ F1F0 3A 09 90             LD A, (Ch1Length)
- 140+ F1F3 3D                   DEC A
- 141+ F1F4 20 03                JR NZ, ch1endskip
- 142+ F1F6 32 08 90             LD (Ch1Flags), A
- 143+ F1F9              ch1endskip
- 144+ F1F9 32 09 90             LD (Ch1Length), A
- 145+ F1FC
- 146+ F1FC 3A 13 90             LD A, (Ch2Length)
- 147+ F1FF 3D                   DEC A
- 148+ F200 20 03                JR NZ, ch2endskip
- 149+ F202 32 12 90             LD (Ch2Flags), A
- 150+ F205              ch2endskip
- 151+ F205 32 13 90             LD (Ch2Length), A
- 152+ F208
- 153+ F208 3A 1D 90             LD A, (Ch3Length)
- 154+ F20B 3D                   DEC A
- 155+ F20C 20 03                JR NZ, ch3endskip
- 156+ F20E 32 1C 90             LD (Ch3Flags), A
- 157+ F211              ch3endskip
- 158+ F211 32 1D 90             LD (Ch3Length), A
- 159+ F214
- 160+ F214
- 161+ F214              melodyRoutine
- 162+ F214 3A 1E 90             LD A, (frameCount)                  ; pick up remaining note time
- 163+ F217 3D                   DEC A                               ; decrease by 1 frame
- 164+ F218 32 1E 90             LD (frameCount), A                  ; save it back
- 165+ F21B C2 61 F3             JP NZ, melodyEnd                    ; branch to end if not zero
- 166+ F21E
- 167+ F21E                      ; timer expired, so pick up next note to play
- 168+ F21E                      ; - first set timer for this new note
- 169+ F21E              mr0
- 170+ F21E ED 5B 1F 90          LD DE, (framePointer)               ; framePointer = timer table
- 171+ F222 1A                   LD A, (DE)                          ; get note length
- 172+ F223
- 173+ F223 13                   INC DE                              ; skip past high byte
- 174+ F224 FE FF                CP 255                              ; is it 255 marker
- 175+ F226 20 09                JR NZ, mr1                          ; branch if not
- 176+ F228
- 177+ F228 11 2F 8E             LD DE, frameTable                   ; point to table start
- 178+ F22B ED 53 1F 90          LD (framePointer), DE               ; save in framePointer
- 179+ F22F 18 ED                JR mr0                              ; and test again !
- 180+ F231              mr1
- 181+ F231 32 1E 90             LD (frameCount), A                  ; save note length
- 182+ F234
- 183+ F234                      ; - point to the note, save in HL and update
- 184+ F234                      ;   framePointer for next time
- 185+ F234 13                   INC DE                              ; point to note data
- 186+ F235 1A                   LD A, (DE)                          ; get low byte
- 187+ F236 6F                   LD L, A
- 188+ F237 13                   INC DE                              ; point to high byte
- 189+ F238 1A                   LD A, (DE)                          ; get the high byte
- 190+ F239 67                   LD H, A
- 191+ F23A 13                   INC DE                              ; point to next timer entry
- 192+ F23B ED 53 1F 90          LD (framePointer), DE               ; and save in framePointer
- 193+ F23F EB                   EX DE, HL
- 194+ F240              playNotes
- 195+ F240 0E FD                ld c, AYPortC
- 196+ F242
- 197+ F242                      ; -------------------- AY2 --------------------
- 198+ F242 3E FE                LD A, 254
- 199+ F244 06 FF                LD B, AYPortSelectB
- 200+ F246 ED 79                OUT (C), A
- 201+ F248
- 202+ F248                      ; Tone A
- 203+ F248 AF                   XOR A
- 204+ F249 ED 79                OUT (C), A
- 205+ F24B 1A                   LD A, (DE)
- 206+ F24C 13                   INC DE
- 207+ F24D 06 BF                LD B, AYPortWriteB
- 208+ F24F ED 79                OUT (C), A
- 209+ F251
- 210+ F251 3E 01                LD A, 1
- 211+ F253 06 FF                LD B, AYPortSelectB
- 212+ F255 ED 79                OUT (C), A
- 213+ F257 1A                   LD A, (DE)
- 214+ F258 13                   INC DE
- 215+ F259 06 BF                LD B, AYPortWriteB
- 216+ F25B ED 79                OUT (C), A
- 217+ F25D
- 218+ F25D                      ; Volume A
- 219+ F25D 3E 08                LD A, 8
- 220+ F25F 06 FF                LD B, AYPortSelectB
- 221+ F261 ED 79                OUT (C), A
- 222+ F263 1A                   LD A, (DE)
- 223+ F264              ;        AND %00000001
- 224+ F264              ;        LD H, A
- 225+ F264              ;        LD A, (volume)
- 226+ F264 13                   INC DE
- 227+ F265 06 BF                LD B, AYPortWriteB
- 228+ F267 ED 79                OUT (C), A
- 229+ F269 D6 01                sub 1
- 230+ F26B 9F                   sbc a, a
- 231+ F26C 3C                   inc a
- 232+ F26D 67                   ld h, a
- 233+ F26E
- 234+ F26E                      ; Tone B
- 235+ F26E 3E 02                LD A, 2
- 236+ F270 06 FF                LD B, AYPortSelectB
- 237+ F272 ED 79                OUT (C), A
- 238+ F274 1A                   LD A, (DE)
- 239+ F275 13                   INC DE
- 240+ F276 06 BF                LD B, AYPortWriteB
- 241+ F278 ED 79                OUT (C), A
- 242+ F27A
- 243+ F27A 3E 03                LD A, 3
- 244+ F27C 06 FF                LD B, AYPortSelectB
- 245+ F27E ED 79                OUT (C), A
- 246+ F280 1A                   LD A, (DE)
- 247+ F281 13                   INC DE
- 248+ F282 06 BF                LD B, AYPortWriteB
- 249+ F284 ED 79                OUT (C), A
- 250+ F286
- 251+ F286                      ; Volume B
- 252+ F286 3E 09                LD A, 9
- 253+ F288 06 FF                LD B, AYPortSelectB
- 254+ F28A ED 79                OUT (C), A
- 255+ F28C 1A                   LD A, (DE)
- 256+ F28D              ;        AND %00000010
- 257+ F28D              ;        OR H
- 258+ F28D              ;        LD H, A
- 259+ F28D              ;        LD A, (volume)
- 260+ F28D 13                   INC DE
- 261+ F28E 06 BF                LD B, AYPortWriteB
- 262+ F290 ED 79                OUT (C), A
- 263+ F292 D6 01                sub 1
- 264+ F294 9F                   sbc a, a
- 265+ F295 3C                   inc a
- 266+ F296 17                   rla
- 267+ F297 B4                   or h
- 268+ F298 67                   ld h, a
- 269+ F299
- 270+ F299                      ; Tone C
- 271+ F299 3E 04                LD A, 4
- 272+ F29B 06 FF                LD B, AYPortSelectB
- 273+ F29D ED 79                OUT (C), A
- 274+ F29F 1A                   LD A, (DE)
- 275+ F2A0 13                   INC DE
- 276+ F2A1 06 BF                LD B, AYPortWriteB
- 277+ F2A3 ED 79                OUT (C), A
- 278+ F2A5
- 279+ F2A5 3E 05                LD A, 5
- 280+ F2A7 06 FF                LD B, AYPortSelectB
- 281+ F2A9 ED 79                OUT (C), A
- 282+ F2AB 1A                   LD A, (DE)
- 283+ F2AC 13                   INC DE
- 284+ F2AD 06 BF                LD B, AYPortWriteB
- 285+ F2AF ED 79                OUT (C), A
- 286+ F2B1
- 287+ F2B1                      ; Volume C
- 288+ F2B1 3E 0A                LD A, 10
- 289+ F2B3 06 FF                LD B, AYPortSelectB
- 290+ F2B5 ED 79                OUT (C), A
- 291+ F2B7 1A                   LD A, (DE)
- 292+ F2B8              ;        AND %00000100
- 293+ F2B8              ;        OR H
- 294+ F2B8              ;        LD H, A
- 295+ F2B8              ;        LD A, (volume)
- 296+ F2B8 13                   INC DE
- 297+ F2B9 06 BF                LD B, AYPortWriteB
- 298+ F2BB ED 79                OUT (C), A
- 299+ F2BD D6 01                sub 1
- 300+ F2BF 9F                   sbc a, a
- 301+ F2C0 3C                   inc a
- 302+ F2C1 17                   rla
- 303+ F2C2 17                   rla
- 304+ F2C3 B4                   or h
- 305+ F2C4 67                   ld h, a
- 306+ F2C5
- 307+ F2C5                      ; Mixer
- 308+ F2C5 3E 07                LD A, 7
- 309+ F2C7 06 FF                LD B, AYPortSelectB
- 310+ F2C9 ED 79                OUT (C), A
- 311+ F2CB 7C                   LD A, H
- 312+ F2CC EE FF                XOR %11111111
- 313+ F2CE 06 BF                LD B, AYPortWriteB
- 314+ F2D0 ED 79                OUT (C), A
- 315+ F2D2
- 316+ F2D2                      ; -------------------- AY3 --------------------
- 317+ F2D2 3E FD                LD A, 253
- 318+ F2D4 06 FF                LD B, AYPortSelectB
- 319+ F2D6 ED 79                OUT (C), A
- 320+ F2D8
- 321+ F2D8                      ; Tone A
- 322+ F2D8 AF                   XOR A
- 323+ F2D9 ED 79                OUT (C), A
- 324+ F2DB 1A                   LD A, (DE)
- 325+ F2DC 13                   INC DE
- 326+ F2DD 06 BF                LD B, AYPortWriteB
- 327+ F2DF ED 79                OUT (C), A
- 328+ F2E1
- 329+ F2E1 3E 01                LD A, 1
- 330+ F2E3 06 FF                LD B, AYPortSelectB
- 331+ F2E5 ED 79                OUT (C), A
- 332+ F2E7 1A                   LD A, (DE)
- 333+ F2E8 13                   INC DE
- 334+ F2E9 06 BF                LD B, AYPortWriteB
- 335+ F2EB ED 79                OUT (C), A
- 336+ F2ED
- 337+ F2ED                      ; Volume A
- 338+ F2ED 3E 08                LD A, 8
- 339+ F2EF 06 FF                LD B, AYPortSelectB
- 340+ F2F1 ED 79                OUT (C), A
- 341+ F2F3 1A                   LD A, (DE)
- 342+ F2F4 E6 01                AND %00000001
- 343+ F2F6 67                   LD H, A
- 344+ F2F7 3A 21 90             LD A, (volume)
- 345+ F2FA 13                   INC DE
- 346+ F2FB 06 BF                LD B, AYPortWriteB
- 347+ F2FD ED 79                OUT (C), A
- 348+ F2FF
- 349+ F2FF                      ; Tone B
- 350+ F2FF 3E 02                LD A, 2
- 351+ F301 06 FF                LD B, AYPortSelectB
- 352+ F303 ED 79                OUT (C), A
- 353+ F305 1A                   LD A, (DE)
- 354+ F306 13                   INC DE
- 355+ F307 06 BF                LD B, AYPortWriteB
- 356+ F309 ED 79                OUT (C), A
- 357+ F30B
- 358+ F30B 3E 03                LD A, 3
- 359+ F30D 06 FF                LD B, AYPortSelectB
- 360+ F30F ED 79                OUT (C), A
- 361+ F311 1A                   LD A, (DE)
- 362+ F312 13                   INC DE
- 363+ F313 06 BF                LD B, AYPortWriteB
- 364+ F315 ED 79                OUT (C), A
- 365+ F317
- 366+ F317                      ; Volume B
- 367+ F317 3E 09                LD A, 9
- 368+ F319 06 FF                LD B, AYPortSelectB
- 369+ F31B ED 79                OUT (C), A
- 370+ F31D 1A                   LD A, (DE)
- 371+ F31E E6 02                AND %00000010
- 372+ F320 B4                   OR H
- 373+ F321 67                   LD H, A
- 374+ F322 3A 21 90             LD A, (volume)
- 375+ F325 13                   INC DE
- 376+ F326 06 BF                LD B, AYPortWriteB
- 377+ F328 ED 79                OUT (C), A
- 378+ F32A
- 379+ F32A                      ; Tone C
- 380+ F32A 3E 04                LD A, 4
- 381+ F32C 06 FF                LD B, AYPortSelectB
- 382+ F32E ED 79                OUT (C), A
- 383+ F330 1A                   LD A, (DE)
- 384+ F331 13                   INC DE
- 385+ F332 06 BF                LD B, AYPortWriteB
- 386+ F334 ED 79                OUT (C), A
- 387+ F336
- 388+ F336 3E 05                LD A, 5
- 389+ F338 06 FF                LD B, AYPortSelectB
- 390+ F33A ED 79                OUT (C), A
- 391+ F33C 1A                   LD A, (DE)
- 392+ F33D 13                   INC DE
- 393+ F33E 06 BF                LD B, AYPortWriteB
- 394+ F340 ED 79                OUT (C), A
- 395+ F342
- 396+ F342                      ; Volume C
- 397+ F342 3E 0A                LD A, 10
- 398+ F344 06 FF                LD B, AYPortSelectB
- 399+ F346 ED 79                OUT (C), A
- 400+ F348 1A                   LD A, (DE)
- 401+ F349 E6 04                AND %00000100
- 402+ F34B B4                   OR H
- 403+ F34C 67                   LD H, A
- 404+ F34D 3A 21 90             LD A, (volume)
- 405+ F350 06 BF                LD B, AYPortWriteB
- 406+ F352 ED 79                OUT (C), A
- 407+ F354
- 408+ F354                      ; Mixer
- 409+ F354 3E 07                LD A, 7
- 410+ F356 06 FF                LD B, AYPortSelectB
- 411+ F358 ED 79                OUT (C), A
- 412+ F35A 7C                   LD A, H
- 413+ F35B EE FF                XOR %11111111
- 414+ F35D 06 BF                LD B, AYPortWriteB
- 415+ F35F ED 79                OUT (C), A
- 416+ F361
- 417+ F361              melodyEnd
- 418+ F361
+ 139+ F1F0              ch1Update:
+ 140+ F1F0 21 E1 8F             ld hl, Ch1Length                            ; get the Ch1 sound length
+ 141+ F1F3 35                   dec (hl)                                    ; -1 (will roll to 255)
+ 142+ F1F4 20 03                jr nz, ch2Update                            ; branch if it's not zero
+ 143+ F1F6 2B                   dec hl                                      ; point to Ch1 flags
+ 144+ F1F7 36 00                ld (hl), 0                                  ; set to 0 (bit 0= tone enable, bit 1= noise enable)
+ 145+ F1F9              ch2Update:
+ 146+ F1F9 21 EB 8F             ld hl, Ch2Length
+ 147+ F1FC 35                   dec (hl)
+ 148+ F1FD 20 FA                jr nz, ch2Update
+ 149+ F1FF 2B                   dec hl
+ 150+ F200 36 00                ld (hl), 0
+ 151+ F202              ch3Update:
+ 152+ F202 21 F5 8F             ld hl, Ch3Length
+ 153+ F205 35                   dec (hl)
+ 154+ F206 20 03                jr nz, chFinished
+ 155+ F208 2B                   dec hl
+ 156+ F209 36 00                ld (hl), 0
+ 157+ F20B              chFinished:
+ 158+ F20B
+ 159+ F20B
+ 160+ F20B              melodyRoutine:
+ 161+ F20B 3A F6 8F             LD A, (frameCount)                  ; pick up remaining note time
+ 162+ F20E 3D                   DEC A                               ; decrease by 1 frame
+ 163+ F20F 32 F6 8F             LD (frameCount), A                  ; save it back
+ 164+ F212 C2 58 F3             JP NZ, melodyEnd                    ; branch to end if not zero
+ 165+ F215
+ 166+ F215                      ; timer expired, so pick up next note to play
+ 167+ F215                      ; - first set timer for this new note
+ 168+ F215              mr0:
+ 169+ F215 ED 5B F7 8F          LD DE, (framePointer)               ; framePointer = timer table
+ 170+ F219 1A                   LD A, (DE)                          ; get note length
+ 171+ F21A
+ 172+ F21A 13                   INC DE                              ; skip past high byte
+ 173+ F21B FE FF                CP 255                              ; is it 255 marker
+ 174+ F21D 20 09                JR NZ, mr1                          ; branch if not
+ 175+ F21F
+ 176+ F21F 11 2F 8E             LD DE, frameTable                   ; point to table start
+ 177+ F222 ED 53 F7 8F          LD (framePointer), DE               ; save in framePointer
+ 178+ F226 18 ED                JR mr0                              ; and test again !
+ 179+ F228              mr1:
+ 180+ F228 32 F6 8F             LD (frameCount), A                  ; save note length
+ 181+ F22B
+ 182+ F22B                      ; - point to the note, save in HL and update
+ 183+ F22B                      ;   framePointer for next time
+ 184+ F22B 13                   INC DE                              ; point to note data
+ 185+ F22C 1A                   LD A, (DE)                          ; get low byte
+ 186+ F22D 6F                   LD L, A
+ 187+ F22E 13                   INC DE                              ; point to high byte
+ 188+ F22F 1A                   LD A, (DE)                          ; get the high byte
+ 189+ F230 67                   LD H, A
+ 190+ F231 13                   INC DE                              ; point to next timer entry
+ 191+ F232 ED 53 F7 8F          LD (framePointer), DE               ; and save in framePointer
+ 192+ F236 EB                   EX DE, HL
+ 193+ F237              playNotes:
+ 194+ F237 0E FD                ld c, AYPortC
+ 195+ F239
+ 196+ F239                      ; -------------------- AY2 --------------------
+ 197+ F239 3E FE                LD A, 254
+ 198+ F23B 06 FF                LD B, AYPortSelectB
+ 199+ F23D ED 79                OUT (C), A
+ 200+ F23F
+ 201+ F23F                      ; Tone A
+ 202+ F23F AF                   XOR A
+ 203+ F240 ED 79                OUT (C), A
+ 204+ F242 1A                   LD A, (DE)
+ 205+ F243 13                   INC DE
+ 206+ F244 06 BF                LD B, AYPortWriteB
+ 207+ F246 ED 79                OUT (C), A
+ 208+ F248
+ 209+ F248 3E 01                LD A, 1
+ 210+ F24A 06 FF                LD B, AYPortSelectB
+ 211+ F24C ED 79                OUT (C), A
+ 212+ F24E 1A                   LD A, (DE)
+ 213+ F24F 13                   INC DE
+ 214+ F250 06 BF                LD B, AYPortWriteB
+ 215+ F252 ED 79                OUT (C), A
+ 216+ F254
+ 217+ F254                      ; Volume A
+ 218+ F254 3E 08                LD A, 8
+ 219+ F256 06 FF                LD B, AYPortSelectB
+ 220+ F258 ED 79                OUT (C), A
+ 221+ F25A 1A                   LD A, (DE)
+ 222+ F25B 13                   INC DE
+ 223+ F25C 06 BF                LD B, AYPortWriteB
+ 224+ F25E ED 79                OUT (C), A
+ 225+ F260
+ 226+ F260                      ; set A = %00000001 for mixer if A > 0, otherwise %00000000, save in H for later
+ 227+ F260 D6 01                sub 1
+ 228+ F262 9F                   sbc a, a
+ 229+ F263 3C                   inc a
+ 230+ F264 67                   ld h, a
+ 231+ F265
+ 232+ F265                      ; Tone B
+ 233+ F265 3E 02                LD A, 2
+ 234+ F267 06 FF                LD B, AYPortSelectB
+ 235+ F269 ED 79                OUT (C), A
+ 236+ F26B 1A                   LD A, (DE)
+ 237+ F26C 13                   INC DE
+ 238+ F26D 06 BF                LD B, AYPortWriteB
+ 239+ F26F ED 79                OUT (C), A
+ 240+ F271
+ 241+ F271 3E 03                LD A, 3
+ 242+ F273 06 FF                LD B, AYPortSelectB
+ 243+ F275 ED 79                OUT (C), A
+ 244+ F277 1A                   LD A, (DE)
+ 245+ F278 13                   INC DE
+ 246+ F279 06 BF                LD B, AYPortWriteB
+ 247+ F27B ED 79                OUT (C), A
+ 248+ F27D
+ 249+ F27D                      ; Volume B
+ 250+ F27D 3E 09                LD A, 9
+ 251+ F27F 06 FF                LD B, AYPortSelectB
+ 252+ F281 ED 79                OUT (C), A
+ 253+ F283 1A                   LD A, (DE)
+ 254+ F284 13                   INC DE
+ 255+ F285 06 BF                LD B, AYPortWriteB
+ 256+ F287 ED 79                OUT (C), A
+ 257+ F289
+ 258+ F289                      ; set A = %00000010 for mixer if A > 0, otherwise %00000000, OR with previous value
+ 259+ F289 D6 01                sub 1
+ 260+ F28B 9F                   sbc a, a
+ 261+ F28C 3C                   inc a
+ 262+ F28D 17                   rla
+ 263+ F28E B4                   or h
+ 264+ F28F 67                   ld h, a
+ 265+ F290
+ 266+ F290                      ; Tone C
+ 267+ F290 3E 04                LD A, 4
+ 268+ F292 06 FF                LD B, AYPortSelectB
+ 269+ F294 ED 79                OUT (C), A
+ 270+ F296 1A                   LD A, (DE)
+ 271+ F297 13                   INC DE
+ 272+ F298 06 BF                LD B, AYPortWriteB
+ 273+ F29A ED 79                OUT (C), A
+ 274+ F29C
+ 275+ F29C 3E 05                LD A, 5
+ 276+ F29E 06 FF                LD B, AYPortSelectB
+ 277+ F2A0 ED 79                OUT (C), A
+ 278+ F2A2 1A                   LD A, (DE)
+ 279+ F2A3 13                   INC DE
+ 280+ F2A4 06 BF                LD B, AYPortWriteB
+ 281+ F2A6 ED 79                OUT (C), A
+ 282+ F2A8
+ 283+ F2A8                      ; Volume C
+ 284+ F2A8 3E 0A                LD A, 10
+ 285+ F2AA 06 FF                LD B, AYPortSelectB
+ 286+ F2AC ED 79                OUT (C), A
+ 287+ F2AE 1A                   LD A, (DE)
+ 288+ F2AF 13                   INC DE
+ 289+ F2B0 06 BF                LD B, AYPortWriteB
+ 290+ F2B2 ED 79                OUT (C), A
+ 291+ F2B4
+ 292+ F2B4                      ; set A = %00000100 for mixer if A > 0, otherwise %00000000, OR with previous value
+ 293+ F2B4 D6 01                sub 1
+ 294+ F2B6 9F                   sbc a, a
+ 295+ F2B7 3C                   inc a
+ 296+ F2B8 17                   rla
+ 297+ F2B9 17                   rla
+ 298+ F2BA B4                   or h
+ 299+ F2BB 67                   ld h, a
+ 300+ F2BC
+ 301+ F2BC                      ; Mixer
+ 302+ F2BC 3E 07                LD A, 7
+ 303+ F2BE 06 FF                LD B, AYPortSelectB
+ 304+ F2C0 ED 79                OUT (C), A
+ 305+ F2C2 7C                   LD A, H
+ 306+ F2C3 EE FF                XOR %11111111
+ 307+ F2C5 06 BF                LD B, AYPortWriteB
+ 308+ F2C7 ED 79                OUT (C), A
+ 309+ F2C9
+ 310+ F2C9                      ; -------------------- AY3 --------------------
+ 311+ F2C9 3E FD                LD A, 253
+ 312+ F2CB 06 FF                LD B, AYPortSelectB
+ 313+ F2CD ED 79                OUT (C), A
+ 314+ F2CF
+ 315+ F2CF                      ; Tone A
+ 316+ F2CF AF                   XOR A
+ 317+ F2D0 ED 79                OUT (C), A
+ 318+ F2D2 1A                   LD A, (DE)
+ 319+ F2D3 13                   INC DE
+ 320+ F2D4 06 BF                LD B, AYPortWriteB
+ 321+ F2D6 ED 79                OUT (C), A
+ 322+ F2D8
+ 323+ F2D8 3E 01                LD A, 1
+ 324+ F2DA 06 FF                LD B, AYPortSelectB
+ 325+ F2DC ED 79                OUT (C), A
+ 326+ F2DE 1A                   LD A, (DE)
+ 327+ F2DF 13                   INC DE
+ 328+ F2E0 06 BF                LD B, AYPortWriteB
+ 329+ F2E2 ED 79                OUT (C), A
+ 330+ F2E4
+ 331+ F2E4                      ; Volume A
+ 332+ F2E4 3E 08                LD A, 8
+ 333+ F2E6 06 FF                LD B, AYPortSelectB
+ 334+ F2E8 ED 79                OUT (C), A
+ 335+ F2EA 1A                   LD A, (DE)
+ 336+ F2EB E6 01                AND %00000001
+ 337+ F2ED 67                   LD H, A
+ 338+ F2EE 3A F9 8F             LD A, (volume)
+ 339+ F2F1 13                   INC DE
+ 340+ F2F2 06 BF                LD B, AYPortWriteB
+ 341+ F2F4 ED 79                OUT (C), A
+ 342+ F2F6
+ 343+ F2F6                      ; Tone B
+ 344+ F2F6 3E 02                LD A, 2
+ 345+ F2F8 06 FF                LD B, AYPortSelectB
+ 346+ F2FA ED 79                OUT (C), A
+ 347+ F2FC 1A                   LD A, (DE)
+ 348+ F2FD 13                   INC DE
+ 349+ F2FE 06 BF                LD B, AYPortWriteB
+ 350+ F300 ED 79                OUT (C), A
+ 351+ F302
+ 352+ F302 3E 03                LD A, 3
+ 353+ F304 06 FF                LD B, AYPortSelectB
+ 354+ F306 ED 79                OUT (C), A
+ 355+ F308 1A                   LD A, (DE)
+ 356+ F309 13                   INC DE
+ 357+ F30A 06 BF                LD B, AYPortWriteB
+ 358+ F30C ED 79                OUT (C), A
+ 359+ F30E
+ 360+ F30E                      ; Volume B
+ 361+ F30E 3E 09                LD A, 9
+ 362+ F310 06 FF                LD B, AYPortSelectB
+ 363+ F312 ED 79                OUT (C), A
+ 364+ F314 1A                   LD A, (DE)
+ 365+ F315 E6 02                AND %00000010
+ 366+ F317 B4                   OR H
+ 367+ F318 67                   LD H, A
+ 368+ F319 3A F9 8F             LD A, (volume)
+ 369+ F31C 13                   INC DE
+ 370+ F31D 06 BF                LD B, AYPortWriteB
+ 371+ F31F ED 79                OUT (C), A
+ 372+ F321
+ 373+ F321                      ; Tone C
+ 374+ F321 3E 04                LD A, 4
+ 375+ F323 06 FF                LD B, AYPortSelectB
+ 376+ F325 ED 79                OUT (C), A
+ 377+ F327 1A                   LD A, (DE)
+ 378+ F328 13                   INC DE
+ 379+ F329 06 BF                LD B, AYPortWriteB
+ 380+ F32B ED 79                OUT (C), A
+ 381+ F32D
+ 382+ F32D 3E 05                LD A, 5
+ 383+ F32F 06 FF                LD B, AYPortSelectB
+ 384+ F331 ED 79                OUT (C), A
+ 385+ F333 1A                   LD A, (DE)
+ 386+ F334 13                   INC DE
+ 387+ F335 06 BF                LD B, AYPortWriteB
+ 388+ F337 ED 79                OUT (C), A
+ 389+ F339
+ 390+ F339                      ; Volume C
+ 391+ F339 3E 0A                LD A, 10
+ 392+ F33B 06 FF                LD B, AYPortSelectB
+ 393+ F33D ED 79                OUT (C), A
+ 394+ F33F 1A                   LD A, (DE)
+ 395+ F340 E6 04                AND %00000100
+ 396+ F342 B4                   OR H
+ 397+ F343 67                   LD H, A
+ 398+ F344 3A F9 8F             LD A, (volume)
+ 399+ F347 06 BF                LD B, AYPortWriteB
+ 400+ F349 ED 79                OUT (C), A
+ 401+ F34B
+ 402+ F34B                      ; Mixer
+ 403+ F34B 3E 07                LD A, 7
+ 404+ F34D 06 FF                LD B, AYPortSelectB
+ 405+ F34F ED 79                OUT (C), A
+ 406+ F351 7C                   LD A, H
+ 407+ F352 EE FF                XOR %11111111
+ 408+ F354 06 BF                LD B, AYPortWriteB
+ 409+ F356 ED 79                OUT (C), A
+ 410+ F358
+ 411+ F358              melodyEnd:
+ 412+ F358
 # file closed: im2Routine.inc
-1371  F361
-1372  F361 E1                   POP HL
-1373  F362 D1                   POP DE
-1374  F363 C1                   POP BC
-1375  F364 F1                   POP AF
-1376  F365
-1377  F365 FB                   EI
-1378  F366 ED 4D                RETI
-1379  F368
-1380  F368              ; ----------------------------------------------------------------
-1381  F368              ; Tilemap data - 48 KB stored directly in Pages 40 - 45
-1382  F368              ; ----------------------------------------------------------------
-1383  F368              TILEMAP_PAGE    EQU     40
-1384  F368
-1385  F368              ; === Chunk 1 (bytes 0-16383) -> 8 KB Page 40/41 ===
-1386  F368              MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
-1387  F368              MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
-1388  F368              ORG     $C000
+1371  F358
+1372  F358 E1                   POP HL
+1373  F359 D1                   POP DE
+1374  F35A C1                   POP BC
+1375  F35B F1                   POP AF
+1376  F35C
+1377  F35C FB                   EI
+1378  F35D ED 4D                RETI
+1379  F35F
+1380  F35F              ; ----------------------------------------------------------------
+1381  F35F              ; Tilemap data - 48 KB stored directly in Pages 40 - 45
+1382  F35F              ; ----------------------------------------------------------------
+1383  F35F              TILEMAP_PAGE    EQU     40
+1384  F35F
+1385  F35F              ; === Chunk 1 (bytes 0-16383) -> 8 KB Page 40/41 ===
+1386  F35F              MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
+1387  F35F              MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
+1388  F35F              ORG     $C000
 1389  C000              tilemap_part1:
 1390  C000              INCBIN  "testmaze2.map", 0, 16384                    ; first 16 KB
 1391  0000
@@ -9303,27 +9256,27 @@ Value    Label
 0x000B   COLLIDE_DY
 0x0015   COLLIDE_SPAN_X
 0x0015   COLLIDE_SPAN_Y
-0x9000   Ch1
-0x9008   Ch1Flags
-0x9009   Ch1Length
-0x9000   Ch1Pitch
-0x9002   Ch1PitchD
-0x9004   Ch1Volume
-0x9006   Ch1VolumeD
-0x900A   Ch2
-0x9012   Ch2Flags
-0x9013   Ch2Length
-0x900A   Ch2Pitch
-0x900C   Ch2PitchD
-0x900E   Ch2Volume
-0x9010   Ch2VolumeD
-0x9014   Ch3
-0x901C   Ch3Flags
-0x901D   Ch3Length
-0x9014   Ch3Pitch
-0x9016   Ch3PitchD
-0x9018   Ch3Volume
-0x901A   Ch3VolumeD
+0x8FD8   Ch1
+0x8FE0   Ch1Flags
+0x8FE1   Ch1Length
+0x8FD8   Ch1Pitch
+0x8FDA   Ch1PitchD
+0x8FDC   Ch1Volume
+0x8FDE   Ch1VolumeD
+0x8FE2 X Ch2
+0x8FEA   Ch2Flags
+0x8FEB   Ch2Length
+0x8FE2   Ch2Pitch
+0x8FE4   Ch2PitchD
+0x8FE6   Ch2Volume
+0x8FE8   Ch2VolumeD
+0x8FEC X Ch3
+0x8FF4   Ch3Flags
+0x8FF5   Ch3Length
+0x8FEC   Ch3Pitch
+0x8FEE   Ch3PitchD
+0x8FF0   Ch3Volume
+0x8FF2   Ch3VolumeD
 0x002E   DFIELD_PAGE
 0x006B   DMA_PORT
 0x87F1   DisplayDigit
@@ -9464,8 +9417,8 @@ Value    Label
 0x864D   attractMode.loop
 0x8648   attractMode.waitRelease
 0x003C   baddieCount
-0x904C   baddieData
-0x92E0   baddieEnd
+0x9018   baddieData
+0x92AC   baddieEnd
 0x9AB8   baddieMoveLUT
 0x000B   baddieRecord
 0x0007   baddieRecord.dir
@@ -9479,18 +9432,19 @@ Value    Label
 0x0008   baddieRecord.pattern
 0x0005   baddieRecord.tileX
 0x0006   baddieRecord.tileY
-0x92E0   baddie_x
-0x92E2   baddie_y
+0x92AC   baddie_x
+0x92AE   baddie_y
 0x84E8   buildMapImage
 0x84F9   buildMapImage.colLoop
 0x84EA   buildMapImage.rowLoop
-0x902E   cam_px
-0x9030   cam_py
-0x9032   cam_tx
-0x9033   cam_ty
-0xF1F9   ch1endskip
-0xF205   ch2endskip
-0xF211   ch3endskip
+0x8FFA   cam_px
+0x8FFC   cam_py
+0x8FFE   cam_tx
+0x8FFF   cam_ty
+0xF1F0 X ch1Update
+0xF1F9   ch2Update
+0xF202 X ch3Update
+0xF20B   chFinished
 0x0001 X channel1ToneH
 0x0000 X channel1ToneL
 0x0008 X channel1Volume
@@ -9539,7 +9493,7 @@ Value    Label
 0x9767   copy_visible_window
 0x97F0   copy_visible_window.cross_boundary
 0x9790   copy_visible_window.row_loop
-0x9035   curWorldPage
+0x9001   curWorldPage
 0x87C5   dcLine
 0x87F7 X debugs
 0x88B3 X debugs1
@@ -9591,13 +9545,13 @@ Value    Label
 0x9300   floodQueue
 0x9403   floodTargetX
 0x9404   floodTargetY
-0x901E   frameCount
-0x901F   framePointer
+0x8FF6   frameCount
+0x8FF7   framePointer
 0x8E2F   frameTable
 0x88A2   getTileX
 0x8891   getTileY
 0x99EB   gotDir
-0x9037   healthBlock
+0x9003   healthBlock
 0x8093   health_bar
 0x8070   health_text
 0x5847 X healthattr
@@ -9615,15 +9569,14 @@ Value    Label
 0x9728 X keyEnd
 0x9457   keyProcess
 0x8086   keys_text
-0x9049   lastMove
+0x9015   lastMove
 0x807B   lives_text
 0x820A X lostLife
 0x9D31   lut_base
 0x944B   main
-0xF361   melodyEnd
-0xF214 X melodyRoutine
+0xF358   melodyEnd
+0xF20B X melodyRoutine
 0x0007   mixerFlag
-0x9022 X mixerFlags
 0x0000   mode_auto
 0x0001   mode_hunt
 0x0002   mode_wander
@@ -9634,13 +9587,13 @@ Value    Label
 0x972B   moveSprite1
 0x0002   move_delta
 0x0001   move_delta_baddie
-0xF21E   mr0
-0xF231   mr1
+0xF215   mr0
+0xF228   mr1
 0x8196   newGame
 0x9979   newTile
 0x9990   newTile.done
 0x998C   newTile.vertMask
-0x8FFF   nextCH
+0x8FD7   nextCH
 0xF112   noFlood
 0x9416 X otherSetup
 0x8291   paletteDelay
@@ -9652,21 +9605,19 @@ Value    Label
 0x9A32   pickByField.noL
 0x9A5D   pickByField.noR
 0x9AB2   pickByField.noU
-0x8F92   play
-0x8F8A   playCh1
-0x8F8F   playCh2
-0xF240 X playNotes
-0x903A X playerAlive
-0x904A   playerAnimFrame
-0x904B   playerAnimTick
-0x9036   playerHealth
-0x9039   playerKeys
-0x9038   playerLives
-0x9040   player_px
-0x9042   player_py
-0x9044   player_tile_x
-0x9045   player_tile_y
+0xF237 X playNotes
+0x9006 X playerAlive
+0x9016   playerAnimFrame
+0x9017   playerAnimTick
+0x9002   playerHealth
+0x9005   playerKeys
+0x9004   playerLives
+0x900C   player_px
+0x900E   player_py
+0x9010   player_tile_x
+0x9011   player_tile_y
 0x8F6B   playsound
+0x8F94   playsound.store
 0x9945   processBaddie
 0x98C2   processBaddies
 0x990F   processBaddies.hit
@@ -9685,11 +9636,11 @@ Value    Label
 0x99EC   reverse
 0x9D21   rnd8
 0x9D30   rseed
-0x903F   score0
-0x903E   score1
-0x903D   score2
-0x903C   score3
-0x903B   score4
+0x900B   score0
+0x900A   score1
+0x9009   score2
+0x9008   score3
+0x9007   score4
 0x805A   score_text
 0x86FE   setClipping
 0x85FD   setUpCamera
@@ -9703,13 +9654,13 @@ Value    Label
 0x983F   showSprite.noKey
 0x9876   showSprite.notL
 0x987E   showSprite.notR
-0x8F9F   sound1
-0x8FAF X sound2
-0x8FBF X sound3
-0x8FC8 X sound3Dur
-0x8FCF X sound4
-0x8FDF X sound5
-0x8FEF X sound6
+0x8F9B   sound1
+0x8FA5 X sound2
+0x8FAF X sound3
+0x8FB8 X sound3Dur
+0x8FB9 X sound4
+0x8FC3 X sound5
+0x8FCD X sound6
 0x0003 X soundBounce
 0x0005   soundCollect
 0x0001 X soundHithead
@@ -9724,14 +9675,14 @@ Value    Label
 0x81E4   takeDamage
 0x84E0   tileColour
 0x6000   tileMap
-0x9034   tilemapPage
+0x9000   tilemapPage
 0x7DEE   tilemapPalette0Loop
 0xC000 X tilemap_part1
 0xC000 X tilemap_part2
 0xC000 X tilemap_part3
-0x9047   trailLastX
-0x9048   trailLastY
-0x9046   trailValue
+0x9013   trailLastX
+0x9014   trailLastY
+0x9012   trailValue
 0x872B   udgBase
 0x9592   updateCameraXY
 0x95AF   updateCameraXY.camXHighOK
@@ -9744,7 +9695,7 @@ Value    Label
 0x0002   vdir_right
 0x0008   vdir_up
 0x9405   viewMode
-0x9021   volume
+0x8FF9   volume
 0x97FF   wait_vblank
 0x9807   wait_vblank.loop
 0x9406   yKeyWas

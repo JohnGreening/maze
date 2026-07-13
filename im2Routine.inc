@@ -111,23 +111,23 @@ noFlood:
 ; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
 ; ChNFlags: bit0 = tone-on, bit1 = noise-on.
 ; Gather each channel's tone bit into E and noise bit into D, then place & invert.
-        ld d, 0                     ; D = noise bits (will land in mixer bits 3-5)
-        ld e, 0                     ; E = tone  bits (mixer bits 0-2)
+        ld d, 0                                     ; D = noise bits (will land in mixer bits 3-5)
+        ld e, 0                                     ; E = tone  bits (mixer bits 0-2)
 
-        ld a, (Ch3Flags)            ; process 3,2,1 so channel 1 ends up in bit 0
-        rra : rl e                  ; tone3  -> E
-        rra : rl d                  ; noise3 -> D
+        ld a, (Ch3Flags)                            ; process 3,2,1 so channel 1 ends up in bit 0
+        rra : rl e                                  ; tone3  -> E
+        rra : rl d                                  ; noise3 -> D
         ld a, (Ch2Flags)
-        rra : rl e                  ; tone2
-        rra : rl d                  ; noise2
+        rra : rl e                                  ; tone2
+        rra : rl d                                  ; noise2
         ld a, (Ch1Flags)
-        rra : rl e                  ; tone1
-        rra : rl d                  ; noise1
+        rra : rl e                                  ; tone1
+        rra : rl d                                  ; noise1
 
         ld a, d
-        add a,a : add a,a : add a,a ; noise bits up to positions 3-5
-        or e                        ; + tone bits 0-2  = active-high enables
-        cpl                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
+        add a,a : add a,a : add a,a                 ; noise bits up to positions 3-5
+        or e                                        ; + tone bits 0-2  = active-high enables
+        cpl                                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
 
         ld bc, AYSelect
         ld d, mixerFlag
@@ -136,29 +136,28 @@ noFlood:
         out (c), a
 
 
-        LD A, (Ch1Length)
-        DEC A
-        JR NZ, ch1endskip
-        LD (Ch1Flags), A
-ch1endskip
-        LD (Ch1Length), A
+ch1Update:
+        ld hl, Ch1Length                            ; get the Ch1 sound length
+        dec (hl)                                    ; -1 (will roll to 255)
+        jr nz, ch2Update                            ; branch if it's not zero
+        dec hl                                      ; point to Ch1 flags
+        ld (hl), 0                                  ; set to 0 (bit 0= tone enable, bit 1= noise enable)
+ch2Update:
+        ld hl, Ch2Length
+        dec (hl)
+        jr nz, ch2Update
+        dec hl
+        ld (hl), 0
+ch3Update:
+        ld hl, Ch3Length
+        dec (hl)
+        jr nz, chFinished
+        dec hl
+        ld (hl), 0
+chFinished:
 
-        LD A, (Ch2Length)
-        DEC A
-        JR NZ, ch2endskip
-        LD (Ch2Flags), A
-ch2endskip
-        LD (Ch2Length), A
 
-        LD A, (Ch3Length)
-        DEC A
-        JR NZ, ch3endskip
-        LD (Ch3Flags), A
-ch3endskip
-        LD (Ch3Length), A
-
-
-melodyRoutine
+melodyRoutine:
         LD A, (frameCount)                  ; pick up remaining note time
         DEC A                               ; decrease by 1 frame
         LD (frameCount), A                  ; save it back
@@ -166,7 +165,7 @@ melodyRoutine
 
         ; timer expired, so pick up next note to play
         ; - first set timer for this new note
-mr0
+mr0:
         LD DE, (framePointer)               ; framePointer = timer table
         LD A, (DE)                          ; get note length
 
@@ -177,7 +176,7 @@ mr0
         LD DE, frameTable                   ; point to table start
         LD (framePointer), DE               ; save in framePointer
         JR mr0                              ; and test again !
-mr1
+mr1:
         LD (frameCount), A                  ; save note length
 
         ; - point to the note, save in HL and update
@@ -191,7 +190,7 @@ mr1
         INC DE                              ; point to next timer entry
         LD (framePointer), DE               ; and save in framePointer
         EX DE, HL
-playNotes
+playNotes:
         ld c, AYPortC
 
         ; -------------------- AY2 --------------------
@@ -409,4 +408,4 @@ playNotes
         LD B, AYPortWriteB
         OUT (C), A
 
-melodyEnd
+melodyEnd:
