@@ -5702,180 +5702,281 @@
 # file closed: melody.inc
    8  8F6B              INCLUDE "soundEffects.inc"
 # file opened: soundEffects.inc
-   1+ 8F6B              playsound:
-   2+ 8F6B              ; Input : A = sound fx to play
-   3+ 8F6B              ;
-   4+ 8F6B              ; routine will choose next available channel and copy sound fx to that channel
-   5+ 8F6B              ; IM2 will then process that data
-   6+ 8F6B E5                   PUSH HL
-   7+ 8F6C D5                   PUSH DE
-   8+ 8F6D C5                   PUSH BC
-   9+ 8F6E
-  10+ 8F6E 3D                   DEC A
-  11+ 8F6F 87                   ADD A, A
-  12+ 8F70 87                   ADD A, A
-  13+ 8F71 87                   ADD A, A
-  14+ 8F72 87                   ADD A, A
-  15+ 8F73
-  16+ 8F73 21 9F 8F             LD HL, sound1
-  17+ 8F76 ED 31                ADD HL, A
-  18+ 8F78
-  19+ 8F78 3A FF 8F             LD A, (nextCH)                      ; whats the nextCH to use
-  20+ 8F7B FE 00                CP 0                                ; is it 0?
-  21+ 8F7D 28 0B                JR Z, playCh1                       ; jump if so
-  22+ 8F7F FE 01                CP 1                                ; is it 1?
-  23+ 8F81 28 0C                JR Z, playCh2                       ; jump if so
-  24+ 8F83 3E FF                LD A, 255                           ; its 2, set next so its 0
-  25+ 8F85 11 14 90             LD DE, Ch3                          ; set AY channel to 3
-  26+ 8F88 18 08                JR play                             ; and branch to do the sound setup
-  27+ 8F8A              playCh1:
-  28+ 8F8A 11 00 90             LD DE, Ch1                          ; set the AY channel to 1
-  29+ 8F8D 18 03                JR play                             ; and branch to do the sound setup
-  30+ 8F8F              playCh2:
-  31+ 8F8F 11 0A 90             LD DE, Ch2                          ; set the AY channel to 2
-  32+ 8F92              play:
-  33+ 8F92 3C                   INC A                               ; roll on nextCH
-  34+ 8F93 32 FF 8F             LD (nextCH), A                      ; and save it
-  35+ 8F96 01 0A 00             LD BC, 10                           ; we copy 10 bytes of sound setup
-  36+ 8F99 ED B0                LDIR                                ; do the copy
-  37+ 8F9B
-  38+ 8F9B C1                   POP BC
-  39+ 8F9C D1                   POP DE
-  40+ 8F9D E1                   POP HL
-  41+ 8F9E C9                   RET
-  42+ 8F9F
-  43+ 8F9F              sound1:
-  44+ 8F9F              ; initial tone period
-  45+ 8F9F              ; tone period delta
-  46+ 8F9F              ; initial volme (*256)
-  47+ 8F9F              ; volume delta
-  48+ 8F9F              ; tone, noise, envelope flags
-  49+ 8F9F              ; length in frames (50hz)
-  50+ 8F9F              ; filler to make each 16 bytes long
-  51+ 8F9F
-  52+ 8F9F              ; hit head sound
-  53+ 8F9F F4 01                DW 500
-  54+ 8FA1 0A 00                DW 10
-  55+ 8FA3 00 0F                DW 15 * 256
-  56+ 8FA5 14 00                DW 20
-  57+ 8FA7 01                   DB %00000001
-  58+ 8FA8 05                   DB 5
-  59+ 8FA9 00 00 00 00          DB 0,0,0,0,0,0
-  59+ 8FAD 00 00
-  60+ 8FAF
-  61+ 8FAF              ; this is the pop sound
-  62+ 8FAF              sound2:
-  63+ 8FAF 64 00                DW 100
-  64+ 8FB1 0A 00                DW 10
-  65+ 8FB3 00 0F                DW 15*256
-  66+ 8FB5 EC FF                DW -20
-  67+ 8FB7 01                   DB %0000001
-  68+ 8FB8 0A                   DB 10
-  69+ 8FB9 00 00 00 00          DB 0,0,0,0,0,0
-  69+ 8FBD 00 00
-  70+ 8FBF
-  71+ 8FBF              ; bounce sound
-  72+ 8FBF              sound3:
-  73+ 8FBF FC 00                DW 252
-  74+ 8FC1 F6 FF                DW -10
-  75+ 8FC3 00 0F                DW 15*256
-  76+ 8FC5 9C FF                DW -100
-  77+ 8FC7 01                   DB 1
-  78+ 8FC8              sound3Dur
-  79+ 8FC8 0F                   DB 15
-  80+ 8FC9 00 00 00 00          DB 0,0,0,0,0,0
-  80+ 8FCD 00 00
-  81+ 8FCF
-  82+ 8FCF              sound4:
-  83+ 8FCF 64 00                DW 100
-  84+ 8FD1 F6 FF                DW -10
-  85+ 8FD3 00 0F                DW 15*256
-  86+ 8FD5 9C FF                DW -100
-  87+ 8FD7 03                   DB 3
-  88+ 8FD8 05                   DB 5
-  89+ 8FD9 00 00 00 00          DB 0,0,0,0,0,0
-  89+ 8FDD 00 00
-  90+ 8FDF
-  91+ 8FDF              ; item hit sound
-  92+ 8FDF              sound5:
-  93+ 8FDF 64 00                DW 100
-  94+ 8FE1 F6 FF                DW -10
-  95+ 8FE3 00 0F                DW 15*256
-  96+ 8FE5 14 00                DW 20
-  97+ 8FE7 01                   DB %0000001
-  98+ 8FE8 0A                   DB 10
-  99+ 8FE9 00 00 00 00          DB 0,0,0,0,0,0
-  99+ 8FED 00 00
- 100+ 8FEF
- 101+ 8FEF              ; kill skull sound
- 102+ 8FEF              sound6:
- 103+ 8FEF F4 01                DW 500
- 104+ 8FF1 0A 00                DW 10
- 105+ 8FF3 00 0F                DW 15*256
- 106+ 8FF5 14 00                DW 20
- 107+ 8FF7 FF                   DB %11111111
- 108+ 8FF8 64                   DB 100
- 109+ 8FF9 00 00 00 00          DB 0,0,0,0,0,0
- 109+ 8FFD 00 00
- 110+ 8FFF
- 111+ 8FFF 00           nextCH:      DB 0
- 112+ 9000
- 113+ 9000              Ch1:
- 114+ 9000 00 00        Ch1Pitch:    DW 0
- 115+ 9002 00 00        Ch1PitchD:   DW 0
- 116+ 9004 00 00        Ch1Volume    DW 00
- 117+ 9006 00 00        Ch1VolumeD:  DW 00
- 118+ 9008 00           Ch1Flags:    DB 0
- 119+ 9009 00           Ch1Length:   DB 0
- 120+ 900A
- 121+ 900A              Ch2:
- 122+ 900A 00 00        Ch2Pitch:    DW 00
- 123+ 900C 00 00        Ch2PitchD:   DW 00
- 124+ 900E 00 00        Ch2Volume    DW 00
- 125+ 9010 00 00        Ch2VolumeD:  DW 00
- 126+ 9012 00           Ch2Flags:    DB 0
- 127+ 9013 00           Ch2Length:   DB 0
- 128+ 9014
- 129+ 9014              Ch3:
- 130+ 9014 00 00        Ch3Pitch:    DW 00
- 131+ 9016 00 00        Ch3PitchD:   DW 00
- 132+ 9018 00 00        Ch3Volume    DW 00
- 133+ 901A 00 00        Ch3VolumeD:  DW 00
- 134+ 901C 00           Ch3Flags:    DB 0
- 135+ 901D 00           Ch3Length:   DB 0
- 136+ 901E
- 137+ 901E              AYSelect        EQU $FFFD
- 138+ 901E              AYrw            EQU $bffd
- 139+ 901E              AYPortC         EQU $FD                     ; Port low byte, stays in C
- 140+ 901E              AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
- 141+ 901E              AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
- 142+ 901E              channel1ToneL   equ 0
- 143+ 901E              channel1ToneH   equ 1
- 144+ 901E              channel2ToneL   equ 2
- 145+ 901E              channel2ToneH   equ 3
- 146+ 901E              channel3ToneL   equ 4
- 147+ 901E              channel3ToneH   equ 5
- 148+ 901E              channel1Volume  equ 8
- 149+ 901E              channel2Volume  equ 9
- 150+ 901E              channel3Volume  equ 10
- 151+ 901E              mixerFlag       equ 7
- 152+ 901E 01           frameCount   DB $01                         ; interrupt count for note set
- 153+ 901F 2F 8E        framePointer DW frameTable                  ; pointer to the ic and note set
- 154+ 9021 0F           volume       DB %00001111                   ; volume
- 155+ 9022
- 156+ 9022              mixerFlags
- 157+ 9022 FF FE F7 F6                  db %11111111, %11111110, %11110111, %11110110
- 158+ 9026 FF FD EF ED                  db %11111111, %11111101, %11101111, %11101101
- 159+ 902A FF FB DF DB                  db %11111111, %11111011, %11011111, %11011011
- 160+ 902E
- 161+ 902E
- 162+ 902E              soundHithead   EQU 1
- 163+ 902E              soundPop       EQU 2
- 164+ 902E              soundBounce    EQU 3
- 165+ 902E              soundHitskull  EQU 4
- 166+ 902E              soundCollect   EQU 5
- 167+ 902E              soundKillskull EQU 6
- 168+ 902E
+   1+ 8F6B              AYPortSelect   EQU $FF                     ; B value for AYSelect port ($FFFD)
+   2+ 8F6B              AYPortWrite    EQU $BF                     ; B value for AYrw port ($BFFD)
+   3+ 8F6B
+   4+ 8F6B
+   5+ 8F6B              MACRO AY_TONE argChannel
+   6+ 8F6B ~            ; write HL as a tone value to [previously] selected AY Chip (253/254/255)
+   7+ 8F6B ~            ; argChannel is A, B or C
+   8+ 8F6B ~
+   9+ 8F6B ~                    ; prepare B so that the next "OUT (C), A" instruction
+  10+ 8F6B ~                    ; will select the port/register that we want to write to
+  11+ 8F6B ~                    LD B, AYPortSelect
+  12+ 8F6B ~
+  13+ 8F6B ~                    ; set A to the port register for the low byte tone value
+  14+ 8F6B ~                    ; it's dependent on the AY chip Channel, i.e. A, B or C
+  15+ 8F6B ~                    IF argChannel = 'A'
+  16+ 8F6B ~                        ld a, 0
+  17+ 8F6B ~                    ELSEIF argChannel = 'B'
+  18+ 8F6B ~                        ld a, 2
+  19+ 8F6B ~                    ELSEIF argChannel = 'C'
+  20+ 8F6B ~                        ld a, 4
+  21+ 8F6B ~                    ENDIF
+  22+ 8F6B ~                    OUT (C), A
+  23+ 8F6B ~
+  24+ 8F6B ~                    ; AY chip ia now ready to accept the tone (low byte) value held in L
+  25+ 8F6B ~                    ; so write it here
+  26+ 8F6B ~                    LD B, AYPortWrite
+  27+ 8F6B ~                    OUT (C), L
+  28+ 8F6B ~
+  29+ 8F6B ~                    ; prepare B so that the next "OUT (C), A" instruction
+  30+ 8F6B ~                    ; will select the port/register that we want to write to
+  31+ 8F6B ~                    LD B, AYPortSelect
+  32+ 8F6B ~
+  33+ 8F6B ~                    ; set A to the port register for the high byte tone value
+  34+ 8F6B ~                    ; it's dependent on the AY chip Channel, i.e. A, B or C
+  35+ 8F6B ~                    IF argChannel = 'A'
+  36+ 8F6B ~                        ld a, 1
+  37+ 8F6B ~                    ELSEIF argChannel = 'B'
+  38+ 8F6B ~                        ld a, 3
+  39+ 8F6B ~                    ELSEIF argChannel = 'C'
+  40+ 8F6B ~                        ld a, 5
+  41+ 8F6B ~                    ENDIF
+  42+ 8F6B ~                    OUT (C), A
+  43+ 8F6B ~
+  44+ 8F6B ~                    ; AY chip ia now ready to accept the tone (high byte) value held in H
+  45+ 8F6B ~                    ; so write it here
+  46+ 8F6B ~                    LD B, AYPortWrite
+  47+ 8F6B ~                    OUT (C), H
+  48+ 8F6B                      ENDM
+  49+ 8F6B
+  50+ 8F6B
+  51+ 8F6B              MACRO AY_VOLUME argChannel
+  52+ 8F6B ~            ; write A as a volume value to [previously] selected AY Chip (253/254/255)
+  53+ 8F6B ~            ; argChannel is A, B or C
+  54+ 8F6B ~
+  55+ 8F6B ~                    ; prepare B so that the next "OUT (C), A" instruction
+  56+ 8F6B ~                    ; will select the port/register that we want to write to
+  57+ 8F6B ~                    LD B, AYPortSelect
+  58+ 8F6B ~
+  59+ 8F6B ~                    ; set H to the port register for the volume value
+  60+ 8F6B ~                    ; it's dependent on the AY chip Channel, i.e. A, B or C
+  61+ 8F6B ~                    IF argChannel = 'A'
+  62+ 8F6B ~                        ld h, 8
+  63+ 8F6B ~                    ELSEIF argChannel = 'B'
+  64+ 8F6B ~                        ld h, 9
+  65+ 8F6B ~                    ELSEIF argChannel = 'C'
+  66+ 8F6B ~                        ld h, 10
+  67+ 8F6B ~                    ENDIF
+  68+ 8F6B ~                    OUT (C), H
+  69+ 8F6B ~
+  70+ 8F6B ~                    ; AY chip ia now ready to accept the VOLUME value held in A
+  71+ 8F6B ~                    ; so write it here
+  72+ 8F6B ~                    LD B, AYPortWrite
+  73+ 8F6B ~                    OUT (C), A
+  74+ 8F6B                      ENDM
+  75+ 8F6B
+  76+ 8F6B              ; ---- fold one channel's flags into the mixer accumulator in C ----
+  77+ 8F6B              MACRO AY_MIX flagVar, tableOffset
+  78+ 8F6B ~                    LD HL, mixerFlags + tableOffset
+  79+ 8F6B ~                    LD A, (flagVar)
+  80+ 8F6B ~                    AND %00000011
+  81+ 8F6B ~                    ADD HL, A
+  82+ 8F6B ~                    LD A, (HL)
+  83+ 8F6B ~                    AND C
+  84+ 8F6B ~                    LD C, A
+  85+ 8F6B                      ENDM
+  86+ 8F6B
+  87+ 8F6B              ; ---- age a channel; silence it when its note length hits 0 ----
+  88+ 8F6B              ;      pass a unique end-label name per channel (sjasmplus substitutes it textually)
+  89+ 8F6B              MACRO AY_TIMEOUT endLbl, lengthVar, flagsVar, volVar, volDVar
+  90+ 8F6B ~                    LD A, (lengthVar)
+  91+ 8F6B ~                    DEC A
+  92+ 8F6B ~                    JR NZ, endLbl
+  93+ 8F6B ~                    LD (flagsVar), A            ; A = 0 -> flags off
+  94+ 8F6B ~                    LD HL, 0
+  95+ 8F6B ~                    LD (volVar), HL
+  96+ 8F6B ~                    LD (volDVar), HL
+  97+ 8F6B ~            endLbl:
+  98+ 8F6B ~                    LD (lengthVar), A
+  99+ 8F6B                      ENDM
+ 100+ 8F6B
+ 101+ 8F6B
+ 102+ 8F6B              playsound:
+ 103+ 8F6B              ; Input : A = sound fx to play
+ 104+ 8F6B              ;
+ 105+ 8F6B              ; routine will choose next available channel and copy sound fx to that channel
+ 106+ 8F6B              ; IM2 will then process that data
+ 107+ 8F6B E5                   PUSH HL
+ 108+ 8F6C D5                   PUSH DE
+ 109+ 8F6D C5                   PUSH BC
+ 110+ 8F6E
+ 111+ 8F6E 3D                   DEC A
+ 112+ 8F6F 87                   ADD A, A
+ 113+ 8F70 87                   ADD A, A
+ 114+ 8F71 87                   ADD A, A
+ 115+ 8F72 87                   ADD A, A
+ 116+ 8F73
+ 117+ 8F73 21 9F 8F             LD HL, sound1
+ 118+ 8F76 ED 31                ADD HL, A
+ 119+ 8F78
+ 120+ 8F78 3A FF 8F             LD A, (nextCH)                      ; whats the nextCH to use
+ 121+ 8F7B FE 00                CP 0                                ; is it 0?
+ 122+ 8F7D 28 0B                JR Z, playCh1                       ; jump if so
+ 123+ 8F7F FE 01                CP 1                                ; is it 1?
+ 124+ 8F81 28 0C                JR Z, playCh2                       ; jump if so
+ 125+ 8F83 3E FF                LD A, 255                           ; its 2, set next so its 0
+ 126+ 8F85 11 14 90             LD DE, Ch3                          ; set AY channel to 3
+ 127+ 8F88 18 08                JR play                             ; and branch to do the sound setup
+ 128+ 8F8A              playCh1:
+ 129+ 8F8A 11 00 90             LD DE, Ch1                          ; set the AY channel to 1
+ 130+ 8F8D 18 03                JR play                             ; and branch to do the sound setup
+ 131+ 8F8F              playCh2:
+ 132+ 8F8F 11 0A 90             LD DE, Ch2                          ; set the AY channel to 2
+ 133+ 8F92              play:
+ 134+ 8F92 3C                   INC A                               ; roll on nextCH
+ 135+ 8F93 32 FF 8F             LD (nextCH), A                      ; and save it
+ 136+ 8F96 01 0A 00             LD BC, 10                           ; we copy 10 bytes of sound setup
+ 137+ 8F99 ED B0                LDIR                                ; do the copy
+ 138+ 8F9B
+ 139+ 8F9B C1                   POP BC
+ 140+ 8F9C D1                   POP DE
+ 141+ 8F9D E1                   POP HL
+ 142+ 8F9E C9                   RET
+ 143+ 8F9F
+ 144+ 8F9F              sound1:
+ 145+ 8F9F              ; initial tone period
+ 146+ 8F9F              ; tone period delta
+ 147+ 8F9F              ; initial volme (*256)
+ 148+ 8F9F              ; volume delta
+ 149+ 8F9F              ; tone, noise, envelope flags
+ 150+ 8F9F              ; length in frames (50hz)
+ 151+ 8F9F              ; filler to make each 16 bytes long
+ 152+ 8F9F
+ 153+ 8F9F              ; hit head sound
+ 154+ 8F9F F4 01                DW 500
+ 155+ 8FA1 0A 00                DW 10
+ 156+ 8FA3 00 0F                DW 15 * 256
+ 157+ 8FA5 14 00                DW 20
+ 158+ 8FA7 01                   DB %00000001
+ 159+ 8FA8 05                   DB 5
+ 160+ 8FA9 00 00 00 00          DB 0,0,0,0,0,0
+ 160+ 8FAD 00 00
+ 161+ 8FAF
+ 162+ 8FAF              ; this is the pop sound
+ 163+ 8FAF              sound2:
+ 164+ 8FAF 64 00                DW 100
+ 165+ 8FB1 0A 00                DW 10
+ 166+ 8FB3 00 0F                DW 15*256
+ 167+ 8FB5 EC FF                DW -20
+ 168+ 8FB7 01                   DB %0000001
+ 169+ 8FB8 0A                   DB 10
+ 170+ 8FB9 00 00 00 00          DB 0,0,0,0,0,0
+ 170+ 8FBD 00 00
+ 171+ 8FBF
+ 172+ 8FBF              ; bounce sound
+ 173+ 8FBF              sound3:
+ 174+ 8FBF FC 00                DW 252
+ 175+ 8FC1 F6 FF                DW -10
+ 176+ 8FC3 00 0F                DW 15*256
+ 177+ 8FC5 9C FF                DW -100
+ 178+ 8FC7 01                   DB 1
+ 179+ 8FC8              sound3Dur
+ 180+ 8FC8 0F                   DB 15
+ 181+ 8FC9 00 00 00 00          DB 0,0,0,0,0,0
+ 181+ 8FCD 00 00
+ 182+ 8FCF
+ 183+ 8FCF              sound4:
+ 184+ 8FCF 64 00                DW 100
+ 185+ 8FD1 F6 FF                DW -10
+ 186+ 8FD3 00 0F                DW 15*256
+ 187+ 8FD5 9C FF                DW -100
+ 188+ 8FD7 03                   DB 3
+ 189+ 8FD8 05                   DB 5
+ 190+ 8FD9 00 00 00 00          DB 0,0,0,0,0,0
+ 190+ 8FDD 00 00
+ 191+ 8FDF
+ 192+ 8FDF              ; item hit sound
+ 193+ 8FDF              sound5:
+ 194+ 8FDF 64 00                DW 100
+ 195+ 8FE1 F6 FF                DW -10
+ 196+ 8FE3 00 0F                DW 15*256
+ 197+ 8FE5 14 00                DW 20
+ 198+ 8FE7 01                   DB %0000001
+ 199+ 8FE8 0A                   DB 10
+ 200+ 8FE9 00 00 00 00          DB 0,0,0,0,0,0
+ 200+ 8FED 00 00
+ 201+ 8FEF
+ 202+ 8FEF              ; kill skull sound
+ 203+ 8FEF              sound6:
+ 204+ 8FEF F4 01                DW 500
+ 205+ 8FF1 0A 00                DW 10
+ 206+ 8FF3 00 0F                DW 15*256
+ 207+ 8FF5 14 00                DW 20
+ 208+ 8FF7 FF                   DB %11111111
+ 209+ 8FF8 64                   DB 100
+ 210+ 8FF9 00 00 00 00          DB 0,0,0,0,0,0
+ 210+ 8FFD 00 00
+ 211+ 8FFF
+ 212+ 8FFF 00           nextCH:      DB 0
+ 213+ 9000
+ 214+ 9000              Ch1:
+ 215+ 9000 00 00        Ch1Pitch:    DW 0
+ 216+ 9002 00 00        Ch1PitchD:   DW 0
+ 217+ 9004 00 00        Ch1Volume    DW 00
+ 218+ 9006 00 00        Ch1VolumeD:  DW 00
+ 219+ 9008 00           Ch1Flags:    DB 0
+ 220+ 9009 00           Ch1Length:   DB 0
+ 221+ 900A
+ 222+ 900A              Ch2:
+ 223+ 900A 00 00        Ch2Pitch:    DW 00
+ 224+ 900C 00 00        Ch2PitchD:   DW 00
+ 225+ 900E 00 00        Ch2Volume    DW 00
+ 226+ 9010 00 00        Ch2VolumeD:  DW 00
+ 227+ 9012 00           Ch2Flags:    DB 0
+ 228+ 9013 00           Ch2Length:   DB 0
+ 229+ 9014
+ 230+ 9014              Ch3:
+ 231+ 9014 00 00        Ch3Pitch:    DW 00
+ 232+ 9016 00 00        Ch3PitchD:   DW 00
+ 233+ 9018 00 00        Ch3Volume    DW 00
+ 234+ 901A 00 00        Ch3VolumeD:  DW 00
+ 235+ 901C 00           Ch3Flags:    DB 0
+ 236+ 901D 00           Ch3Length:   DB 0
+ 237+ 901E
+ 238+ 901E              AYSelect        EQU $FFFD
+ 239+ 901E              AYrw            EQU $bffd
+ 240+ 901E              AYPortC         EQU $FD                     ; Port low byte, stays in C
+ 241+ 901E              AYPortSelectB   EQU $FF                     ; B value for AYSelect port ($FFFD)
+ 242+ 901E              AYPortWriteB    EQU $BF                     ; B value for AYrw port ($BFFD)
+ 243+ 901E              channel1ToneL   equ 0
+ 244+ 901E              channel1ToneH   equ 1
+ 245+ 901E              channel2ToneL   equ 2
+ 246+ 901E              channel2ToneH   equ 3
+ 247+ 901E              channel3ToneL   equ 4
+ 248+ 901E              channel3ToneH   equ 5
+ 249+ 901E              channel1Volume  equ 8
+ 250+ 901E              channel2Volume  equ 9
+ 251+ 901E              channel3Volume  equ 10
+ 252+ 901E              mixerFlag       equ 7
+ 253+ 901E 01           frameCount   DB $01                         ; interrupt count for note set
+ 254+ 901F 2F 8E        framePointer DW frameTable                  ; pointer to the ic and note set
+ 255+ 9021 0F           volume       DB %00001111                   ; volume
+ 256+ 9022
+ 257+ 9022              mixerFlags
+ 258+ 9022 FF FE F7 F6                  db %11111111, %11111110, %11110111, %11110110
+ 259+ 9026 FF FD EF ED                  db %11111111, %11111101, %11101111, %11101101
+ 260+ 902A FF FB DF DB                  db %11111111, %11111011, %11011111, %11011011
+ 261+ 902E
+ 262+ 902E
+ 263+ 902E              soundHithead   EQU 1
+ 264+ 902E              soundPop       EQU 2
+ 265+ 902E              soundBounce    EQU 3
+ 266+ 902E              soundHitskull  EQU 4
+ 267+ 902E              soundCollect   EQU 5
+ 268+ 902E              soundKillskull EQU 6
+ 269+ 902E
 # file closed: soundEffects.inc
    9  902E 00 00        cam_px              dw  0
   10  9030 00 00        cam_py              dw  0
@@ -8479,439 +8580,608 @@
   33+ F122 22 00 90             LD (Ch1Pitch), HL
   34+ F125
   35+ F125              ; write Ch1 tone to AY chip
-  36+ F125 06 FF                LD B, AYPortSelectB             ; AYSelect
-  37+ F127 3E 00                LD A, channel1ToneL
-  38+ F129 ED 79                OUT (C), A
-  39+ F12B 06 BF                LD B, AYPortWriteB              ; AYrw
-  40+ F12D ED 69                OUT (C), L
-  41+ F12F
-  42+ F12F 06 FF                LD B, AYPortSelectB
-  43+ F131 3E 01                LD A, channel1ToneH
-  44+ F133 ED 79                OUT (C), A
-  45+ F135 06 BF                LD B, AYPortWriteB
-  46+ F137 ED 61                OUT (C), H
-  47+ F139
-  48+ F139              ; get the Ch1 volume value
-  49+ F139              ; apply delta
-  50+ F139 2A 04 90             LD HL, (Ch1Volume)
-  51+ F13C ED 5B 06 90          LD DE, (Ch1VolumeD)
-  52+ F140 19                   ADD HL, DE
-  53+ F141 22 04 90             LD (Ch1Volume), HL
-  54+ F144
-  55+ F144 7C                   LD A, H
-  56+ F145 E6 0F                AND 15
-  57+ F147
-  58+ F147              ; write Ch1 volume to AY chip
-  59+ F147 06 FF                LD B, AYPortSelectB
-  60+ F149 26 08                LD H, channel1Volume
-  61+ F14B ED 61                OUT (C), H
-  62+ F14D 06 BF                LD B, AYPortWriteB
-  63+ F14F ED 79                OUT (C), A
-  64+ F151
-  65+ F151              ; get the Ch2 tone value
-  66+ F151              ; apply delta
-  67+ F151 2A 0A 90             LD HL, (Ch2Pitch)
-  68+ F154 ED 5B 0C 90          LD DE, (Ch2PitchD)
-  69+ F158 19                   ADD HL, DE
-  70+ F159 22 0A 90             LD (Ch2Pitch), HL
-  71+ F15C
-  72+ F15C              ; write Ch2 tone to AY chip
-  73+ F15C 06 FF                LD B, AYPortSelectB
-  74+ F15E 3E 02                LD A, channel2ToneL
-  75+ F160 ED 79                OUT (C), A
-  76+ F162 06 BF                LD B, AYPortWriteB
-  77+ F164 ED 69                OUT (C), L
-  78+ F166
-  79+ F166 06 FF                LD B, AYPortSelectB
-  80+ F168 3E 03                LD A, channel2ToneH
-  81+ F16A ED 79                OUT (C), A
-  82+ F16C 06 BF                LD B, AYPortWriteB
-  83+ F16E ED 61                OUT (C), H
-  84+ F170
-  85+ F170              ; get the Ch2 volume value
-  86+ F170              ; apply delta
-  87+ F170 2A 0E 90             LD HL, (Ch2Volume)
-  88+ F173 ED 5B 10 90          LD DE, (Ch2VolumeD)
-  89+ F177 19                   ADD HL, DE
-  90+ F178 22 0E 90             LD (Ch2Volume), HL
-  91+ F17B
-  92+ F17B 7C                   LD A, H
-  93+ F17C E6 0F                AND 15
-  94+ F17E
-  95+ F17E              ; write Ch2 volume to AY chip
-  96+ F17E 06 FF                LD B, AYPortSelectB
-  97+ F180 26 09                LD H, channel2Volume
-  98+ F182 ED 61                OUT (C), H
-  99+ F184 06 BF                LD B, AYPortWriteB
- 100+ F186 ED 79                OUT (C), A
- 101+ F188
- 102+ F188              ; get the Ch3 tone value
- 103+ F188              ; apply delta
- 104+ F188 2A 14 90             LD HL, (Ch3Pitch)
- 105+ F18B ED 5B 16 90          LD DE, (Ch3PitchD)
- 106+ F18F 19                   ADD HL, DE
- 107+ F190 22 14 90             LD (Ch3Pitch), HL
- 108+ F193
- 109+ F193              ; write Ch3 tone to AY chip
- 110+ F193 06 FF                LD B, AYPortSelectB
- 111+ F195 3E 04                LD A, channel3ToneL
- 112+ F197 ED 79                OUT (C), A
- 113+ F199 06 BF                LD B, AYPortWriteB
- 114+ F19B ED 69                OUT (C), L
- 115+ F19D
- 116+ F19D 06 FF                LD B, AYPortSelectB
- 117+ F19F 3E 05                LD A, channel3ToneH
- 118+ F1A1 ED 79                OUT (C), A
- 119+ F1A3 06 BF                LD B, AYPortWriteB
- 120+ F1A5 ED 61                OUT (C), H
- 121+ F1A7
- 122+ F1A7              ; get the Ch3 volume value
- 123+ F1A7              ; apply delta
- 124+ F1A7 2A 18 90             LD HL, (Ch3Volume)
- 125+ F1AA ED 5B 1A 90          LD DE, (Ch3VolumeD)
- 126+ F1AE 19                   ADD HL, DE
- 127+ F1AF 22 18 90             LD (Ch3Volume), HL
- 128+ F1B2
- 129+ F1B2 7C                   LD A, H
- 130+ F1B3 E6 0F                AND 15
- 131+ F1B5
- 132+ F1B5              ; write Ch3 volume to AY chip
- 133+ F1B5 06 FF                LD B, AYPortSelectB
- 134+ F1B7 26 0A                LD H, channel3Volume
- 135+ F1B9 ED 61                OUT (C), H
- 136+ F1BB 06 BF                LD B, AYPortWriteB
- 137+ F1BD ED 79                OUT (C), A
- 138+ F1BF
- 139+ F1BF              ; set the AY mixer value depending on ch1Flags, ch2Flags & ch3Flags
- 140+ F1BF              ; these control the tone and noise flags in main AY mixer setting
- 141+ F1BF              ; mapping is as follows and we negate the Ch1/2/3Flag setting
- 142+ F1BF              ; Ch1Flags
- 143+ F1BF              ; bit
- 144+ F1BF              ; 0 -> 0
- 145+ F1BF              ; 1 -> 3
- 146+ F1BF              ; Ch2Flags
- 147+ F1BF              ; 0 -> 1
- 148+ F1BF              ; 1 -> 4
- 149+ F1BF              ; Ch3Flags
- 150+ F1BF              ; 0 -> 2
- 151+ F1BF              ; 1 -> 5
- 152+ F1BF 0E FF                LD C, 255                               ; initialise to all 1's, everything off
- 153+ F1C1 21 22 90             LD HL, mixerFlags                       ; point to mapping data for Ch1Flags
- 154+ F1C4 3A 08 90             LD A, (Ch1Flags)                        ; get Ch1Flags setting
- 155+ F1C7 E6 03                AND %00000011                           ; we're only interested in bits 0,1
- 156+ F1C9 ED 31                ADD HL, A                               ; offset into mixerFlags mapping
- 157+ F1CB 7E                   LD A, (HL)                              ; get value
- 158+ F1CC A1                   AND C                                   ; AND with existing
- 159+ F1CD 4F                   LD C, A                                 ; store back
- 160+ F1CE
- 161+ F1CE 21 26 90             LD HL, mixerFlags +4
- 162+ F1D1 3A 12 90             LD A, (Ch2Flags)
- 163+ F1D4 E6 03                AND %00000011
- 164+ F1D6 ED 31                ADD HL, A
- 165+ F1D8 7E                   LD A, (HL)
- 166+ F1D9 A1                   AND C
- 167+ F1DA 4F                   LD C, A
- 168+ F1DB 21 2A 90             LD HL, mixerFlags +8
- 169+ F1DE 3A 1C 90             LD A, (Ch3Flags)
- 170+ F1E1 E6 03                AND %00000011
- 171+ F1E3 ED 31                ADD HL, A
- 172+ F1E5 7E                   LD A, (HL)
- 173+ F1E6 A1                   AND C
- 174+ F1E7 01 FD FF             LD BC, AYSelect
- 175+ F1EA 16 07                LD D, mixerFlag
- 176+ F1EC ED 51                OUT (C), D
- 177+ F1EE 01 FD BF             LD BC, AYrw
- 178+ F1F1 ED 79                OUT (C), A
- 179+ F1F3
- 180+ F1F3 3A 09 90             LD A, (Ch1Length)
- 181+ F1F6 3D                   DEC A
- 182+ F1F7 20 0C                JR NZ, ch1endskip
- 183+ F1F9 32 08 90             LD (Ch1Flags), A
- 184+ F1FC 21 00 00             LD HL, 0
- 185+ F1FF 22 04 90             LD (Ch1Volume), HL
- 186+ F202 22 06 90             LD (Ch1VolumeD), HL
- 187+ F205              ch1endskip
- 188+ F205 32 09 90             LD (Ch1Length), A
- 189+ F208
- 190+ F208 3A 13 90             LD A, (Ch2Length)
- 191+ F20B 3D                   DEC A
- 192+ F20C 20 0C                JR NZ, ch2endskip
- 193+ F20E 32 12 90             LD (Ch2Flags), A
- 194+ F211 21 00 00             LD HL, 0
- 195+ F214 22 0E 90             LD (Ch2Volume), HL
- 196+ F217 22 10 90             LD (Ch2VolumeD), HL
- 197+ F21A              ch2endskip
- 198+ F21A 32 13 90             LD (Ch2Length), A
- 199+ F21D
- 200+ F21D 3A 1D 90             LD A, (Ch3Length)
- 201+ F220 3D                   DEC A
- 202+ F221 20 0C                JR NZ, ch3endskip
- 203+ F223 32 1C 90             LD (Ch3Flags), A
- 204+ F226 21 00 00             LD HL, 0
- 205+ F229 22 18 90             LD (Ch3Volume), HL
- 206+ F22C 22 1A 90             LD (Ch3VolumeD), HL
- 207+ F22F              ch3endskip
- 208+ F22F 32 1D 90             LD (Ch3Length), A
- 209+ F232
- 210+ F232
- 211+ F232              melodyRoutine
- 212+ F232 3A 1E 90             LD A, (frameCount)                  ; pick up remaining note time
- 213+ F235 3D                   DEC A                               ; decrease by 1 frame
- 214+ F236 32 1E 90             LD (frameCount), A                  ; save it back
- 215+ F239 C2 79 F3             JP NZ, melodyEnd                    ; branch to end if not zero
- 216+ F23C
- 217+ F23C                      ; timer expired, so pick up next note to play
- 218+ F23C                      ; - first set timer for this new note
- 219+ F23C              mr0
- 220+ F23C 2A 1F 90             LD HL, (framePointer)               ; framePointer = timer table
- 221+ F23F 7E                   LD A, (HL)                          ; get note length
- 222+ F240
- 223+ F240 23                   INC HL                              ; skip past high byte
- 224+ F241 FE FF                CP 255                              ; is it 255 marker
- 225+ F243 20 08                JR NZ, mr1                          ; branch if not
- 226+ F245
- 227+ F245 21 2F 8E             LD HL, frameTable                   ; point to table start
- 228+ F248 22 1F 90             LD (framePointer), HL               ; save in framePointer
- 229+ F24B 18 EF                JR mr0                              ; and test again !
- 230+ F24D              mr1
- 231+ F24D 32 1E 90             LD (frameCount), A                  ; save note length
- 232+ F250
- 233+ F250                      ; - point to the note, save in DE and update
- 234+ F250                      ;   framePointer for next time
- 235+ F250 23                   INC HL                              ; point to note data
- 236+ F251 5E                   LD E, (HL)                          ; get low byte
- 237+ F252 23                   INC HL                              ; point to high byte
- 238+ F253 56                   LD D, (HL)                          ; get the high byte
- 239+ F254 23                   INC HL                              ; point to next timer entry
- 240+ F255 22 1F 90             LD (framePointer), HL               ; and save in framePointer
- 241+ F258
- 242+ F258              playNotes
- 243+ F258 0E FD                ld c, AYPortC
- 244+ F25A
- 245+ F25A                      ; -------------------- AY2 --------------------
- 246+ F25A 3E FE                LD A, 254
- 247+ F25C 06 FF                LD B, AYPortSelectB
- 248+ F25E ED 79                OUT (C), A
- 249+ F260
- 250+ F260                      ; Tone A
- 251+ F260 AF                   XOR A
- 252+ F261 ED 79                OUT (C), A
- 253+ F263 1A                   LD A, (DE)
- 254+ F264 13                   INC DE
- 255+ F265 06 BF                LD B, AYPortWriteB
- 256+ F267 ED 79                OUT (C), A
- 257+ F269
- 258+ F269 3E 01                LD A, 1
- 259+ F26B 06 FF                LD B, AYPortSelectB
- 260+ F26D ED 79                OUT (C), A
- 261+ F26F 1A                   LD A, (DE)
- 262+ F270 13                   INC DE
- 263+ F271 06 BF                LD B, AYPortWriteB
- 264+ F273 ED 79                OUT (C), A
- 265+ F275
- 266+ F275                      ; Volume A
- 267+ F275 3E 08                LD A, 8
- 268+ F277 06 FF                LD B, AYPortSelectB
- 269+ F279 ED 79                OUT (C), A
- 270+ F27B 1A                   LD A, (DE)
- 271+ F27C E6 01                AND %00000001
- 272+ F27E 67                   LD H, A
- 273+ F27F 3A 21 90             LD A, (volume)
- 274+ F282 13                   INC DE
- 275+ F283 06 BF                LD B, AYPortWriteB
- 276+ F285 ED 79                OUT (C), A
- 277+ F287
- 278+ F287                      ; Tone B
- 279+ F287 3E 02                LD A, 2
- 280+ F289 06 FF                LD B, AYPortSelectB
- 281+ F28B ED 79                OUT (C), A
- 282+ F28D 1A                   LD A, (DE)
- 283+ F28E 13                   INC DE
- 284+ F28F 06 BF                LD B, AYPortWriteB
- 285+ F291 ED 79                OUT (C), A
- 286+ F293
- 287+ F293 3E 03                LD A, 3
- 288+ F295 06 FF                LD B, AYPortSelectB
- 289+ F297 ED 79                OUT (C), A
- 290+ F299 1A                   LD A, (DE)
- 291+ F29A 13                   INC DE
- 292+ F29B 06 BF                LD B, AYPortWriteB
- 293+ F29D ED 79                OUT (C), A
- 294+ F29F
- 295+ F29F                      ; Volume B
- 296+ F29F 3E 09                LD A, 9
- 297+ F2A1 06 FF                LD B, AYPortSelectB
- 298+ F2A3 ED 79                OUT (C), A
- 299+ F2A5 1A                   LD A, (DE)
- 300+ F2A6 E6 02                AND %00000010
- 301+ F2A8 B4                   OR H
- 302+ F2A9 67                   LD H, A
- 303+ F2AA 3A 21 90             LD A, (volume)
- 304+ F2AD 13                   INC DE
- 305+ F2AE 06 BF                LD B, AYPortWriteB
- 306+ F2B0 ED 79                OUT (C), A
- 307+ F2B2
- 308+ F2B2                      ; Tone C
- 309+ F2B2 3E 04                LD A, 4
- 310+ F2B4 06 FF                LD B, AYPortSelectB
- 311+ F2B6 ED 79                OUT (C), A
- 312+ F2B8 1A                   LD A, (DE)
- 313+ F2B9 13                   INC DE
- 314+ F2BA 06 BF                LD B, AYPortWriteB
- 315+ F2BC ED 79                OUT (C), A
- 316+ F2BE
- 317+ F2BE 3E 05                LD A, 5
- 318+ F2C0 06 FF                LD B, AYPortSelectB
- 319+ F2C2 ED 79                OUT (C), A
- 320+ F2C4 1A                   LD A, (DE)
- 321+ F2C5 13                   INC DE
- 322+ F2C6 06 BF                LD B, AYPortWriteB
- 323+ F2C8 ED 79                OUT (C), A
- 324+ F2CA
- 325+ F2CA                      ; Volume C
- 326+ F2CA 3E 0A                LD A, 10
- 327+ F2CC 06 FF                LD B, AYPortSelectB
- 328+ F2CE ED 79                OUT (C), A
- 329+ F2D0 1A                   LD A, (DE)
- 330+ F2D1 E6 04                AND %00000100
- 331+ F2D3 B4                   OR H
- 332+ F2D4 67                   LD H, A
- 333+ F2D5 3A 21 90             LD A, (volume)
- 334+ F2D8 13                   INC DE
- 335+ F2D9 06 BF                LD B, AYPortWriteB
- 336+ F2DB ED 79                OUT (C), A
- 337+ F2DD
- 338+ F2DD                      ; Mixer
- 339+ F2DD 3E 07                LD A, 7
- 340+ F2DF 06 FF                LD B, AYPortSelectB
- 341+ F2E1 ED 79                OUT (C), A
- 342+ F2E3 7C                   LD A, H
- 343+ F2E4 EE FF                XOR %11111111
- 344+ F2E6 06 BF                LD B, AYPortWriteB
- 345+ F2E8 ED 79                OUT (C), A
- 346+ F2EA
- 347+ F2EA                      ; -------------------- AY3 --------------------
- 348+ F2EA 3E FD                LD A, 253
- 349+ F2EC 06 FF                LD B, AYPortSelectB
- 350+ F2EE ED 79                OUT (C), A
- 351+ F2F0
- 352+ F2F0                      ; Tone A
- 353+ F2F0 AF                   XOR A
- 354+ F2F1 ED 79                OUT (C), A
- 355+ F2F3 1A                   LD A, (DE)
- 356+ F2F4 13                   INC DE
- 357+ F2F5 06 BF                LD B, AYPortWriteB
- 358+ F2F7 ED 79                OUT (C), A
- 359+ F2F9
- 360+ F2F9 3E 01                LD A, 1
- 361+ F2FB 06 FF                LD B, AYPortSelectB
- 362+ F2FD ED 79                OUT (C), A
- 363+ F2FF 1A                   LD A, (DE)
- 364+ F300 13                   INC DE
- 365+ F301 06 BF                LD B, AYPortWriteB
- 366+ F303 ED 79                OUT (C), A
- 367+ F305
- 368+ F305                      ; Volume A
- 369+ F305 3E 08                LD A, 8
- 370+ F307 06 FF                LD B, AYPortSelectB
- 371+ F309 ED 79                OUT (C), A
- 372+ F30B 1A                   LD A, (DE)
- 373+ F30C E6 01                AND %00000001
- 374+ F30E 67                   LD H, A
- 375+ F30F 3A 21 90             LD A, (volume)
- 376+ F312 13                   INC DE
- 377+ F313 06 BF                LD B, AYPortWriteB
- 378+ F315 ED 79                OUT (C), A
- 379+ F317
- 380+ F317                      ; Tone B
- 381+ F317 3E 02                LD A, 2
- 382+ F319 06 FF                LD B, AYPortSelectB
- 383+ F31B ED 79                OUT (C), A
- 384+ F31D 1A                   LD A, (DE)
- 385+ F31E 13                   INC DE
- 386+ F31F 06 BF                LD B, AYPortWriteB
- 387+ F321 ED 79                OUT (C), A
- 388+ F323
- 389+ F323 3E 03                LD A, 3
- 390+ F325 06 FF                LD B, AYPortSelectB
- 391+ F327 ED 79                OUT (C), A
- 392+ F329 1A                   LD A, (DE)
- 393+ F32A 13                   INC DE
- 394+ F32B 06 BF                LD B, AYPortWriteB
- 395+ F32D ED 79                OUT (C), A
- 396+ F32F
- 397+ F32F                      ; Volume B
- 398+ F32F 3E 09                LD A, 9
- 399+ F331 06 FF                LD B, AYPortSelectB
- 400+ F333 ED 79                OUT (C), A
- 401+ F335 1A                   LD A, (DE)
- 402+ F336 E6 02                AND %00000010
- 403+ F338 B4                   OR H
- 404+ F339 67                   LD H, A
- 405+ F33A 3A 21 90             LD A, (volume)
- 406+ F33D 13                   INC DE
- 407+ F33E 06 BF                LD B, AYPortWriteB
- 408+ F340 ED 79                OUT (C), A
- 409+ F342
- 410+ F342                      ; Tone C
- 411+ F342 3E 04                LD A, 4
- 412+ F344 06 FF                LD B, AYPortSelectB
- 413+ F346 ED 79                OUT (C), A
- 414+ F348 1A                   LD A, (DE)
- 415+ F349 13                   INC DE
- 416+ F34A 06 BF                LD B, AYPortWriteB
- 417+ F34C ED 79                OUT (C), A
- 418+ F34E
- 419+ F34E 3E 05                LD A, 5
- 420+ F350 06 FF                LD B, AYPortSelectB
- 421+ F352 ED 79                OUT (C), A
- 422+ F354 1A                   LD A, (DE)
- 423+ F355 13                   INC DE
- 424+ F356 06 BF                LD B, AYPortWriteB
- 425+ F358 ED 79                OUT (C), A
- 426+ F35A
- 427+ F35A                      ; Volume C
- 428+ F35A 3E 0A                LD A, 10
- 429+ F35C 06 FF                LD B, AYPortSelectB
- 430+ F35E ED 79                OUT (C), A
- 431+ F360 1A                   LD A, (DE)
- 432+ F361 E6 04                AND %00000100
- 433+ F363 B4                   OR H
- 434+ F364 67                   LD H, A
- 435+ F365 3A 21 90             LD A, (volume)
- 436+ F368 06 BF                LD B, AYPortWriteB
- 437+ F36A ED 79                OUT (C), A
- 438+ F36C
- 439+ F36C                      ; Mixer
- 440+ F36C 3E 07                LD A, 7
- 441+ F36E 06 FF                LD B, AYPortSelectB
- 442+ F370 ED 79                OUT (C), A
- 443+ F372 7C                   LD A, H
- 444+ F373 EE FF                XOR %11111111
- 445+ F375 06 BF                LD B, AYPortWriteB
- 446+ F377 ED 79                OUT (C), A
- 447+ F379
- 448+ F379              melodyEnd
- 449+ F379
+  36+ F125                      AY_TONE 'A'
+  36+ F125             >; write HL as a tone value to [previously] selected AY Chip (253/254/255)
+  36+ F125             >; argChannel is A, B or C
+  36+ F125             >
+  36+ F125             >        ; prepare B so that the next "OUT (C), A" instruction
+  36+ F125             >        ; will select the port/register that we want to write to
+  36+ F125 06 FF       >        LD B, AYPortSelect
+  36+ F127             >
+  36+ F127             >        ; set A to the port register for the low byte tone value
+  36+ F127             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  36+ F127             >        IF 'A' = 'A'
+  36+ F127 3E 00       >            ld a, 0
+  36+ F129             >        ELSEIF argChannel = 'B'
+  36+ F129 ~           >            ld a, 2
+  36+ F129             >        ELSEIF argChannel = 'C'
+  36+ F129 ~           >            ld a, 4
+  36+ F129             >        ENDIF
+  36+ F129 ED 79       >        OUT (C), A
+  36+ F12B             >
+  36+ F12B             >        ; AY chip ia now ready to accept the tone (low byte) value held in L
+  36+ F12B             >        ; so write it here
+  36+ F12B 06 BF       >        LD B, AYPortWrite
+  36+ F12D ED 69       >        OUT (C), L
+  36+ F12F             >
+  36+ F12F             >        ; prepare B so that the next "OUT (C), A" instruction
+  36+ F12F             >        ; will select the port/register that we want to write to
+  36+ F12F 06 FF       >        LD B, AYPortSelect
+  36+ F131             >
+  36+ F131             >        ; set A to the port register for the high byte tone value
+  36+ F131             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  36+ F131             >        IF 'A' = 'A'
+  36+ F131 3E 01       >            ld a, 1
+  36+ F133             >        ELSEIF argChannel = 'B'
+  36+ F133 ~           >            ld a, 3
+  36+ F133             >        ELSEIF argChannel = 'C'
+  36+ F133 ~           >            ld a, 5
+  36+ F133             >        ENDIF
+  36+ F133 ED 79       >        OUT (C), A
+  36+ F135             >
+  36+ F135             >        ; AY chip ia now ready to accept the tone (high byte) value held in H
+  36+ F135             >        ; so write it here
+  36+ F135 06 BF       >        LD B, AYPortWrite
+  36+ F137 ED 61       >        OUT (C), H
+  37+ F139
+  38+ F139              ; get the Ch1 volume value
+  39+ F139              ; apply delta
+  40+ F139 2A 04 90             LD HL, (Ch1Volume)
+  41+ F13C ED 5B 06 90          LD DE, (Ch1VolumeD)
+  42+ F140 19                   ADD HL, DE
+  43+ F141 22 04 90             LD (Ch1Volume), HL
+  44+ F144
+  45+ F144 7C                   LD A, H
+  46+ F145 E6 0F                AND 15
+  47+ F147
+  48+ F147              ; write Ch1 volume to AY chip
+  49+ F147                      AY_VOLUME 'A'
+  49+ F147             >; write A as a volume value to [previously] selected AY Chip (253/254/255)
+  49+ F147             >; argChannel is A, B or C
+  49+ F147             >
+  49+ F147             >        ; prepare B so that the next "OUT (C), A" instruction
+  49+ F147             >        ; will select the port/register that we want to write to
+  49+ F147 06 FF       >        LD B, AYPortSelect
+  49+ F149             >
+  49+ F149             >        ; set H to the port register for the volume value
+  49+ F149             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  49+ F149             >        IF 'A' = 'A'
+  49+ F149 26 08       >            ld h, 8
+  49+ F14B             >        ELSEIF argChannel = 'B'
+  49+ F14B ~           >            ld h, 9
+  49+ F14B             >        ELSEIF argChannel = 'C'
+  49+ F14B ~           >            ld h, 10
+  49+ F14B             >        ENDIF
+  49+ F14B ED 61       >        OUT (C), H
+  49+ F14D             >
+  49+ F14D             >        ; AY chip ia now ready to accept the VOLUME value held in A
+  49+ F14D             >        ; so write it here
+  49+ F14D 06 BF       >        LD B, AYPortWrite
+  49+ F14F ED 79       >        OUT (C), A
+  50+ F151
+  51+ F151              ; get the Ch2 tone value
+  52+ F151              ; apply delta
+  53+ F151 2A 0A 90             LD HL, (Ch2Pitch)
+  54+ F154 ED 5B 0C 90          LD DE, (Ch2PitchD)
+  55+ F158 19                   ADD HL, DE
+  56+ F159 22 0A 90             LD (Ch2Pitch), HL
+  57+ F15C
+  58+ F15C              ; write Ch2 tone to AY chip
+  59+ F15C                      AY_TONE 'B'
+  59+ F15C             >; write HL as a tone value to [previously] selected AY Chip (253/254/255)
+  59+ F15C             >; argChannel is A, B or C
+  59+ F15C             >
+  59+ F15C             >        ; prepare B so that the next "OUT (C), A" instruction
+  59+ F15C             >        ; will select the port/register that we want to write to
+  59+ F15C 06 FF       >        LD B, AYPortSelect
+  59+ F15E             >
+  59+ F15E             >        ; set A to the port register for the low byte tone value
+  59+ F15E             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  59+ F15E             >        IF 'B' = 'A'
+  59+ F15E ~           >            ld a, 0
+  59+ F15E             >        ELSEIF argChannel = 'B'
+  59+ F15E 3E 02       >            ld a, 2
+  59+ F160             >        ELSEIF argChannel = 'C'
+  59+ F160 ~           >            ld a, 4
+  59+ F160             >        ENDIF
+  59+ F160 ED 79       >        OUT (C), A
+  59+ F162             >
+  59+ F162             >        ; AY chip ia now ready to accept the tone (low byte) value held in L
+  59+ F162             >        ; so write it here
+  59+ F162 06 BF       >        LD B, AYPortWrite
+  59+ F164 ED 69       >        OUT (C), L
+  59+ F166             >
+  59+ F166             >        ; prepare B so that the next "OUT (C), A" instruction
+  59+ F166             >        ; will select the port/register that we want to write to
+  59+ F166 06 FF       >        LD B, AYPortSelect
+  59+ F168             >
+  59+ F168             >        ; set A to the port register for the high byte tone value
+  59+ F168             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  59+ F168             >        IF 'B' = 'A'
+  59+ F168 ~           >            ld a, 1
+  59+ F168             >        ELSEIF argChannel = 'B'
+  59+ F168 3E 03       >            ld a, 3
+  59+ F16A             >        ELSEIF argChannel = 'C'
+  59+ F16A ~           >            ld a, 5
+  59+ F16A             >        ENDIF
+  59+ F16A ED 79       >        OUT (C), A
+  59+ F16C             >
+  59+ F16C             >        ; AY chip ia now ready to accept the tone (high byte) value held in H
+  59+ F16C             >        ; so write it here
+  59+ F16C 06 BF       >        LD B, AYPortWrite
+  59+ F16E ED 61       >        OUT (C), H
+  60+ F170
+  61+ F170              ; get the Ch2 volume value
+  62+ F170              ; apply delta
+  63+ F170 2A 0E 90             LD HL, (Ch2Volume)
+  64+ F173 ED 5B 10 90          LD DE, (Ch2VolumeD)
+  65+ F177 19                   ADD HL, DE
+  66+ F178 22 0E 90             LD (Ch2Volume), HL
+  67+ F17B
+  68+ F17B 7C                   LD A, H
+  69+ F17C E6 0F                AND 15
+  70+ F17E
+  71+ F17E              ; write Ch2 volume to AY chip
+  72+ F17E                      AY_VOLUME 'B'
+  72+ F17E             >; write A as a volume value to [previously] selected AY Chip (253/254/255)
+  72+ F17E             >; argChannel is A, B or C
+  72+ F17E             >
+  72+ F17E             >        ; prepare B so that the next "OUT (C), A" instruction
+  72+ F17E             >        ; will select the port/register that we want to write to
+  72+ F17E 06 FF       >        LD B, AYPortSelect
+  72+ F180             >
+  72+ F180             >        ; set H to the port register for the volume value
+  72+ F180             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  72+ F180             >        IF 'B' = 'A'
+  72+ F180 ~           >            ld h, 8
+  72+ F180             >        ELSEIF argChannel = 'B'
+  72+ F180 26 09       >            ld h, 9
+  72+ F182             >        ELSEIF argChannel = 'C'
+  72+ F182 ~           >            ld h, 10
+  72+ F182             >        ENDIF
+  72+ F182 ED 61       >        OUT (C), H
+  72+ F184             >
+  72+ F184             >        ; AY chip ia now ready to accept the VOLUME value held in A
+  72+ F184             >        ; so write it here
+  72+ F184 06 BF       >        LD B, AYPortWrite
+  72+ F186 ED 79       >        OUT (C), A
+  73+ F188
+  74+ F188              ; get the Ch3 tone value
+  75+ F188              ; apply delta
+  76+ F188 2A 14 90             LD HL, (Ch3Pitch)
+  77+ F18B ED 5B 16 90          LD DE, (Ch3PitchD)
+  78+ F18F 19                   ADD HL, DE
+  79+ F190 22 14 90             LD (Ch3Pitch), HL
+  80+ F193
+  81+ F193              ; write Ch3 tone to AY chip
+  82+ F193                      AY_TONE 'C'
+  82+ F193             >; write HL as a tone value to [previously] selected AY Chip (253/254/255)
+  82+ F193             >; argChannel is A, B or C
+  82+ F193             >
+  82+ F193             >        ; prepare B so that the next "OUT (C), A" instruction
+  82+ F193             >        ; will select the port/register that we want to write to
+  82+ F193 06 FF       >        LD B, AYPortSelect
+  82+ F195             >
+  82+ F195             >        ; set A to the port register for the low byte tone value
+  82+ F195             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  82+ F195             >        IF 'C' = 'A'
+  82+ F195 ~           >            ld a, 0
+  82+ F195             >        ELSEIF argChannel = 'B'
+  82+ F195 ~           >            ld a, 2
+  82+ F195             >        ELSEIF argChannel = 'C'
+  82+ F195 3E 04       >            ld a, 4
+  82+ F197             >        ENDIF
+  82+ F197 ED 79       >        OUT (C), A
+  82+ F199             >
+  82+ F199             >        ; AY chip ia now ready to accept the tone (low byte) value held in L
+  82+ F199             >        ; so write it here
+  82+ F199 06 BF       >        LD B, AYPortWrite
+  82+ F19B ED 69       >        OUT (C), L
+  82+ F19D             >
+  82+ F19D             >        ; prepare B so that the next "OUT (C), A" instruction
+  82+ F19D             >        ; will select the port/register that we want to write to
+  82+ F19D 06 FF       >        LD B, AYPortSelect
+  82+ F19F             >
+  82+ F19F             >        ; set A to the port register for the high byte tone value
+  82+ F19F             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  82+ F19F             >        IF 'C' = 'A'
+  82+ F19F ~           >            ld a, 1
+  82+ F19F             >        ELSEIF argChannel = 'B'
+  82+ F19F ~           >            ld a, 3
+  82+ F19F             >        ELSEIF argChannel = 'C'
+  82+ F19F 3E 05       >            ld a, 5
+  82+ F1A1             >        ENDIF
+  82+ F1A1 ED 79       >        OUT (C), A
+  82+ F1A3             >
+  82+ F1A3             >        ; AY chip ia now ready to accept the tone (high byte) value held in H
+  82+ F1A3             >        ; so write it here
+  82+ F1A3 06 BF       >        LD B, AYPortWrite
+  82+ F1A5 ED 61       >        OUT (C), H
+  83+ F1A7
+  84+ F1A7              ; get the Ch3 volume value
+  85+ F1A7              ; apply delta
+  86+ F1A7 2A 18 90             LD HL, (Ch3Volume)
+  87+ F1AA ED 5B 1A 90          LD DE, (Ch3VolumeD)
+  88+ F1AE 19                   ADD HL, DE
+  89+ F1AF 22 18 90             LD (Ch3Volume), HL
+  90+ F1B2
+  91+ F1B2 7C                   LD A, H
+  92+ F1B3 E6 0F                AND 15
+  93+ F1B5
+  94+ F1B5              ; write Ch3 volume to AY chip
+  95+ F1B5                      AY_VOLUME 'C'
+  95+ F1B5             >; write A as a volume value to [previously] selected AY Chip (253/254/255)
+  95+ F1B5             >; argChannel is A, B or C
+  95+ F1B5             >
+  95+ F1B5             >        ; prepare B so that the next "OUT (C), A" instruction
+  95+ F1B5             >        ; will select the port/register that we want to write to
+  95+ F1B5 06 FF       >        LD B, AYPortSelect
+  95+ F1B7             >
+  95+ F1B7             >        ; set H to the port register for the volume value
+  95+ F1B7             >        ; it's dependent on the AY chip Channel, i.e. A, B or C
+  95+ F1B7             >        IF 'C' = 'A'
+  95+ F1B7 ~           >            ld h, 8
+  95+ F1B7             >        ELSEIF argChannel = 'B'
+  95+ F1B7 ~           >            ld h, 9
+  95+ F1B7             >        ELSEIF argChannel = 'C'
+  95+ F1B7 26 0A       >            ld h, 10
+  95+ F1B9             >        ENDIF
+  95+ F1B9 ED 61       >        OUT (C), H
+  95+ F1BB             >
+  95+ F1BB             >        ; AY chip ia now ready to accept the VOLUME value held in A
+  95+ F1BB             >        ; so write it here
+  95+ F1BB 06 BF       >        LD B, AYPortWrite
+  95+ F1BD ED 79       >        OUT (C), A
+  96+ F1BF
+  97+ F1BF
+  98+ F1BF              ; set the AY mixer value depending on ch1Flags, ch2Flags & ch3Flags
+  99+ F1BF              ; these control the tone and noise flags in main AY mixer setting
+ 100+ F1BF              ; mapping is as follows and we negate the Ch1/2/3Flag setting
+ 101+ F1BF              ; Ch1Flags
+ 102+ F1BF              ; 0 -> 0        move bit 0 of ch1Flags to bit 0 of AYchip flag
+ 103+ F1BF              ; 1 -> 3        move bit 1 of ch1Flags to bit 3 of AYChip flag
+ 104+ F1BF              ; Ch2Flags
+ 105+ F1BF              ; 0 -> 1
+ 106+ F1BF              ; 1 -> 4
+ 107+ F1BF              ; Ch3Flags
+ 108+ F1BF              ; 0 -> 2
+ 109+ F1BF              ; 1 -> 5
+ 110+ F1BF
+ 111+ F1BF              ; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
+ 112+ F1BF              ; ChNFlags: bit0 = tone-on, bit1 = noise-on.
+ 113+ F1BF              ; Gather each channel's tone bit into E and noise bit into D, then place & invert.
+ 114+ F1BF 16 00                ld d, 0                     ; D = noise bits (will land in mixer bits 3-5)
+ 115+ F1C1 1E 00                ld e, 0                     ; E = tone  bits (mixer bits 0-2)
+ 116+ F1C3
+ 117+ F1C3 3A 1C 90             ld a, (Ch3Flags)            ; process 3,2,1 so channel 1 ends up in bit 0
+ 118+ F1C6 1F                   rra
+ 118+ F1C7 CB 13          rl e                  ; tone3  -> E
+ 119+ F1C9 1F                   rra
+ 119+ F1CA CB 12          rl d                  ; noise3 -> D
+ 120+ F1CC 3A 12 90             ld a, (Ch2Flags)
+ 121+ F1CF 1F                   rra
+ 121+ F1D0 CB 13          rl e                  ; tone2
+ 122+ F1D2 1F                   rra
+ 122+ F1D3 CB 12          rl d                  ; noise2
+ 123+ F1D5 3A 08 90             ld a, (Ch1Flags)
+ 124+ F1D8 1F                   rra
+ 124+ F1D9 CB 13          rl e                  ; tone1
+ 125+ F1DB 1F                   rra
+ 125+ F1DC CB 12          rl d                  ; noise1
+ 126+ F1DE
+ 127+ F1DE 7A                   ld a, d
+ 128+ F1DF 87                   add a,a
+ 128+ F1E0 87             add a,a
+ 128+ F1E1 87             add a,a ; noise bits up to positions 3-5
+ 129+ F1E2 B3                   or e                        ; + tone bits 0-2  = active-high enables
+ 130+ F1E3 2F                   cpl                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
+ 131+ F1E4
+ 132+ F1E4 01 FD FF             ld bc, AYSelect
+ 133+ F1E7 16 07                ld d, mixerFlag
+ 134+ F1E9 ED 51                out (c), d
+ 135+ F1EB 01 FD BF             ld bc, AYrw
+ 136+ F1EE ED 79                out (c), a
+ 137+ F1F0
+ 138+ F1F0
+ 139+ F1F0 3A 09 90             LD A, (Ch1Length)
+ 140+ F1F3 3D                   DEC A
+ 141+ F1F4 20 03                JR NZ, ch1endskip
+ 142+ F1F6 32 08 90             LD (Ch1Flags), A
+ 143+ F1F9              ch1endskip
+ 144+ F1F9 32 09 90             LD (Ch1Length), A
+ 145+ F1FC
+ 146+ F1FC 3A 13 90             LD A, (Ch2Length)
+ 147+ F1FF 3D                   DEC A
+ 148+ F200 20 03                JR NZ, ch2endskip
+ 149+ F202 32 12 90             LD (Ch2Flags), A
+ 150+ F205              ch2endskip
+ 151+ F205 32 13 90             LD (Ch2Length), A
+ 152+ F208
+ 153+ F208 3A 1D 90             LD A, (Ch3Length)
+ 154+ F20B 3D                   DEC A
+ 155+ F20C 20 03                JR NZ, ch3endskip
+ 156+ F20E 32 1C 90             LD (Ch3Flags), A
+ 157+ F211              ch3endskip
+ 158+ F211 32 1D 90             LD (Ch3Length), A
+ 159+ F214
+ 160+ F214
+ 161+ F214              melodyRoutine
+ 162+ F214 3A 1E 90             LD A, (frameCount)                  ; pick up remaining note time
+ 163+ F217 3D                   DEC A                               ; decrease by 1 frame
+ 164+ F218 32 1E 90             LD (frameCount), A                  ; save it back
+ 165+ F21B C2 61 F3             JP NZ, melodyEnd                    ; branch to end if not zero
+ 166+ F21E
+ 167+ F21E                      ; timer expired, so pick up next note to play
+ 168+ F21E                      ; - first set timer for this new note
+ 169+ F21E              mr0
+ 170+ F21E ED 5B 1F 90          LD DE, (framePointer)               ; framePointer = timer table
+ 171+ F222 1A                   LD A, (DE)                          ; get note length
+ 172+ F223
+ 173+ F223 13                   INC DE                              ; skip past high byte
+ 174+ F224 FE FF                CP 255                              ; is it 255 marker
+ 175+ F226 20 09                JR NZ, mr1                          ; branch if not
+ 176+ F228
+ 177+ F228 11 2F 8E             LD DE, frameTable                   ; point to table start
+ 178+ F22B ED 53 1F 90          LD (framePointer), DE               ; save in framePointer
+ 179+ F22F 18 ED                JR mr0                              ; and test again !
+ 180+ F231              mr1
+ 181+ F231 32 1E 90             LD (frameCount), A                  ; save note length
+ 182+ F234
+ 183+ F234                      ; - point to the note, save in HL and update
+ 184+ F234                      ;   framePointer for next time
+ 185+ F234 13                   INC DE                              ; point to note data
+ 186+ F235 1A                   LD A, (DE)                          ; get low byte
+ 187+ F236 6F                   LD L, A
+ 188+ F237 13                   INC DE                              ; point to high byte
+ 189+ F238 1A                   LD A, (DE)                          ; get the high byte
+ 190+ F239 67                   LD H, A
+ 191+ F23A 13                   INC DE                              ; point to next timer entry
+ 192+ F23B ED 53 1F 90          LD (framePointer), DE               ; and save in framePointer
+ 193+ F23F EB                   EX DE, HL
+ 194+ F240              playNotes
+ 195+ F240 0E FD                ld c, AYPortC
+ 196+ F242
+ 197+ F242                      ; -------------------- AY2 --------------------
+ 198+ F242 3E FE                LD A, 254
+ 199+ F244 06 FF                LD B, AYPortSelectB
+ 200+ F246 ED 79                OUT (C), A
+ 201+ F248
+ 202+ F248                      ; Tone A
+ 203+ F248 AF                   XOR A
+ 204+ F249 ED 79                OUT (C), A
+ 205+ F24B 1A                   LD A, (DE)
+ 206+ F24C 13                   INC DE
+ 207+ F24D 06 BF                LD B, AYPortWriteB
+ 208+ F24F ED 79                OUT (C), A
+ 209+ F251
+ 210+ F251 3E 01                LD A, 1
+ 211+ F253 06 FF                LD B, AYPortSelectB
+ 212+ F255 ED 79                OUT (C), A
+ 213+ F257 1A                   LD A, (DE)
+ 214+ F258 13                   INC DE
+ 215+ F259 06 BF                LD B, AYPortWriteB
+ 216+ F25B ED 79                OUT (C), A
+ 217+ F25D
+ 218+ F25D                      ; Volume A
+ 219+ F25D 3E 08                LD A, 8
+ 220+ F25F 06 FF                LD B, AYPortSelectB
+ 221+ F261 ED 79                OUT (C), A
+ 222+ F263 1A                   LD A, (DE)
+ 223+ F264              ;        AND %00000001
+ 224+ F264              ;        LD H, A
+ 225+ F264              ;        LD A, (volume)
+ 226+ F264 13                   INC DE
+ 227+ F265 06 BF                LD B, AYPortWriteB
+ 228+ F267 ED 79                OUT (C), A
+ 229+ F269 D6 01                sub 1
+ 230+ F26B 9F                   sbc a, a
+ 231+ F26C 3C                   inc a
+ 232+ F26D 67                   ld h, a
+ 233+ F26E
+ 234+ F26E                      ; Tone B
+ 235+ F26E 3E 02                LD A, 2
+ 236+ F270 06 FF                LD B, AYPortSelectB
+ 237+ F272 ED 79                OUT (C), A
+ 238+ F274 1A                   LD A, (DE)
+ 239+ F275 13                   INC DE
+ 240+ F276 06 BF                LD B, AYPortWriteB
+ 241+ F278 ED 79                OUT (C), A
+ 242+ F27A
+ 243+ F27A 3E 03                LD A, 3
+ 244+ F27C 06 FF                LD B, AYPortSelectB
+ 245+ F27E ED 79                OUT (C), A
+ 246+ F280 1A                   LD A, (DE)
+ 247+ F281 13                   INC DE
+ 248+ F282 06 BF                LD B, AYPortWriteB
+ 249+ F284 ED 79                OUT (C), A
+ 250+ F286
+ 251+ F286                      ; Volume B
+ 252+ F286 3E 09                LD A, 9
+ 253+ F288 06 FF                LD B, AYPortSelectB
+ 254+ F28A ED 79                OUT (C), A
+ 255+ F28C 1A                   LD A, (DE)
+ 256+ F28D              ;        AND %00000010
+ 257+ F28D              ;        OR H
+ 258+ F28D              ;        LD H, A
+ 259+ F28D              ;        LD A, (volume)
+ 260+ F28D 13                   INC DE
+ 261+ F28E 06 BF                LD B, AYPortWriteB
+ 262+ F290 ED 79                OUT (C), A
+ 263+ F292 D6 01                sub 1
+ 264+ F294 9F                   sbc a, a
+ 265+ F295 3C                   inc a
+ 266+ F296 17                   rla
+ 267+ F297 B4                   or h
+ 268+ F298 67                   ld h, a
+ 269+ F299
+ 270+ F299                      ; Tone C
+ 271+ F299 3E 04                LD A, 4
+ 272+ F29B 06 FF                LD B, AYPortSelectB
+ 273+ F29D ED 79                OUT (C), A
+ 274+ F29F 1A                   LD A, (DE)
+ 275+ F2A0 13                   INC DE
+ 276+ F2A1 06 BF                LD B, AYPortWriteB
+ 277+ F2A3 ED 79                OUT (C), A
+ 278+ F2A5
+ 279+ F2A5 3E 05                LD A, 5
+ 280+ F2A7 06 FF                LD B, AYPortSelectB
+ 281+ F2A9 ED 79                OUT (C), A
+ 282+ F2AB 1A                   LD A, (DE)
+ 283+ F2AC 13                   INC DE
+ 284+ F2AD 06 BF                LD B, AYPortWriteB
+ 285+ F2AF ED 79                OUT (C), A
+ 286+ F2B1
+ 287+ F2B1                      ; Volume C
+ 288+ F2B1 3E 0A                LD A, 10
+ 289+ F2B3 06 FF                LD B, AYPortSelectB
+ 290+ F2B5 ED 79                OUT (C), A
+ 291+ F2B7 1A                   LD A, (DE)
+ 292+ F2B8              ;        AND %00000100
+ 293+ F2B8              ;        OR H
+ 294+ F2B8              ;        LD H, A
+ 295+ F2B8              ;        LD A, (volume)
+ 296+ F2B8 13                   INC DE
+ 297+ F2B9 06 BF                LD B, AYPortWriteB
+ 298+ F2BB ED 79                OUT (C), A
+ 299+ F2BD D6 01                sub 1
+ 300+ F2BF 9F                   sbc a, a
+ 301+ F2C0 3C                   inc a
+ 302+ F2C1 17                   rla
+ 303+ F2C2 17                   rla
+ 304+ F2C3 B4                   or h
+ 305+ F2C4 67                   ld h, a
+ 306+ F2C5
+ 307+ F2C5                      ; Mixer
+ 308+ F2C5 3E 07                LD A, 7
+ 309+ F2C7 06 FF                LD B, AYPortSelectB
+ 310+ F2C9 ED 79                OUT (C), A
+ 311+ F2CB 7C                   LD A, H
+ 312+ F2CC EE FF                XOR %11111111
+ 313+ F2CE 06 BF                LD B, AYPortWriteB
+ 314+ F2D0 ED 79                OUT (C), A
+ 315+ F2D2
+ 316+ F2D2                      ; -------------------- AY3 --------------------
+ 317+ F2D2 3E FD                LD A, 253
+ 318+ F2D4 06 FF                LD B, AYPortSelectB
+ 319+ F2D6 ED 79                OUT (C), A
+ 320+ F2D8
+ 321+ F2D8                      ; Tone A
+ 322+ F2D8 AF                   XOR A
+ 323+ F2D9 ED 79                OUT (C), A
+ 324+ F2DB 1A                   LD A, (DE)
+ 325+ F2DC 13                   INC DE
+ 326+ F2DD 06 BF                LD B, AYPortWriteB
+ 327+ F2DF ED 79                OUT (C), A
+ 328+ F2E1
+ 329+ F2E1 3E 01                LD A, 1
+ 330+ F2E3 06 FF                LD B, AYPortSelectB
+ 331+ F2E5 ED 79                OUT (C), A
+ 332+ F2E7 1A                   LD A, (DE)
+ 333+ F2E8 13                   INC DE
+ 334+ F2E9 06 BF                LD B, AYPortWriteB
+ 335+ F2EB ED 79                OUT (C), A
+ 336+ F2ED
+ 337+ F2ED                      ; Volume A
+ 338+ F2ED 3E 08                LD A, 8
+ 339+ F2EF 06 FF                LD B, AYPortSelectB
+ 340+ F2F1 ED 79                OUT (C), A
+ 341+ F2F3 1A                   LD A, (DE)
+ 342+ F2F4 E6 01                AND %00000001
+ 343+ F2F6 67                   LD H, A
+ 344+ F2F7 3A 21 90             LD A, (volume)
+ 345+ F2FA 13                   INC DE
+ 346+ F2FB 06 BF                LD B, AYPortWriteB
+ 347+ F2FD ED 79                OUT (C), A
+ 348+ F2FF
+ 349+ F2FF                      ; Tone B
+ 350+ F2FF 3E 02                LD A, 2
+ 351+ F301 06 FF                LD B, AYPortSelectB
+ 352+ F303 ED 79                OUT (C), A
+ 353+ F305 1A                   LD A, (DE)
+ 354+ F306 13                   INC DE
+ 355+ F307 06 BF                LD B, AYPortWriteB
+ 356+ F309 ED 79                OUT (C), A
+ 357+ F30B
+ 358+ F30B 3E 03                LD A, 3
+ 359+ F30D 06 FF                LD B, AYPortSelectB
+ 360+ F30F ED 79                OUT (C), A
+ 361+ F311 1A                   LD A, (DE)
+ 362+ F312 13                   INC DE
+ 363+ F313 06 BF                LD B, AYPortWriteB
+ 364+ F315 ED 79                OUT (C), A
+ 365+ F317
+ 366+ F317                      ; Volume B
+ 367+ F317 3E 09                LD A, 9
+ 368+ F319 06 FF                LD B, AYPortSelectB
+ 369+ F31B ED 79                OUT (C), A
+ 370+ F31D 1A                   LD A, (DE)
+ 371+ F31E E6 02                AND %00000010
+ 372+ F320 B4                   OR H
+ 373+ F321 67                   LD H, A
+ 374+ F322 3A 21 90             LD A, (volume)
+ 375+ F325 13                   INC DE
+ 376+ F326 06 BF                LD B, AYPortWriteB
+ 377+ F328 ED 79                OUT (C), A
+ 378+ F32A
+ 379+ F32A                      ; Tone C
+ 380+ F32A 3E 04                LD A, 4
+ 381+ F32C 06 FF                LD B, AYPortSelectB
+ 382+ F32E ED 79                OUT (C), A
+ 383+ F330 1A                   LD A, (DE)
+ 384+ F331 13                   INC DE
+ 385+ F332 06 BF                LD B, AYPortWriteB
+ 386+ F334 ED 79                OUT (C), A
+ 387+ F336
+ 388+ F336 3E 05                LD A, 5
+ 389+ F338 06 FF                LD B, AYPortSelectB
+ 390+ F33A ED 79                OUT (C), A
+ 391+ F33C 1A                   LD A, (DE)
+ 392+ F33D 13                   INC DE
+ 393+ F33E 06 BF                LD B, AYPortWriteB
+ 394+ F340 ED 79                OUT (C), A
+ 395+ F342
+ 396+ F342                      ; Volume C
+ 397+ F342 3E 0A                LD A, 10
+ 398+ F344 06 FF                LD B, AYPortSelectB
+ 399+ F346 ED 79                OUT (C), A
+ 400+ F348 1A                   LD A, (DE)
+ 401+ F349 E6 04                AND %00000100
+ 402+ F34B B4                   OR H
+ 403+ F34C 67                   LD H, A
+ 404+ F34D 3A 21 90             LD A, (volume)
+ 405+ F350 06 BF                LD B, AYPortWriteB
+ 406+ F352 ED 79                OUT (C), A
+ 407+ F354
+ 408+ F354                      ; Mixer
+ 409+ F354 3E 07                LD A, 7
+ 410+ F356 06 FF                LD B, AYPortSelectB
+ 411+ F358 ED 79                OUT (C), A
+ 412+ F35A 7C                   LD A, H
+ 413+ F35B EE FF                XOR %11111111
+ 414+ F35D 06 BF                LD B, AYPortWriteB
+ 415+ F35F ED 79                OUT (C), A
+ 416+ F361
+ 417+ F361              melodyEnd
+ 418+ F361
 # file closed: im2Routine.inc
-1371  F379
-1372  F379 E1                   POP HL
-1373  F37A D1                   POP DE
-1374  F37B C1                   POP BC
-1375  F37C F1                   POP AF
-1376  F37D
-1377  F37D FB                   EI
-1378  F37E ED 4D                RETI
-1379  F380
-1380  F380              ; ----------------------------------------------------------------
-1381  F380              ; Tilemap data - 48 KB stored directly in Pages 40 - 45
-1382  F380              ; ----------------------------------------------------------------
-1383  F380              TILEMAP_PAGE    EQU     40
-1384  F380
-1385  F380              ; === Chunk 1 (bytes 0-16383) -> 8 KB Page 40/41 ===
-1386  F380              MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
-1387  F380              MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
-1388  F380              ORG     $C000
+1371  F361
+1372  F361 E1                   POP HL
+1373  F362 D1                   POP DE
+1374  F363 C1                   POP BC
+1375  F364 F1                   POP AF
+1376  F365
+1377  F365 FB                   EI
+1378  F366 ED 4D                RETI
+1379  F368
+1380  F368              ; ----------------------------------------------------------------
+1381  F368              ; Tilemap data - 48 KB stored directly in Pages 40 - 45
+1382  F368              ; ----------------------------------------------------------------
+1383  F368              TILEMAP_PAGE    EQU     40
+1384  F368
+1385  F368              ; === Chunk 1 (bytes 0-16383) -> 8 KB Page 40/41 ===
+1386  F368              MMU     6, TILEMAP_PAGE                             ; map page 40 into slot 6
+1387  F368              MMU     7, TILEMAP_PAGE + 1                         ; map page 41 into slot 7
+1388  F368              ORG     $C000
 1389  C000              tilemap_part1:
 1390  C000              INCBIN  "testmaze2.map", 0, 16384                    ; first 16 KB
 1391  0000
@@ -9012,7 +9282,9 @@ Value    Label
 0x9B65 X 84>worldBelow
 0x0004   ANIM_SPEED
 0x00FD   AYPortC
+0x00FF   AYPortSelect
 0x00FF   AYPortSelectB
+0x00BF   AYPortWrite
 0x00BF   AYPortWriteB
 0xFFFD   AYSelect
 0xBFFD   AYrw
@@ -9216,18 +9488,18 @@ Value    Label
 0x9030   cam_py
 0x9032   cam_tx
 0x9033   cam_ty
-0xF205   ch1endskip
-0xF21A   ch2endskip
-0xF22F   ch3endskip
-0x0001   channel1ToneH
-0x0000   channel1ToneL
-0x0008   channel1Volume
-0x0003   channel2ToneH
-0x0002   channel2ToneL
-0x0009   channel2Volume
-0x0005   channel3ToneH
-0x0004   channel3ToneL
-0x000A   channel3Volume
+0xF1F9   ch1endskip
+0xF205   ch2endskip
+0xF211   ch3endskip
+0x0001 X channel1ToneH
+0x0000 X channel1ToneL
+0x0008 X channel1Volume
+0x0003 X channel2ToneH
+0x0002 X channel2ToneL
+0x0009 X channel2Volume
+0x0005 X channel3ToneH
+0x0004 X channel3ToneL
+0x000A X channel3Volume
 0x3D00   charset
 0x86A4   checkAnyKey
 0x86BA   checkAnyKey.pressed
@@ -9348,10 +9620,10 @@ Value    Label
 0x820A X lostLife
 0x9D31   lut_base
 0x944B   main
-0xF379   melodyEnd
-0xF232 X melodyRoutine
+0xF361   melodyEnd
+0xF214 X melodyRoutine
 0x0007   mixerFlag
-0x9022   mixerFlags
+0x9022 X mixerFlags
 0x0000   mode_auto
 0x0001   mode_hunt
 0x0002   mode_wander
@@ -9362,8 +9634,8 @@ Value    Label
 0x972B   moveSprite1
 0x0002   move_delta
 0x0001   move_delta_baddie
-0xF23C   mr0
-0xF24D   mr1
+0xF21E   mr0
+0xF231   mr1
 0x8196   newGame
 0x9979   newTile
 0x9990   newTile.done
@@ -9383,7 +9655,7 @@ Value    Label
 0x8F92   play
 0x8F8A   playCh1
 0x8F8F   playCh2
-0xF258 X playNotes
+0xF240 X playNotes
 0x903A X playerAlive
 0x904A   playerAnimFrame
 0x904B   playerAnimTick

@@ -1,3 +1,104 @@
+AYPortSelect   EQU $FF                     ; B value for AYSelect port ($FFFD)
+AYPortWrite    EQU $BF                     ; B value for AYrw port ($BFFD)
+
+        
+MACRO AY_TONE argChannel
+; write HL as a tone value to [previously] selected AY Chip (253/254/255)
+; argChannel is A, B or C
+
+        ; prepare B so that the next "OUT (C), A" instruction 
+        ; will select the port/register that we want to write to
+        LD B, AYPortSelect
+
+        ; set A to the port register for the low byte tone value
+        ; it's dependent on the AY chip Channel, i.e. A, B or C
+        IF argChannel = 'A'
+            ld a, 0
+        ELSEIF argChannel = 'B'
+            ld a, 2
+        ELSEIF argChannel = 'C'
+            ld a, 4
+        ENDIF
+        OUT (C), A
+
+        ; AY chip ia now ready to accept the tone (low byte) value held in L
+        ; so write it here
+        LD B, AYPortWrite
+        OUT (C), L
+
+        ; prepare B so that the next "OUT (C), A" instruction 
+        ; will select the port/register that we want to write to
+        LD B, AYPortSelect
+
+        ; set A to the port register for the high byte tone value
+        ; it's dependent on the AY chip Channel, i.e. A, B or C
+        IF argChannel = 'A'
+            ld a, 1
+        ELSEIF argChannel = 'B'
+            ld a, 3
+        ELSEIF argChannel = 'C'
+            ld a, 5
+        ENDIF
+        OUT (C), A
+
+        ; AY chip ia now ready to accept the tone (high byte) value held in H
+        ; so write it here
+        LD B, AYPortWrite
+        OUT (C), H
+        ENDM
+
+
+MACRO AY_VOLUME argChannel
+; write A as a volume value to [previously] selected AY Chip (253/254/255)
+; argChannel is A, B or C
+
+        ; prepare B so that the next "OUT (C), A" instruction 
+        ; will select the port/register that we want to write to
+        LD B, AYPortSelect
+
+        ; set H to the port register for the volume value
+        ; it's dependent on the AY chip Channel, i.e. A, B or C
+        IF argChannel = 'A'
+            ld h, 8
+        ELSEIF argChannel = 'B'
+            ld h, 9
+        ELSEIF argChannel = 'C'
+            ld h, 10
+        ENDIF
+        OUT (C), H
+
+        ; AY chip ia now ready to accept the VOLUME value held in A
+        ; so write it here
+        LD B, AYPortWrite
+        OUT (C), A
+        ENDM
+
+; ---- fold one channel's flags into the mixer accumulator in C ----
+MACRO AY_MIX flagVar, tableOffset
+        LD HL, mixerFlags + tableOffset
+        LD A, (flagVar)
+        AND %00000011
+        ADD HL, A
+        LD A, (HL)
+        AND C
+        LD C, A
+        ENDM
+
+; ---- age a channel; silence it when its note length hits 0 ----
+;      pass a unique end-label name per channel (sjasmplus substitutes it textually)
+MACRO AY_TIMEOUT endLbl, lengthVar, flagsVar, volVar, volDVar
+        LD A, (lengthVar)
+        DEC A
+        JR NZ, endLbl
+        LD (flagsVar), A            ; A = 0 -> flags off
+        LD HL, 0
+        LD (volVar), HL
+        LD (volDVar), HL
+endLbl:
+        LD (lengthVar), A
+        ENDM
+
+
 playsound:
 ; Input : A = sound fx to play
 ;

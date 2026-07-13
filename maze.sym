@@ -1,6 +1,8 @@
 ANIM_SPEED: EQU 0x00000004
 AYPortC: EQU 0x000000FD
+AYPortSelect: EQU 0x000000FF
 AYPortSelectB: EQU 0x000000FF
+AYPortWrite: EQU 0x000000BF
 AYPortWriteB: EQU 0x000000BF
 AYSelect: EQU 0x0000FFFD
 AYrw: EQU 0x0000BFFD
@@ -204,9 +206,9 @@ cam_px: EQU 0x0000902E
 cam_py: EQU 0x00009030
 cam_tx: EQU 0x00009032
 cam_ty: EQU 0x00009033
-ch1endskip: EQU 0x0000F205
-ch2endskip: EQU 0x0000F21A
-ch3endskip: EQU 0x0000F22F
+ch1endskip: EQU 0x0000F1F9
+ch2endskip: EQU 0x0000F205
+ch3endskip: EQU 0x0000F211
 channel1ToneH: EQU 0x00000001
 channel1ToneL: EQU 0x00000000
 channel1Volume: EQU 0x00000008
@@ -343,8 +345,8 @@ lives_text: EQU 0x0000807B
 lostLife: EQU 0x0000820A
 lut_base: EQU 0x00009D31
 main: EQU 0x0000944B
-melodyEnd: EQU 0x0000F379
-melodyRoutine: EQU 0x0000F232
+melodyEnd: EQU 0x0000F361
+melodyRoutine: EQU 0x0000F214
 mixerFlag: EQU 0x00000007
 mixerFlags: EQU 0x00009022
 mode_auto: EQU 0x00000000
@@ -357,8 +359,8 @@ moveSprite: EQU 0x00009728
 moveSprite1: EQU 0x0000972B
 move_delta: EQU 0x00000002
 move_delta_baddie: EQU 0x00000001
-mr0: EQU 0x0000F23C
-mr1: EQU 0x0000F24D
+mr0: EQU 0x0000F21E
+mr1: EQU 0x0000F231
 newGame: EQU 0x00008196
 newTile: EQU 0x00009979
 newTile.done: EQU 0x00009990
@@ -379,7 +381,7 @@ pickByField.noU: EQU 0x00009AB2
 play: EQU 0x00008F92
 playCh1: EQU 0x00008F8A
 playCh2: EQU 0x00008F8F
-playNotes: EQU 0x0000F258
+playNotes: EQU 0x0000F240
 playerAlive: EQU 0x0000903A
 playerAnimFrame: EQU 0x0000904A
 playerAnimTick: EQU 0x0000904B

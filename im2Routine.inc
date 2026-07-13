@@ -33,17 +33,7 @@ noFlood:
         LD (Ch1Pitch), HL
 
 ; write Ch1 tone to AY chip
-        LD B, AYPortSelectB             ; AYSelect
-        LD A, channel1ToneL
-        OUT (C), A
-        LD B, AYPortWriteB              ; AYrw
-        OUT (C), L
-
-        LD B, AYPortSelectB
-        LD A, channel1ToneH
-        OUT (C), A
-        LD B, AYPortWriteB
-        OUT (C), H
+        AY_TONE 'A'
 
 ; get the Ch1 volume value
 ; apply delta
@@ -56,11 +46,7 @@ noFlood:
         AND 15
 
 ; write Ch1 volume to AY chip
-        LD B, AYPortSelectB
-        LD H, channel1Volume
-        OUT (C), H
-        LD B, AYPortWriteB
-        OUT (C), A
+        AY_VOLUME 'A'
 
 ; get the Ch2 tone value
 ; apply delta
@@ -70,17 +56,7 @@ noFlood:
         LD (Ch2Pitch), HL
 
 ; write Ch2 tone to AY chip
-        LD B, AYPortSelectB
-        LD A, channel2ToneL
-        OUT (C), A
-        LD B, AYPortWriteB
-        OUT (C), L
-
-        LD B, AYPortSelectB
-        LD A, channel2ToneH
-        OUT (C), A
-        LD B, AYPortWriteB
-        OUT (C), H
+        AY_TONE 'B'
 
 ; get the Ch2 volume value
 ; apply delta
@@ -93,11 +69,7 @@ noFlood:
         AND 15
 
 ; write Ch2 volume to AY chip
-        LD B, AYPortSelectB
-        LD H, channel2Volume
-        OUT (C), H
-        LD B, AYPortWriteB
-        OUT (C), A
+        AY_VOLUME 'B'
 
 ; get the Ch3 tone value
 ; apply delta
@@ -107,17 +79,7 @@ noFlood:
         LD (Ch3Pitch), HL
 
 ; write Ch3 tone to AY chip
-        LD B, AYPortSelectB
-        LD A, channel3ToneL
-        OUT (C), A
-        LD B, AYPortWriteB
-        OUT (C), L
-
-        LD B, AYPortSelectB
-        LD A, channel3ToneH
-        OUT (C), A
-        LD B, AYPortWriteB
-        OUT (C), H
+        AY_TONE 'C'
 
 ; get the Ch3 volume value
 ; apply delta
@@ -130,60 +92,54 @@ noFlood:
         AND 15
 
 ; write Ch3 volume to AY chip
-        LD B, AYPortSelectB
-        LD H, channel3Volume
-        OUT (C), H
-        LD B, AYPortWriteB
-        OUT (C), A
+        AY_VOLUME 'C'
+
 
 ; set the AY mixer value depending on ch1Flags, ch2Flags & ch3Flags
 ; these control the tone and noise flags in main AY mixer setting
 ; mapping is as follows and we negate the Ch1/2/3Flag setting
 ; Ch1Flags
-; bit
-; 0 -> 0
-; 1 -> 3
+; 0 -> 0        move bit 0 of ch1Flags to bit 0 of AYchip flag
+; 1 -> 3        move bit 1 of ch1Flags to bit 3 of AYChip flag
 ; Ch2Flags
 ; 0 -> 1
 ; 1 -> 4
 ; Ch3Flags
 ; 0 -> 2
 ; 1 -> 5
-        LD C, 255                               ; initialise to all 1's, everything off
-        LD HL, mixerFlags                       ; point to mapping data for Ch1Flags
-        LD A, (Ch1Flags)                        ; get Ch1Flags setting
-        AND %00000011                           ; we're only interested in bits 0,1
-        ADD HL, A                               ; offset into mixerFlags mapping
-        LD A, (HL)                              ; get value
-        AND C                                   ; AND with existing
-        LD C, A                                 ; store back
 
-        LD HL, mixerFlags +4
-        LD A, (Ch2Flags)
-        AND %00000011
-        ADD HL, A
-        LD A, (HL)
-        AND C
-        LD C, A
-        LD HL, mixerFlags +8
-        LD A, (Ch3Flags)
-        AND %00000011
-        ADD HL, A
-        LD A, (HL)
-        AND C
-        LD BC, AYSelect
-        LD D, mixerFlag
-        OUT (C), D
-        LD BC, AYrw
-        OUT (C), A
-        
+; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
+; ChNFlags: bit0 = tone-on, bit1 = noise-on.
+; Gather each channel's tone bit into E and noise bit into D, then place & invert.
+        ld d, 0                     ; D = noise bits (will land in mixer bits 3-5)
+        ld e, 0                     ; E = tone  bits (mixer bits 0-2)
+
+        ld a, (Ch3Flags)            ; process 3,2,1 so channel 1 ends up in bit 0
+        rra : rl e                  ; tone3  -> E
+        rra : rl d                  ; noise3 -> D
+        ld a, (Ch2Flags)
+        rra : rl e                  ; tone2
+        rra : rl d                  ; noise2
+        ld a, (Ch1Flags)
+        rra : rl e                  ; tone1
+        rra : rl d                  ; noise1
+
+        ld a, d
+        add a,a : add a,a : add a,a ; noise bits up to positions 3-5
+        or e                        ; + tone bits 0-2  = active-high enables
+        cpl                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
+
+        ld bc, AYSelect
+        ld d, mixerFlag
+        out (c), d
+        ld bc, AYrw
+        out (c), a
+
+
         LD A, (Ch1Length)
         DEC A
         JR NZ, ch1endskip
         LD (Ch1Flags), A
-        LD HL, 0
-        LD (Ch1Volume), HL
-        LD (Ch1VolumeD), HL
 ch1endskip
         LD (Ch1Length), A
 
@@ -191,9 +147,6 @@ ch1endskip
         DEC A
         JR NZ, ch2endskip
         LD (Ch2Flags), A
-        LD HL, 0
-        LD (Ch2Volume), HL
-        LD (Ch2VolumeD), HL
 ch2endskip
         LD (Ch2Length), A
 
@@ -201,9 +154,6 @@ ch2endskip
         DEC A
         JR NZ, ch3endskip
         LD (Ch3Flags), A
-        LD HL, 0
-        LD (Ch3Volume), HL
-        LD (Ch3VolumeD), HL
 ch3endskip
         LD (Ch3Length), A
 
@@ -217,28 +167,30 @@ melodyRoutine
         ; timer expired, so pick up next note to play
         ; - first set timer for this new note
 mr0
-        LD HL, (framePointer)               ; framePointer = timer table
-        LD A, (HL)                          ; get note length
+        LD DE, (framePointer)               ; framePointer = timer table
+        LD A, (DE)                          ; get note length
 
-        INC HL                              ; skip past high byte
+        INC DE                              ; skip past high byte
         CP 255                              ; is it 255 marker
         JR NZ, mr1                          ; branch if not
 
-        LD HL, frameTable                   ; point to table start
-        LD (framePointer), HL               ; save in framePointer
+        LD DE, frameTable                   ; point to table start
+        LD (framePointer), DE               ; save in framePointer
         JR mr0                              ; and test again !
 mr1
         LD (frameCount), A                  ; save note length
 
-        ; - point to the note, save in DE and update
+        ; - point to the note, save in HL and update
         ;   framePointer for next time
-        INC HL                              ; point to note data
-        LD E, (HL)                          ; get low byte
-        INC HL                              ; point to high byte
-        LD D, (HL)                          ; get the high byte
-        INC HL                              ; point to next timer entry
-        LD (framePointer), HL               ; and save in framePointer
-
+        INC DE                              ; point to note data
+        LD A, (DE)                          ; get low byte
+        LD L, A
+        INC DE                              ; point to high byte
+        LD A, (DE)                          ; get the high byte
+        LD H, A
+        INC DE                              ; point to next timer entry
+        LD (framePointer), DE               ; and save in framePointer
+        EX DE, HL
 playNotes
         ld c, AYPortC
 
@@ -268,12 +220,15 @@ playNotes
         LD B, AYPortSelectB
         OUT (C), A
         LD A, (DE)
-        AND %00000001
-        LD H, A
-        LD A, (volume)
         INC DE
         LD B, AYPortWriteB
         OUT (C), A
+
+        ; set A = %00000001 for mixer if A > 0, otherwise %00000000, save in H for later
+        sub 1
+        sbc a, a
+        inc a
+        ld h, a
 
         ; Tone B
         LD A, 2
@@ -297,13 +252,17 @@ playNotes
         LD B, AYPortSelectB
         OUT (C), A
         LD A, (DE)
-        AND %00000010
-        OR H
-        LD H, A
-        LD A, (volume)
         INC DE
         LD B, AYPortWriteB
         OUT (C), A
+
+        ; set A = %00000010 for mixer if A > 0, otherwise %00000000, OR with previous value
+        sub 1
+        sbc a, a
+        inc a
+        rla
+        or h
+        ld h, a
 
         ; Tone C
         LD A, 4
@@ -327,13 +286,18 @@ playNotes
         LD B, AYPortSelectB
         OUT (C), A
         LD A, (DE)
-        AND %00000100
-        OR H
-        LD H, A
-        LD A, (volume)
         INC DE
         LD B, AYPortWriteB
         OUT (C), A
+
+        ; set A = %00000100 for mixer if A > 0, otherwise %00000000, OR with previous value
+        sub 1
+        sbc a, a
+        inc a
+        rla
+        rla
+        or h
+        ld h, a
 
         ; Mixer
         LD A, 7
