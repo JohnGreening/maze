@@ -73,69 +73,46 @@ MACRO AY_VOLUME argChannel
         OUT (C), A
         ENDM
 
-; ---- fold one channel's flags into the mixer accumulator in C ----
-MACRO AY_MIX flagVar, tableOffset
-        LD HL, mixerFlags + tableOffset
-        LD A, (flagVar)
-        AND %00000011
-        ADD HL, A
-        LD A, (HL)
-        AND C
-        LD C, A
-        ENDM
-
-; ---- age a channel; silence it when its note length hits 0 ----
-;      pass a unique end-label name per channel (sjasmplus substitutes it textually)
-MACRO AY_TIMEOUT endLbl, lengthVar, flagsVar, volVar, volDVar
-        LD A, (lengthVar)
-        DEC A
-        JR NZ, endLbl
-        LD (flagsVar), A            ; A = 0 -> flags off
-        LD HL, 0
-        LD (volVar), HL
-        LD (volDVar), HL
-endLbl:
-        LD (lengthVar), A
-        ENDM
-
-
 playsound:
 ; Input : A = sound fx to play
 ;
-; routine will choose next available channel and copy sound fx to that channel
+; routine will rotate next available channel (even if still playing) and copy sound fx to that channel
 ; IM2 will then process that data
         PUSH HL
         PUSH DE
         PUSH BC
 
-        DEC A
-        ADD A, A
-        ADD A, A
-        ADD A, A
-        ADD A, A
+        ; source for the sound effect is: sound1 + (fx-1) * 10 (sound effect record length)
+        DEC A                                       ; do the fx-1
+        LD E, A
+        ADD A, A                                    ; now * 2
+        ADD A, A                                    ; * 4
+        ADD A, E                                    ; * 5 (i.e. +n)
+        ADD A, A                                    ; * 10
+        LD HL, sound1                               ; point to base of data
+        ADD HL, A                                   ; and add the offset to get to fx
 
-        LD HL, sound1
-        ADD HL, A
+        ; destination is: ch1 + nextCH * 10
+        LD A, (nextCH)                              ; whats the nextCH to use
+        ld e, a                                     ; save it (0, 1 or 2)
+        add a, a                                    ; * 2
+        add a, a                                    ; * 4
+        add a, e                                    ; * 5 (i.e. +n)
+        add a, a                                    ; * 10        
+        ld de, Ch1                                  ; point to base of data
+        add de, a                                   ; and add the offset to get Ch1, Ch2 or Ch3
 
-        LD A, (nextCH)                      ; whats the nextCH to use
-        CP 0                                ; is it 0?
-        JR Z, playCh1                       ; jump if so
-        CP 1                                ; is it 1?
-        JR Z, playCh2                       ; jump if so
-        LD A, 255                           ; its 2, set next so its 0
-        LD DE, Ch3                          ; set AY channel to 3
-        JR play                             ; and branch to do the sound setup
-playCh1:
-        LD DE, Ch1                          ; set the AY channel to 1
-        JR play                             ; and branch to do the sound setup
-playCh2:
-        LD DE, Ch2                          ; set the AY channel to 2
-play:
-        INC A                               ; roll on nextCH
-        LD (nextCH), A                      ; and save it
-        LD BC, 10                           ; we copy 10 bytes of sound setup
-        LDIR                                ; do the copy
+        LD BC, 10                                   ; we copy 10 bytes of sound setup
+        LDIR                                        ; do the copy
 
+        ld a, (nextCH)                              ; ready to rotate for next fx
+        inc a                                       ; point to next 
+        cp 3                                        ; only channel values of 0, 1 or 2 are valid
+        jr c, .store                                ; branch if ok 
+        xor a                                       ; reset to 0 (wrap 3 -> 0)
+.store
+        ld (nextCH), a                              ; save it back
+        
         POP BC
         POP DE
         POP HL
@@ -148,7 +125,6 @@ sound1:
 ; volume delta
 ; tone, noise, envelope flags
 ; length in frames (50hz)
-; filler to make each 16 bytes long
 
 ; hit head sound
         DW 500
@@ -157,7 +133,6 @@ sound1:
         DW 20
         DB %00000001
         DB 5
-        DB 0,0,0,0,0,0
 
 ; this is the pop sound
 sound2:
@@ -167,7 +142,6 @@ sound2:
         DW -20
         DB %0000001
         DB 10
-        DB 0,0,0,0,0,0
 
 ; bounce sound
 sound3:
@@ -178,7 +152,6 @@ sound3:
         DB 1
 sound3Dur
         DB 15
-        DB 0,0,0,0,0,0
 
 sound4:
         DW 100
@@ -187,7 +160,6 @@ sound4:
         DW -100
         DB 3
         DB 5
-        DB 0,0,0,0,0,0
 
 ; item hit sound
 sound5:
@@ -197,7 +169,6 @@ sound5:
         DW 20
         DB %0000001
         DB 10
-        DB 0,0,0,0,0,0
 
 ; kill skull sound
 sound6:
@@ -207,7 +178,6 @@ sound6:
         DW 20
         DB %11111111
         DB 100
-        DB 0,0,0,0,0,0
 
 nextCH:      DB 0
 
@@ -253,11 +223,6 @@ mixerFlag       equ 7
 frameCount   DB $01                         ; interrupt count for note set
 framePointer DW frameTable                  ; pointer to the ic and note set
 volume       DB %00001111                   ; volume
-
-mixerFlags  
-                db %11111111, %11111110, %11110111, %11110110
-                db %11111111, %11111101, %11101111, %11101101
-                db %11111111, %11111011, %11011111, %11011011
 
 
 soundHithead   EQU 1
