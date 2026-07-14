@@ -95,19 +95,6 @@ noFlood:
         AY_VOLUME 'C'
 
 
-; set the AY mixer value depending on ch1Flags, ch2Flags & ch3Flags
-; these control the tone and noise flags in main AY mixer setting
-; mapping is as follows and we negate the Ch1/2/3Flag setting
-; Ch1Flags
-; 0 -> 0        move bit 0 of ch1Flags to bit 0 of AYchip flag
-; 1 -> 3        move bit 1 of ch1Flags to bit 3 of AYChip flag
-; Ch2Flags
-; 0 -> 1
-; 1 -> 4
-; Ch3Flags
-; 0 -> 2
-; 1 -> 5
-
 ; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
 ; ChNFlags: bit0 = tone-on, bit1 = noise-on.
 ; Gather each channel's tone bit into E and noise bit into D, then place & invert.
@@ -130,19 +117,19 @@ ch1Update:
         ld hl, Ch1Length                            ; get the Ch1 sound length
         dec (hl)                                    ; -1 (will roll to 255)
         jr nz, ch2Update                            ; branch if it's not zero
-        dec hl                                      ; point to Ch1 flags
-        ld (hl), 0                                  ; set to 0 (bit 0= tone enable, bit 1= noise enable)
+        inc hl                                      ; point to Ch1 flags
+        ld (hl), 0                                  ; set to 0 to disable sound for this channel
 ch2Update:
         ld hl, Ch2Length
         dec (hl)
         jr nz, ch3Update
-        dec hl
+        inc hl
         ld (hl), 0
 ch3Update:
         ld hl, Ch3Length
         dec (hl)
         jr nz, chFinished
-        dec hl
+        inc hl
         ld (hl), 0
 chFinished:
 

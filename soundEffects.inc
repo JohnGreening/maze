@@ -171,7 +171,7 @@ sound3:
         DW -100
 soundDur:
         DB 15
-        DB 1
+        DB %00000001
 
 sound4:
         DW 100
@@ -179,7 +179,7 @@ sound4:
         DW 15*256
         DW -100
         DB 5
-        DB 3
+        DB %00000011
 
 ; item hit sound
 sound5:
