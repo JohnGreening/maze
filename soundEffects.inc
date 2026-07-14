@@ -32,13 +32,15 @@ MACRO AY_TONE argChannel
 
         ; set A to the port register for the high byte tone value
         ; it's dependent on the AY chip Channel, i.e. A, B or C
-        IF argChannel = 'A'
-            ld a, 1
-        ELSEIF argChannel = 'B'
-            ld a, 3
-        ELSEIF argChannel = 'C'
-            ld a, 5
-        ENDIF
+        ; since we've already set the low byte value, the register for the high byte is simply +1
+        inc a
+;        IF argChannel = 'A'
+;            ld a, 1
+;        ELSEIF argChannel = 'B'
+;            ld a, 3
+;        ELSEIF argChannel = 'C'
+;            ld a, 5
+;        ENDIF
         OUT (C), A
 
         ; AY chip ia now ready to accept the tone (high byte) value held in H
@@ -102,8 +104,21 @@ playsound:
         ld de, Ch1                                  ; point to base of data
         add de, a                                   ; and add the offset to get Ch1, Ch2 or Ch3
 
-        LD BC, 10                                   ; we copy 10 bytes of sound setup
+        LD BC, 9                                    ; we copy first 9 bytes of sound setup
         LDIR                                        ; do the copy
+
+        ; HL now points to mixer flag settings for this sound
+        ; DE points to the equivalent CHn setting
+        ld a, (hl)                                  ; point to mixer/flags for this sound (bit 0=tone on, bit 1=noise on)
+        ld b, a                                     ; save in B
+        ld hl, mixerRemap                           ; point to the mixer remap table
+        ld a, (nextCH)                              ; get the available slot (0,1 or 2)
+        add a, a                                    ; our table has 4 entries for each channel, so * 2
+        add a, a                                    ; and * 2
+        add a, b                                    ; add in our Ch(n) offset
+        add hl, a                                   ; add total offset into table
+        ld a, (hl)                                  ; get table value
+        ld (de), a                                  ; put into slot
 
         ld a, (nextCH)                              ; ready to rotate for next fx
         inc a                                       ; point to next 
@@ -118,6 +133,11 @@ playsound:
         POP HL
         RET
 
+mixerRemap:                             ; active-high mixer bits per (channel, flags&3)
+        db %00000000, %00000001, %00001000, %00001001   ; Ch1: tone->b0, noise->b3
+        db %00000000, %00000010, %00010000, %00010010   ; Ch2: tone->b1, noise->b4
+        db %00000000, %00000100, %00100000, %00100100   ; Ch3: tone->b2, noise->b5
+
 sound1:
 ; initial tone period
 ; tone period delta
@@ -131,8 +151,8 @@ sound1:
         DW 10
         DW 15 * 256
         DW 20
-        DB %00000001
         DB 5
+        DB %00000001
 
 ; this is the pop sound
 sound2:
@@ -140,8 +160,8 @@ sound2:
         DW 10
         DW 15*256
         DW -20
-        DB %0000001
         DB 10
+        DB %0000001
 
 ; bounce sound
 sound3:
@@ -149,17 +169,17 @@ sound3:
         DW -10
         DW 15*256
         DW -100
-        DB 1
-sound3Dur
+soundDur:
         DB 15
+        DB 1
 
 sound4:
         DW 100
         DW -10
         DW 15*256
         DW -100
-        DB 3
         DB 5
+        DB 3
 
 ; item hit sound
 sound5:
@@ -167,8 +187,8 @@ sound5:
         DW -10
         DW 15*256
         DW 20
-        DB %0000001
         DB 10
+        DB %0000001
 
 ; kill skull sound
 sound6:
@@ -176,8 +196,8 @@ sound6:
         DW 10
         DW 15*256
         DW 20
-        DB %11111111
         DB 100
+        DB %00000011
 
 nextCH:      DB 0
 
@@ -186,24 +206,24 @@ Ch1Pitch:    DW 0
 Ch1PitchD:   DW 0
 Ch1Volume    DW 00
 Ch1VolumeD:  DW 00
+Ch1Length    DB 0
 Ch1Flags:    DB 0
-Ch1Length:   DB 0
 
 Ch2:
 Ch2Pitch:    DW 00
 Ch2PitchD:   DW 00
 Ch2Volume    DW 00
 Ch2VolumeD:  DW 00
+Ch2Length    DB 0
 Ch2Flags:    DB 0
-Ch2Length:   DB 0
 
 Ch3:
 Ch3Pitch:    DW 00
 Ch3PitchD:   DW 00
 Ch3Volume    DW 00
 Ch3VolumeD:  DW 00
+Ch3Length    DB 0
 Ch3Flags:    DB 0
-Ch3Length:   DB 0
 
 AYSelect        EQU $FFFD
 AYrw            EQU $bffd

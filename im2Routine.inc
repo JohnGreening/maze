@@ -111,30 +111,20 @@ noFlood:
 ; ---- AY mixer (reg 7): 0 = enabled. tone A/B/C = bits 0-2, noise A/B/C = bits 3-5 ----
 ; ChNFlags: bit0 = tone-on, bit1 = noise-on.
 ; Gather each channel's tone bit into E and noise bit into D, then place & invert.
-        ld d, 0                                     ; D = noise bits (will land in mixer bits 3-5)
-        ld e, 0                                     ; E = tone  bits (mixer bits 0-2)
-
-        ld a, (Ch3Flags)                            ; process 3,2,1 so channel 1 ends up in bit 0
-        rra : rl e                                  ; tone3  -> E
-        rra : rl d                                  ; noise3 -> D
-        ld a, (Ch2Flags)
-        rra : rl e                                  ; tone2
-        rra : rl d                                  ; noise2
+; --- AY1 mixer: OR the three channels' pre-positioned flag bits, then invert ---
         ld a, (Ch1Flags)
-        rra : rl e                                  ; tone1
-        rra : rl d                                  ; noise1
-
-        ld a, d
-        add a,a : add a,a : add a,a                 ; noise bits up to positions 3-5
-        or e                                        ; + tone bits 0-2  = active-high enables
-        cpl                                         ; invert: 0=enable; bits 6,7 -> 1 (I/O input)
-
+        ld b, a
+        ld a, (Ch2Flags)
+        or b
+        ld b, a
+        ld a, (Ch3Flags)
+        or b
+        cpl                         ; 0 = enable; bits 6,7 -> 1 (I/O input)
         ld bc, AYSelect
         ld d, mixerFlag
         out (c), d
         ld bc, AYrw
         out (c), a
-
 
 ch1Update:
         ld hl, Ch1Length                            ; get the Ch1 sound length
@@ -145,7 +135,7 @@ ch1Update:
 ch2Update:
         ld hl, Ch2Length
         dec (hl)
-        jr nz, ch2Update
+        jr nz, ch3Update
         dec hl
         ld (hl), 0
 ch3Update:
